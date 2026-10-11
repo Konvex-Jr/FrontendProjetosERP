@@ -1,0 +1,19 @@
+{
+ "hoje": "2026-10-07",
+ "perfis": [
+  "diretor",
+  "gerente",
+  "membro"
+ ],
+ "senioridades": {
+  "junior": "Júnior",
+  "pleno": "Pleno",
+  "senior": "Sênior"
+ },
+ "valorHora": {
+  "junior": 45,
+  "pleno": 75,
+  "senior": 120
+ },
+ "senhaDemo": "123456"
+}

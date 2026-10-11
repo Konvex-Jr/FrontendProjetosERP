@@ -1,0 +1,29 @@
+[
+ {
+  "id": 1,
+  "usuarioId": 4,
+  "semana": "2026-09-28",
+  "humor": 4,
+  "resumo": "Semana produtiva, entreguei o protótipo no prazo.",
+  "aprendizados": "Aprendi a organizar melhor os componentes.",
+  "sentimento": "Motivado e confiante."
+ },
+ {
+  "id": 2,
+  "usuarioId": 5,
+  "semana": "2026-09-28",
+  "humor": 3,
+  "resumo": "Muitas reuniões, pouco tempo de foco.",
+  "aprendizados": "Preciso bloquear horários na agenda.",
+  "sentimento": "Um pouco sobrecarregada."
+ },
+ {
+  "id": 3,
+  "usuarioId": 4,
+  "semana": "2026-10-05",
+  "humor": 5,
+  "resumo": "Fechamos a primeira sprint do ERP.",
+  "aprendizados": "Pair programming ajuda muito.",
+  "sentimento": "Orgulhoso do time."
+ }
+]

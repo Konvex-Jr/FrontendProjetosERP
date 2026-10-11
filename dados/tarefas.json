@@ -1,0 +1,165 @@
+[
+    {
+        "id": 1,
+        "projetoId": 1,
+        "titulo": "Mapear fluxos de login",
+        "inicio": "2026-09-21",
+        "fim": "2026-09-25",
+        "status": "concluida",
+        "conclusao": "2026-09-28",
+        "responsaveis": [
+            2
+        ],
+        "prioridade": "P2"
+    },
+    {
+        "id": 2,
+        "projetoId": 1,
+        "titulo": "Protótipo das telas",
+        "inicio": "2026-09-28",
+        "fim": "2026-10-02",
+        "status": "concluida",
+        "conclusao": "2026-10-01",
+        "responsaveis": [
+            5
+        ],
+        "prioridade": "P3"
+    },
+    {
+        "id": 3,
+        "projetoId": 1,
+        "titulo": "API de faturas",
+        "inicio": "2026-10-05",
+        "fim": "2026-10-06",
+        "status": "andamento",
+        "responsaveis": [
+            2,
+            4
+        ],
+        "prioridade": "P1"
+    },
+    {
+        "id": 4,
+        "projetoId": 1,
+        "titulo": "Tela de chamados",
+        "inicio": "2026-10-12",
+        "fim": "2026-10-16",
+        "status": "pendente",
+        "responsaveis": [
+            5
+        ],
+        "prioridade": "P3"
+    },
+    {
+        "id": 5,
+        "projetoId": 1,
+        "titulo": "Testes de aceitação",
+        "inicio": "2026-10-19",
+        "fim": "2026-10-23",
+        "status": "pendente",
+        "responsaveis": [
+            2,
+            5
+        ],
+        "prioridade": "P2"
+    },
+    {
+        "id": 6,
+        "projetoId": 1,
+        "titulo": "Publicação em produção",
+        "inicio": "2026-10-26",
+        "fim": "2026-10-30",
+        "status": "pendente",
+        "responsaveis": [
+            4
+        ],
+        "prioridade": "P1"
+    },
+    {
+        "id": 7,
+        "projetoId": 2,
+        "titulo": "Inventário de servidores",
+        "inicio": "2026-09-28",
+        "fim": "2026-10-02",
+        "status": "concluida",
+        "conclusao": "2026-10-02",
+        "responsaveis": [
+            4
+        ],
+        "prioridade": "P3"
+    },
+    {
+        "id": 8,
+        "projetoId": 2,
+        "titulo": "Desenho da arquitetura",
+        "inicio": "2026-10-05",
+        "fim": "2026-10-09",
+        "status": "andamento",
+        "responsaveis": [
+            3
+        ],
+        "prioridade": "P1"
+    },
+    {
+        "id": 9,
+        "projetoId": 2,
+        "titulo": "Migrar banco de dados",
+        "inicio": "2026-10-12",
+        "fim": "2026-10-23",
+        "status": "pendente",
+        "responsaveis": [
+            6
+        ],
+        "prioridade": "P2"
+    },
+    {
+        "id": 10,
+        "projetoId": 2,
+        "titulo": "Configurar backups",
+        "inicio": "2026-10-19",
+        "fim": "2026-10-30",
+        "status": "pendente",
+        "responsaveis": [
+            4
+        ],
+        "prioridade": "P3"
+    },
+    {
+        "id": 11,
+        "projetoId": 2,
+        "titulo": "Desligar servidores antigos",
+        "inicio": "2026-11-02",
+        "fim": "2026-11-13",
+        "status": "pendente",
+        "responsaveis": [
+            3
+        ],
+        "prioridade": "P4"
+    },
+    {
+        "id": 12,
+        "projetoId": 3,
+        "titulo": "Criar peças gráficas",
+        "inicio": "2026-08-24",
+        "fim": "2026-09-11",
+        "status": "concluida",
+        "conclusao": "2026-09-10",
+        "responsaveis": [
+            5
+        ],
+        "prioridade": "P3"
+    },
+    {
+        "id": 13,
+        "projetoId": 3,
+        "titulo": "Calendário de publicações",
+        "inicio": "2026-09-14",
+        "fim": "2026-09-25",
+        "status": "concluida",
+        "conclusao": "2026-09-24",
+        "responsaveis": [
+            3
+        ],
+        "prioridade": "P4"
+    }
+]

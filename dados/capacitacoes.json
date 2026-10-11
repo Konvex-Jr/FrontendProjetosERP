@@ -1,0 +1,100 @@
+[
+ {
+  "id": 1,
+  "titulo": "Introdução a Git",
+  "data": "2026-10-14",
+  "hora": "14:00",
+  "instrutor": "Rafael Souza",
+  "vagas": 10,
+  "inscritos": [
+   4,
+   5
+  ],
+  "tipo": "computacao",
+  "sala": "Sala 2"
+ },
+ {
+  "id": 2,
+  "titulo": "Tolerâncias e ajustes mecânicos",
+  "data": "2026-10-21",
+  "hora": "10:00",
+  "instrutor": "Bruno Lima",
+  "vagas": 20,
+  "inscritos": [
+   2
+  ],
+  "tipo": "mecanica",
+  "sala": "Oficina 1"
+ },
+ {
+  "id": 3,
+  "titulo": "Fundamentos de nuvem",
+  "data": "2026-10-21",
+  "hora": "15:00",
+  "instrutor": "Bruno Lima",
+  "vagas": 3,
+  "inscritos": [
+   3,
+   4,
+   5
+  ],
+  "tipo": "computacao",
+  "sala": "Sala 1"
+ },
+ {
+  "id": 4,
+  "titulo": "Instalações elétricas e NR-10",
+  "data": "2026-10-28",
+  "hora": "09:00",
+  "instrutor": "Helena Prado",
+  "vagas": 8,
+  "inscritos": [
+   2,
+   3
+  ],
+  "tipo": "eletrica",
+  "sala": "Laboratório 3"
+ },
+ {
+  "id": 5,
+  "titulo": "Soldagem de componentes SMD",
+  "data": "2026-11-04",
+  "hora": "16:00",
+  "instrutor": "Diego Alves",
+  "vagas": 30,
+  "inscritos": [],
+  "tipo": "eletrica",
+  "sala": "Laboratório 3"
+ },
+ {
+  "id": 6,
+  "titulo": "Boas práticas de code review",
+  "data": "2026-09-30",
+  "hora": "14:00",
+  "instrutor": "Rafael Souza",
+  "vagas": 12,
+  "inscritos": [
+   2,
+   3,
+   4,
+   5
+  ],
+  "tipo": "computacao",
+  "sala": "Sala 2"
+ },
+ {
+  "id": 7,
+  "titulo": "Introdução a CAD 3D",
+  "data": "2026-09-16",
+  "hora": "10:00",
+  "instrutor": "Bruno Lima",
+  "vagas": 15,
+  "inscritos": [
+   2,
+   4,
+   5
+  ],
+  "tipo": "mecanica",
+  "sala": "Oficina 1"
+ }
+]

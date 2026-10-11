@@ -1,0 +1,40 @@
+[
+    {
+        "id": 1,
+        "nome": "Portal do Cliente",
+        "descricao": "Nova área logada com faturas e chamados.",
+        "inicio": "2026-09-21",
+        "fim": "2026-10-30",
+        "status": "em_execucao",
+        "membros": [
+            2,
+            4,
+            5
+        ]
+    },
+    {
+        "id": 2,
+        "nome": "Migração para Nuvem",
+        "descricao": "Mover servidores internos para a nuvem.",
+        "inicio": "2026-09-28",
+        "fim": "2026-11-13",
+        "status": "em_execucao",
+        "membros": [
+            3,
+            4,
+            6
+        ]
+    },
+    {
+        "id": 3,
+        "nome": "Campanha de Outono",
+        "descricao": "Peças e calendário da campanha sazonal.",
+        "inicio": "2026-08-24",
+        "fim": "2026-09-25",
+        "status": "concluido",
+        "membros": [
+            3,
+            5
+        ]
+    }
+]

@@ -1,0 +1,29 @@
+[
+ {
+  "id": 1,
+  "capId": 6,
+  "usuarioId": 4,
+  "nota": 5,
+  "bom": "Exemplos reais do nosso código deixaram tudo mais claro.",
+  "melhorar": "Poderia ter mais tempo para prática.",
+  "data": "2026-10-01"
+ },
+ {
+  "id": 2,
+  "capId": 6,
+  "usuarioId": 5,
+  "nota": 4,
+  "bom": "Ótima didática e checklist de revisão.",
+  "melhorar": "Dividir em duas sessões mais curtas.",
+  "data": "2026-10-01"
+ },
+ {
+  "id": 3,
+  "capId": 7,
+  "usuarioId": 4,
+  "nota": 4,
+  "bom": "Bom ritmo e material de apoio.",
+  "melhorar": "Mais exercícios guiados.",
+  "data": "2026-09-17"
+ }
+]
