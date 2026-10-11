@@ -5,39 +5,223 @@ import Table from '../components/Table'
 import { PageBar } from '../components/Ui'
 import alerts from '../lib/alerts'
 
+const PERFIS_PADRAO = ['diretor', 'gerente', 'membro']
+
+const SENIORIDADES_PADRAO = {
+  junior: 'Júnior',
+  pleno: 'Pleno',
+  senior: 'Sênior',
+}
+
 export default function Usuarios() {
   const { D, up, form } = useApp()
-  const edit = u => form(u ? 'Editar usuário' : 'Novo usuário',
-    [{ k: 'nome', l: 'Nome' }, { k: 'email', l: 'E-mail', t: 'email' }, { k: 'senha', l: 'Senha inicial', t: 'password', s: () => !u }, { k: 'perfil', l: 'Perfil', o: D.c.perfis.map(p => [p, p]) }, { k: 'senioridade', l: 'Senioridade', o: Object.entries(D.c.senioridades), s: v => v.perfil == 'membro' }],
-    u || { perfil: 'membro', senioridade: 'junior' },
-    o => {
-      const q = { ...o, senioridade: o.perfil == 'membro' ? o.senioridade || 'junior' : undefined }
-      up('u', a => u ? a.map(x => x.id == u.id ? { ...x, ...q } : x) : [...a, { id: nid(a), ativo: true, ...q }])
-    })
-  const set = async (u, o) => {
-    if (o.ativo === false && u.ativo) {
-      const confirmed = await alerts.confirm({ title: 'Inativar usuário?', text: `${u.nome} perderá o acesso ao sistema.`, confirmText: 'Inativar', danger: true })
-      if (!confirmed) return
+
+  const perfis = D?.c?.perfis ?? PERFIS_PADRAO
+  const senioridades = D?.c?.senioridades ?? SENIORIDADES_PADRAO
+  const usuarios = D?.u ?? []
+
+  const editar = usuario =>
+    form(
+      usuario ? 'Editar usuário' : 'Novo usuário',
+      [
+        { k: 'nome', l: 'Nome' },
+        { k: 'email', l: 'E-mail', t: 'email' },
+        {
+          k: 'senha',
+          l: 'Senha inicial',
+          t: 'password',
+          s: () => !usuario,
+        },
+        {
+          k: 'perfil',
+          l: 'Perfil',
+          o: perfis.map(perfil => [perfil, perfil]),
+        },
+        {
+          k: 'senioridade',
+          l: 'Senioridade',
+          o: Object.entries(senioridades),
+          s: valores => valores.perfil === 'membro',
+        },
+      ],
+      usuario || {
+        perfil: 'membro',
+        senioridade: 'junior',
+      },
+      valores => {
+        const dados = {
+          ...valores,
+          senioridade:
+            valores.perfil === 'membro'
+              ? valores.senioridade || 'junior'
+              : undefined,
+        }
+
+        up('u', atuais =>
+          usuario
+            ? atuais.map(item =>
+              item.id === usuario.id
+                ? { ...item, ...dados }
+                : item
+            )
+            : [
+              ...atuais,
+              {
+                id: nid(atuais),
+                ativo: true,
+                ...dados,
+              },
+            ]
+        )
+      }
+    )
+
+  const alterarStatus = async (usuario, alteracoes) => {
+    if (alteracoes.ativo === false && usuario.ativo) {
+      const confirmado = await alerts.confirm({
+        title: 'Inativar usuário?',
+        text: `${usuario.nome} perderá o acesso ao sistema.`,
+        confirmText: 'Inativar',
+        danger: true,
+      })
+
+      if (!confirmado) return
     }
-    if (o.ativo === true && !u.ativo) {
-      await alerts.info('Reativação indisponível', 'A API atual não disponibiliza uma rota para reativar usuários inativos.')
+
+    if (alteracoes.ativo === true && !usuario.ativo) {
+      await alerts.info(
+        'Reativação indisponível',
+        'A API atual não disponibiliza uma rota para reativar usuários inativos.'
+      )
       return
     }
-    const changes = o.perfil === 'membro' && !u.senioridade ? { ...o, senioridade: 'junior' } : o
-    up('u', a => a.map(x => x.id == u.id ? { ...x, ...changes } : x))
+
+    const alteracoesFinais =
+      alteracoes.perfil === 'membro' && !usuario.senioridade
+        ? { ...alteracoes, senioridade: 'junior' }
+        : alteracoes
+
+    up('u', atuais =>
+      atuais.map(item =>
+        item.id === usuario.id
+          ? { ...item, ...alteracoesFinais }
+          : item
+      )
+    )
   }
-  const cols = [
-    { k: 'nome', l: 'Nome' },
-    { k: 'email', l: 'E-mail' },
-    { k: 'perfil', l: 'Perfil', filter: 1, render: u => <select className="form-select form-select-sm auto" aria-label={'Perfil de ' + u.nome} value={u.perfil} onChange={e => set(u, { perfil: e.target.value })}>{D.c.perfis.map(p => <option key={p}>{p}</option>)}</select> },
-    { k: 'sn', l: 'Senioridade', filter: 1, get: u => u.perfil == 'membro' ? D.c.senioridades[u.senioridade] || '—' : '—', render: u => u.perfil == 'membro' ? <select className="form-select form-select-sm auto" aria-label={'Senioridade de ' + u.nome} value={u.senioridade || 'junior'} onChange={e => set(u, { senioridade: e.target.value })}>{Object.entries(D.c.senioridades).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select> : <small>—</small> },
-    { k: 'st', l: 'Status', filter: 1, get: u => u.ativo ? 'Ativo' : 'Inativo', render: u => <span className={chip(u.ativo ? 'ok' : 'er')}>{u.ativo ? 'Ativo' : 'Inativo'}</span> },
-    { l: 'Ações', render: u => <div className="d-flex gap-2"><button className="btn btn-g btn-sm" onClick={() => edit(u)}>Editar</button>{u.ativo && <button className="btn btn-g btn-sm" onClick={() => set(u, { ativo: false })}>Inativar</button>}</div> }
+
+  const colunas = [
+    {
+      k: 'nome',
+      l: 'Nome',
+    },
+    {
+      k: 'email',
+      l: 'E-mail',
+    },
+    {
+      k: 'perfil',
+      l: 'Perfil',
+      filter: 1,
+      render: usuario => (
+        <select
+          className="form-select form-select-sm auto"
+          aria-label={`Perfil de ${usuario.nome}`}
+          value={usuario.perfil}
+          onChange={evento =>
+            alterarStatus(usuario, {
+              perfil: evento.target.value,
+            })
+          }
+        >
+          {perfis.map(perfil => (
+            <option key={perfil} value={perfil}>
+              {perfil}
+            </option>
+          ))}
+        </select>
+      ),
+    },
+    {
+      k: 'sn',
+      l: 'Senioridade',
+      filter: 1,
+      get: usuario =>
+        usuario.perfil === 'membro'
+          ? senioridades[usuario.senioridade] || '—'
+          : '—',
+      render: usuario =>
+        usuario.perfil === 'membro' ? (
+          <select
+            className="form-select form-select-sm auto"
+            aria-label={`Senioridade de ${usuario.nome}`}
+            value={usuario.senioridade || 'junior'}
+            onChange={evento =>
+              alterarStatus(usuario, {
+                senioridade: evento.target.value,
+              })
+            }
+          >
+            {Object.entries(senioridades).map(([chave, nome]) => (
+              <option key={chave} value={chave}>
+                {nome}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <small>—</small>
+        ),
+    },
+    {
+      k: 'st',
+      l: 'Status',
+      filter: 1,
+      get: usuario => (usuario.ativo ? 'Ativo' : 'Inativo'),
+      render: usuario => (
+        <span className={chip(usuario.ativo ? 'ok' : 'er')}>
+          {usuario.ativo ? 'Ativo' : 'Inativo'}
+        </span>
+      ),
+    },
+    {
+      l: 'Ações',
+      render: usuario => (
+        <div className="d-flex gap-2">
+          <button
+            className="btn btn-g btn-sm"
+            onClick={() => editar(usuario)}
+          >
+            Editar
+          </button>
+
+          {usuario.ativo && (
+            <button
+              className="btn btn-g btn-sm"
+              onClick={() =>
+                alterarStatus(usuario, { ativo: false })
+              }
+            >
+              Inativar
+            </button>
+          )}
+        </div>
+      ),
+    },
   ]
+
   return (
     <>
-      <PageBar title="Usuários"><button className="btn btn-primary" onClick={() => edit()}><Ic k="plus" />Novo usuário</button></PageBar>
-      <Table cols={cols} rows={D.u} />
+      <PageBar title="Usuários">
+        <button
+          className="btn btn-primary"
+          onClick={() => editar()}
+        >
+          <Ic k="plus" />
+          Novo usuário
+        </button>
+      </PageBar>
+
+      <Table cols={colunas} rows={usuarios} />
     </>
   )
 }

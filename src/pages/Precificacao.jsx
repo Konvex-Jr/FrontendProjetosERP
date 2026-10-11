@@ -4,56 +4,276 @@ import { brl, chip } from '../lib/utils'
 import Multi from '../components/Multi'
 import { PageBar } from '../components/Ui'
 
+const SENIORIDADES_PADRAO = {
+  junior: 'Júnior',
+  pleno: 'Pleno',
+  senior: 'Sênior',
+}
+
+const VALORES_HORA_PADRAO = {
+  junior: 0,
+  pleno: 0,
+  senior: 0,
+}
+
 export default function Precificacao() {
   const { D } = useApp()
-  const S = D.c.senioridades, ms = D.u.filter(u => u.ativo && u.perfil == 'membro')
-  const [sel, setSel] = useState(ms.slice(0, 3).map(u => u.id)), [hs, setHs] = useState({}), [vh, setVh] = useState(D.c.valorHora), [mg, setMg] = useState(30), [imp, setImp] = useState(10)
-  const hr = id => hs[id] ?? 40, rate = u => +vh[u.senioridade || 'junior'] || 0, k = (1 + mg / 100) / (1 - Math.min(imp, 99) / 100)
-  const L = sel.map(id => D.u.find(u => u.id == id)).filter(Boolean)
-  const horas = L.reduce((s, u) => s + hr(u.id), 0), custo = L.reduce((s, u) => s + hr(u.id) * rate(u), 0), base = custo * (1 + mg / 100), preco = custo * k
-  const num = (f, max) => e => f(Math.min(max ?? 1e9, Math.max(0, +e.target.value)))
+
+  const senioridades = D?.c?.senioridades ?? SENIORIDADES_PADRAO
+  const membros = (D?.u ?? []).filter(
+    u => u.ativo && u.perfil === 'membro'
+  )
+
+  const [selecionados, setSelecionados] = useState([])
+  const [horasPorMembro, setHorasPorMembro] = useState({})
+  const [valoresHora, setValoresHora] = useState(
+    () => D?.c?.valorHora ?? VALORES_HORA_PADRAO
+  )
+  const [margem, setMargem] = useState(30)
+  const [impostos, setImpostos] = useState(10)
+
+  const horas = id => horasPorMembro[id] ?? 40
+
+  const valorHora = usuario =>
+    Number(valoresHora?.[usuario.senioridade || 'junior']) || 0
+
+  const fatorPreco =
+    (1 + margem / 100) /
+    (1 - Math.min(impostos, 99) / 100)
+
+  const equipe = selecionados
+    .map(id => membros.find(u => u.id === id))
+    .filter(Boolean)
+
+  const totalHoras = equipe.reduce(
+    (total, usuario) => total + horas(usuario.id),
+    0
+  )
+
+  const custoTotal = equipe.reduce(
+    (total, usuario) =>
+      total + horas(usuario.id) * valorHora(usuario),
+    0
+  )
+
+  const precoBase = custoTotal * (1 + margem / 100)
+  const precoFinal = custoTotal * fatorPreco
+
+  const limitarValor = (atualizar, maximo = 1e9) => evento => {
+    const valor = Number(evento.target.value)
+
+    atualizar(
+      Math.min(maximo, Math.max(0, Number.isFinite(valor) ? valor : 0))
+    )
+  }
+
+  const atualizarHoras = (id, valor) => {
+    setHorasPorMembro(atual => ({
+      ...atual,
+      [id]: valor,
+    }))
+  }
+
+  const atualizarValorHora = (senioridade, valor) => {
+    setValoresHora(atual => ({
+      ...atual,
+      [senioridade]: valor,
+    }))
+  }
+
   return (
     <>
-      <PageBar title="Simular precificação" sub="Escolha a equipe, defina as horas e veja o valor hora de cada membro por senioridade." />
+      <PageBar
+        title="Simular precificação"
+        sub="Escolha a equipe, defina as horas e veja o valor hora de cada membro por senioridade."
+      />
+
       <div className="row g-3">
-        <div className="col-lg-8"><div className="card card-body">
-          <div className="form-label">Membros da proposta</div>
-          <Multi opts={ms} value={sel} onChange={setSel} />
-          {L.length ? (
-            <div className="tw mt-3">
-              <table className="table align-middle">
-                <thead><tr>{['Membro', 'Senioridade', 'Valor hora (custo)', 'Valor hora (venda)', 'Horas', 'Subtotal (venda)'].map(h => <th key={h} className="n">{h}</th>)}</tr></thead>
-                <tbody>{L.map(u => (
-                  <tr key={u.id}>
-                    <td>{u.nome}</td><td><span className={chip()}>{S[u.senioridade || 'junior']}</span></td>
-                    <td>{brl(rate(u))}</td><td>{brl(rate(u) * k)}</td>
-                    <td><input className="form-control" type="number" min="0" aria-label={'Horas de ' + u.nome} value={hr(u.id)} onChange={num(n => setHs(o => ({ ...o, [u.id]: n })))} /></td>
-                    <td><b>{brl(hr(u.id) * rate(u) * k)}</b></td>
-                  </tr>))}
-                </tbody>
-                <tfoot><tr><td colSpan="4"><b>Total</b></td><td><b>{horas} h</b></td><td><b>{brl(preco)}</b></td></tr></tfoot>
-              </table>
-            </div>
-          ) : <p className="mt-3 mb-0"><small>Selecione ao menos um membro para simular.</small></p>}
-        </div></div>
+        <div className="col-lg-8">
+          <div className="card card-body">
+            <div className="form-label">Membros da proposta</div>
+
+            <Multi
+              opts={membros}
+              value={selecionados}
+              onChange={setSelecionados}
+            />
+
+            {equipe.length > 0 ? (
+              <div className="tw mt-3">
+                <table className="table align-middle">
+                  <thead>
+                    <tr>
+                      {[
+                        'Membro',
+                        'Senioridade',
+                        'Valor hora (custo)',
+                        'Valor hora (venda)',
+                        'Horas',
+                        'Subtotal (venda)',
+                      ].map(titulo => (
+                        <th key={titulo} className="n">
+                          {titulo}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {equipe.map(usuario => (
+                      <tr key={usuario.id}>
+                        <td>{usuario.nome}</td>
+
+                        <td>
+                          <span className={chip()}>
+                            {
+                              senioridades[
+                              usuario.senioridade || 'junior'
+                              ]
+                            }
+                          </span>
+                        </td>
+
+                        <td>{brl(valorHora(usuario))}</td>
+
+                        <td>{brl(valorHora(usuario) * fatorPreco)}</td>
+
+                        <td>
+                          <input
+                            className="form-control"
+                            type="number"
+                            min="0"
+                            aria-label={`Horas de ${usuario.nome}`}
+                            value={horas(usuario.id)}
+                            onChange={evento =>
+                              atualizarHoras(
+                                usuario.id,
+                                Math.max(0, Number(evento.target.value) || 0)
+                              )
+                            }
+                          />
+                        </td>
+
+                        <td>
+                          <b>
+                            {brl(
+                              horas(usuario.id) *
+                              valorHora(usuario) *
+                              fatorPreco
+                            )}
+                          </b>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+
+                  <tfoot>
+                    <tr>
+                      <td colSpan="4">
+                        <b>Total</b>
+                      </td>
+                      <td>
+                        <b>{totalHoras} h</b>
+                      </td>
+                      <td>
+                        <b>{brl(precoFinal)}</b>
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            ) : (
+              <p className="mt-3 mb-0">
+                <small>Selecione ao menos um membro para simular.</small>
+              </p>
+            )}
+          </div>
+        </div>
 
         <div className="col-lg-4 d-flex flex-column gap-3">
           <div className="card card-body">
             <h2>Parâmetros</h2>
-            {Object.entries(S).map(([key, l]) => (
-              <label className="form-label w-100 mb-3" key={key}>Valor hora {l} (R$)<input className="form-control mt-1" type="number" min="0" value={vh[key]} onChange={num(n => setVh(o => ({ ...o, [key]: n })))} /></label>
+
+            {Object.entries(senioridades).map(([chave, nome]) => (
+              <label
+                className="form-label w-100 mb-3"
+                key={chave}
+              >
+                Valor hora {nome} (R$)
+
+                <input
+                  className="form-control mt-1"
+                  type="number"
+                  min="0"
+                  value={valoresHora[chave] ?? 0}
+                  onChange={evento =>
+                    atualizarValorHora(
+                      chave,
+                      Math.max(0, Number(evento.target.value) || 0)
+                    )
+                  }
+                />
+              </label>
             ))}
-            <label className="form-label w-100 mb-3">Margem (%)<input className="form-control mt-1" type="number" min="0" value={mg} onChange={num(setMg)} /></label>
-            <label className="form-label w-100 m-0">Impostos (%)<input className="form-control mt-1" type="number" min="0" max="99" value={imp} onChange={num(setImp, 99)} /></label>
+
+            <label className="form-label w-100 mb-3">
+              Margem (%)
+
+              <input
+                className="form-control mt-1"
+                type="number"
+                min="0"
+                value={margem}
+                onChange={limitarValor(setMargem)}
+              />
+            </label>
+
+            <label className="form-label w-100 m-0">
+              Impostos (%)
+
+              <input
+                className="form-control mt-1"
+                type="number"
+                min="0"
+                max="99"
+                value={impostos}
+                onChange={limitarValor(setImpostos, 99)}
+              />
+            </label>
           </div>
+
           <div className="card card-body">
             <h2>Resultado</h2>
-            <div className="pl"><span>Horas totais</span><b>{horas} h</b></div>
-            <div className="pl"><span>Custo da equipe</span><b>{brl(custo)}</b></div>
-            <div className="pl"><span>Margem ({mg}%)</span><b>{brl(base - custo)}</b></div>
-            <div className="pl"><span>Impostos ({imp}%)</span><b>{brl(preco - base)}</b></div>
-            <div className="pv mt-3 mb-1"><small>Preço final da proposta</small><b>{brl(preco)}</b></div>
-            <small>Valor hora médio de venda: {brl(horas ? preco / horas : 0)}</small>
+
+            <div className="pl">
+              <span>Horas totais</span>
+              <b>{totalHoras} h</b>
+            </div>
+
+            <div className="pl">
+              <span>Custo da equipe</span>
+              <b>{brl(custoTotal)}</b>
+            </div>
+
+            <div className="pl">
+              <span>Margem ({margem}%)</span>
+              <b>{brl(precoBase - custoTotal)}</b>
+            </div>
+
+            <div className="pl">
+              <span>Impostos ({impostos}%)</span>
+              <b>{brl(precoFinal - precoBase)}</b>
+            </div>
+
+            <div className="pv mt-3 mb-1">
+              <small>Preço final da proposta</small>
+              <b>{brl(precoFinal)}</b>
+            </div>
+
+            <small>
+              Valor hora médio de venda:{' '}
+              {brl(totalHoras ? precoFinal / totalHoras : 0)}
+            </small>
           </div>
         </div>
       </div>

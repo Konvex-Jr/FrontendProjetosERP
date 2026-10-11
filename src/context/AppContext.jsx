@@ -129,6 +129,11 @@ export function AppProvider({ children }) {
       pleno: 'Pleno',
       senior: 'Sênior',
     },
+    valorHora: {
+      junior: 25,
+      pleno: 35,
+      senior: 50,
+    },
   })
   const loadApiData = async token => {
     const [users, projects, tasks, trainings, checkins, feedbacks, folders] = await Promise.all([
