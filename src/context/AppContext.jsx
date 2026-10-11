@@ -154,9 +154,10 @@ export function AppProvider({ children }) {
     }
   }
 
-  const refresh = async (token = tokenRef.current, config = DF?.c || await readConfig()) => {
+  const refresh = async (token = tokenRef.current, config) => {
+    const resolvedConfig = config || DF?.c || await readConfig()
     const apiData = await loadApiData(token)
-    const next = { c: config, ...apiData }
+    const next = { c: resolvedConfig, ...apiData }
     dataRef.current = next
     setD(next)
     return next
