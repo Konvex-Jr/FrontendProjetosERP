@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { BLOQ, NAV, path, iso } from '../lib/utils'
-import { API_ROUTES, request } from '../services/api'
+import { request } from '../services/api'
 import alerts from '../lib/alerts'
 
 const Ctx = createContext(null)
@@ -121,31 +121,29 @@ export function AppProvider({ children }) {
   const dataRef = useRef(null)
   const tokenRef = useRef(sessionStorage.getItem(TOKEN_KEY) || '')
 
-  const readConfig = async () => ({
-    hoje: iso(new Date()),
-    perfis: ['diretor', 'gerente', 'membro'],
-    senioridades: {
-      junior: 'Júnior',
-      pleno: 'Pleno',
-      senior: 'Sênior',
-    },
-    valorHora: {
-      junior: 25,
-      pleno: 35,
-      senior: 50,
-    },
-  })
+  const readConfig = async () => {
+    const registros = await request('/senioridades')
+    const senioridades = Object.fromEntries(registros.map(item => [item.codigo, item.nome]))
+    const valorHora = Object.fromEntries(registros.map(item => [item.codigo, Number(item.valorHora)]))
+    return {
+      hoje: iso(new Date()),
+      perfis: ['diretor', 'gerente', 'membro'],
+      senioridades,
+      valorHora,
+      senioridadesApi: registros,
+    }
+  }
   const loadApiData = async token => {
     const [users, projects, tasks, trainings, checkins, feedbacks, folders] = await Promise.all([
-      request(API_ROUTES.users, { token }),
-      request(API_ROUTES.projects, { token }),
-      request(API_ROUTES.tasks, { token }),
-      request(API_ROUTES.trainings, { token }),
-      request(API_ROUTES.checkins, { token }),
-      request(API_ROUTES.feedbacks, { token }),
-      request(API_ROUTES.folders, { token }),
+      request('/usuarios', { token }),
+      request('/projetos', { token }),
+      request('/tarefas', { token }),
+      request('/capacitacoes', { token }),
+      request('/checkins', { token }),
+      request('/feedbacks', { token }),
+      request('/pastas', { token }),
     ])
-    const documentsByFolder = await Promise.all(folders.map(folder => request(API_ROUTES.folderDocuments(folder.codigo), { token })))
+    const documentsByFolder = await Promise.all(folders.map(folder => request(`/pastas/${folder.codigo}/documentos`, { token })))
     const documents = documentsByFolder.flat().map(adaptDocument)
     return {
       u: users.map(adaptUser),
@@ -301,9 +299,9 @@ export function AppProvider({ children }) {
   const entrar = async (email, senha) => {
     setLoading(true)
     try {
-      const result = await request(API_ROUTES.login, { method: 'POST', body: { email: email.trim().toLowerCase(), senha } })
+      const result = await request('/auth/login', { method: 'POST', body: { email: email.trim().toLowerCase(), senha } })
       if (!result?.token) throw new Error('A API não retornou um token de autenticação.')
-      const users = await request(API_ROUTES.users, { token: result.token })
+      const users = await request('/usuarios', { token: result.token })
       const user = users.map(adaptUser).find(item => item.email.toLowerCase() === email.trim().toLowerCase() && item.ativo)
       if (!user) throw new Error('O login foi aceito, mas não foi possível identificar um usuário ativo com esse e-mail.')
       tokenRef.current = result.token
@@ -346,24 +344,24 @@ export function AppProvider({ children }) {
     const updated = after.filter(item => oldById.has(String(item.id)) && JSON.stringify(item) !== JSON.stringify(oldById.get(String(item.id))))
 
     if (key === 'p') {
-      for (const item of deleted) await request(API_ROUTES.project(item.id), { method: 'DELETE', token })
-      for (const item of created) await request(API_ROUTES.projects, { method: 'POST', token, body: { nome: item.nome, descricao: item.descricao, dataInicio: dateTime(item.inicio), dataFim: dateTime(item.fim), codigosMembros: item.membros || [] } })
+      for (const item of deleted) await request(`/projetos/${item.id}`, { method: 'DELETE', token })
+      for (const item of created) await request('/projetos', { method: 'POST', token, body: { nome: item.nome, descricao: item.descricao, dataInicio: dateTime(item.inicio), dataFim: dateTime(item.fim), codigosMembros: item.membros || [] } })
       for (const item of updated) {
         const old = oldById.get(String(item.id))
         const statusOnly = item.status !== old.status && ['nome', 'descricao', 'inicio', 'fim', 'membros'].every(field => JSON.stringify(item[field]) === JSON.stringify(old[field]))
-        if (statusOnly) await request(API_ROUTES.projectStatus(item.id), { method: 'PATCH', token })
-        else await request(API_ROUTES.project(item.id), { method: 'PUT', token, body: { nome: item.nome, descricao: item.descricao, dataInicio: dateTime(item.inicio), dataFim: dateTime(item.fim), codigosMembros: item.membros || [] } })
+        if (statusOnly) await request(`/projetos/${item.id}/status`, { method: 'PATCH', token })
+        else await request(`/projetos/${item.id}`, { method: 'PUT', token, body: { nome: item.nome, descricao: item.descricao, dataInicio: dateTime(item.inicio), dataFim: dateTime(item.fim), codigosMembros: item.membros || [] } })
       }
     } else if (key === 't') {
-      for (const item of deleted) await request(API_ROUTES.task(item.id), { method: 'DELETE', token })
-      for (const item of created) await request(API_ROUTES.tasks, { method: 'POST', token, body: { codigoProjeto: item.projetoId, titulo: item.titulo, dataInicio: dateTime(item.inicio), dataFim: dateTime(item.fim), prioridade: item.prioridade, descricao: item.descricao || null, codigosResponsaveis: item.responsaveis || [] } })
+      for (const item of deleted) await request(`/tarefas/${item.id}`, { method: 'DELETE', token })
+      for (const item of created) await request('/tarefas', { method: 'POST', token, body: { codigoProjeto: item.projetoId, titulo: item.titulo, dataInicio: dateTime(item.inicio), dataFim: dateTime(item.fim), prioridade: item.prioridade, descricao: item.descricao || null, codigosResponsaveis: item.responsaveis || [] } })
       for (const item of updated) {
         const old = oldById.get(String(item.id))
         const comparable = item => ({ ...item, status: undefined, conclusao: undefined, checklist: undefined })
         if (item.status !== old.status && JSON.stringify(comparable(item)) === JSON.stringify(comparable(old))) {
-          await request(API_ROUTES.taskStatus(item.id), { method: 'PATCH', token, body: { status: item.status } })
+          await request(`/tarefas/${item.id}/status`, { method: 'PATCH', token, body: { status: item.status } })
         } else {
-          await request(API_ROUTES.task(item.id), { method: 'PUT', token, body: { titulo: item.titulo, dataInicio: dateTime(item.inicio), dataFim: dateTime(item.fim), status: item.status, prioridade: item.prioridade, descricao: item.descricao || null, codigosResponsaveis: item.responsaveis || [], codigoDependencia: item.dependeDe || null } })
+          await request(`/tarefas/${item.id}`, { method: 'PUT', token, body: { titulo: item.titulo, dataInicio: dateTime(item.inicio), dataFim: dateTime(item.fim), status: item.status, prioridade: item.prioridade, descricao: item.descricao || null, codigosResponsaveis: item.responsaveis || [], codigoDependencia: item.dependeDe || null } })
         }
       }
     } else if (key === 'k') {
@@ -372,38 +370,38 @@ export function AppProvider({ children }) {
         const wasIn = (old.inscritos || []).some(code => String(code) === String(me))
         const isIn = (item.inscritos || []).some(code => String(code) === String(me))
         if (wasIn !== isIn) {
-          await request(isIn ? API_ROUTES.trainingEnrollments(item.id) : API_ROUTES.trainingEnrollment(item.id, me), { method: isIn ? 'POST' : 'DELETE', token, ...(isIn ? { body: { codigoUsuario: me } } : {}) })
+          await request(`/capacitacoes/${item.id}/inscricoes${isIn ? '' : `/${me}`}`, { method: isIn ? 'POST' : 'DELETE', token, ...(isIn ? { body: { codigoUsuario: me } } : {}) })
         }
       }
     } else if (key === 'i') {
       for (const item of [...created, ...updated]) {
         const existed = oldById.has(String(item.id)) || before.some(old => String(old.usuarioId) === String(item.usuarioId) && old.semana === item.semana)
-        await request(API_ROUTES.checkins, { method: existed ? 'PUT' : 'POST', token, body: { codigoUsuario: item.usuarioId, semana: item.semana, resumo: item.resumo, aprendizados: item.aprendizados, humor: Number(item.humor), sentimento: item.sentimento || null } })
+        await request('/checkins', { method: existed ? 'PUT' : 'POST', token, body: { codigoUsuario: item.usuarioId, semana: item.semana, resumo: item.resumo, aprendizados: item.aprendizados, humor: Number(item.humor), sentimento: item.sentimento || null } })
       }
     } else if (key === 'f') {
-      for (const item of created) await request(API_ROUTES.trainingFeedbacks(item.capId), { method: 'POST', token, body: { codigoUsuario: item.usuarioId, nota: Number(item.nota), bom: item.bom || null, melhorar: item.melhorar || null, data: dateTime(item.data) } })
+      for (const item of created) await request(`/capacitacoes/${item.capId}/feedbacks`, { method: 'POST', token, body: { codigoUsuario: item.usuarioId, nota: Number(item.nota), bom: item.bom || null, melhorar: item.melhorar || null, data: dateTime(item.data) } })
     } else if (key === 'g') {
-      for (const item of deleted) await request(API_ROUTES.folder(item.id), { method: 'DELETE', token })
-      for (const item of created) await request(API_ROUTES.folders, { method: 'POST', token, body: { nome: item.nome } })
-      for (const item of updated) await request(API_ROUTES.folder(item.id), { method: 'PUT', token, body: { nome: item.nome } })
+      for (const item of deleted) await request(`/pastas/${item.id}`, { method: 'DELETE', token })
+      for (const item of created) await request('/pastas', { method: 'POST', token, body: { nome: item.nome } })
+      for (const item of updated) await request(`/pastas/${item.id}`, { method: 'PUT', token, body: { nome: item.nome } })
     } else if (key === 'd') {
-      for (const item of deleted) await request(API_ROUTES.document(item.id), { method: 'DELETE', token })
-      for (const item of created) await request(API_ROUTES.folderDocuments(item.pastaId), { method: 'POST', token, body: { nome: item.nome, tamanhoBytes: Number(item.tam || 0), dataEnvio: dateTime(item.data || DF.c.hoje), codigoAutor: item.autorId || me, arquivoUrl: item.url, extensao: item.ext && item.ext !== '—' ? item.ext : null } })
-      for (const item of updated) await request(API_ROUTES.document(item.id), { method: 'PUT', token, body: { nome: item.nome } })
+      for (const item of deleted) await request(`/documentos/${item.id}`, { method: 'DELETE', token })
+      for (const item of created) await request(`/pastas/${item.pastaId}/documentos`, { method: 'POST', token, body: { nome: item.nome, tamanhoBytes: Number(item.tam || 0), dataEnvio: dateTime(item.data || DF.c.hoje), codigoAutor: item.autorId || me, arquivoUrl: item.url, extensao: item.ext && item.ext !== '—' ? item.ext : null } })
+      for (const item of updated) await request(`/documentos/${item.id}`, { method: 'PUT', token, body: { nome: item.nome } })
     } else if (key === 'u') {
-      for (const item of deleted) await request(API_ROUTES.user(item.id), { method: 'DELETE', token })
+      for (const item of deleted) await request(`/usuarios/${item.id}`, { method: 'DELETE', token })
       for (const item of created) {
-        const senioridade = resolveSenioridade(item, before)
-        await request(API_ROUTES.register, { method: 'POST', body: { nome: item.nome, email: item.email, senha: item.senha, perfil: item.perfil, senioridade } })
+        const senioridade = resolveSenioridade(item, DF?.c?.senioridadesApi || [])
+        await request('/auth/register', { method: 'POST', body: { nome: item.nome, email: item.email, senha: item.senha, perfil: item.perfil, senioridade } })
       }
       for (const item of updated) {
         const old = oldById.get(String(item.id))
         if (old.ativo && !item.ativo) {
-          await request(API_ROUTES.user(item.id), { method: 'DELETE', token })
+          await request(`/usuarios/${item.id}`, { method: 'DELETE', token })
           continue
         }
-        const senioridade = item.perfil === 'membro' ? resolveSenioridade(item, before) : null
-        await request(API_ROUTES.user(item.id), { method: 'PUT', token, body: { nome: item.nome, email: item.email, perfil: item.perfil, senioridade } })
+        const senioridade = item.perfil === 'membro' ? resolveSenioridade(item, DF?.c?.senioridadesApi || []) : null
+        await request(`/usuarios/${item.id}`, { method: 'PUT', token, body: { nome: item.nome, email: item.email, perfil: item.perfil, senioridade } })
       }
     }
     const config = DF?.c
@@ -439,22 +437,18 @@ function resolveSenioridade(user, senioridades = []) {
   const selecionada = user.senioridadeRef ?? user.senioridade
 
   if (selecionada && typeof selecionada === 'object') {
-    if (selecionada.codigo) return selecionada
+    const encontradaPorCodigo = senioridades.find(item => item.codigo === selecionada.codigo)
+    if (encontradaPorCodigo) return encontradaPorCodigo
 
     if (selecionada.nome) {
-      const encontrada = senioridades.find(
-        item => slug(item.nome) === slug(selecionada.nome)
-      )
-
+      const encontrada = senioridades.find(item => slug(item.nome) === slug(selecionada.nome))
       if (encontrada) return encontrada
     }
   }
 
   if (typeof selecionada === 'string') {
     const encontrada = senioridades.find(
-      item =>
-        slug(item.codigo) === slug(selecionada) ||
-        slug(item.nome) === slug(selecionada)
+      item => item.codigo === selecionada || slug(item.codigo) === slug(selecionada) || slug(item.nome) === slug(selecionada)
     )
 
     if (encontrada) return encontrada
