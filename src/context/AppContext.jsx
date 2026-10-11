@@ -8,7 +8,6 @@ const Ctx = createContext(null)
 export const useApp = () => useContext(Ctx)
 const TOKEN_KEY = 'konvex_access_token'
 const USER_KEY = 'konvex_user_code'
-const CONFIG_URL = import.meta.env.BASE_URL + 'dados/config.json'
 
 const slug = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '_')
 const dateOnly = value => value ? String(value).slice(0, 10) : ''
@@ -122,13 +121,9 @@ export function AppProvider({ children }) {
   const dataRef = useRef(null)
   const tokenRef = useRef(sessionStorage.getItem(TOKEN_KEY) || '')
 
-  const readConfig = async () => {
-    const response = await fetch(CONFIG_URL)
-    if (!response.ok) throw new Error('Não foi possível carregar a configuração local do frontend.')
-    const config = await response.json()
-    config.hoje = iso(new Date())
-    return config
-  }
+  const readConfig = async () => ({
+    hoje: iso(new Date()),
+  })
 
   const loadApiData = async token => {
     const [users, projects, tasks, trainings, checkins, feedbacks, folders] = await Promise.all([
@@ -164,45 +159,45 @@ export function AppProvider({ children }) {
 
   useEffect(() => {
     let active = true
-    ;(async () => {
-      try {
-        const config = await readConfig()
-        if (!active) return
-        const token = sessionStorage.getItem(TOKEN_KEY)
-        const userCodeStored = sessionStorage.getItem(USER_KEY)
-        if (token && userCodeStored) {
-          tokenRef.current = token
-          try {
-            const data = await loadApiData(token)
-            if (!active) return
-            const user = data.u.find(item => item.id === userCodeStored && item.ativo)
-            if (user) {
-              const next = { c: config, ...data }
-              dataRef.current = next
-              setD(next)
-              setMe(user.id)
-            } else {
+      ; (async () => {
+        try {
+          const config = await readConfig()
+          if (!active) return
+          const token = sessionStorage.getItem(TOKEN_KEY)
+          const userCodeStored = sessionStorage.getItem(USER_KEY)
+          if (token && userCodeStored) {
+            tokenRef.current = token
+            try {
+              const data = await loadApiData(token)
+              if (!active) return
+              const user = data.u.find(item => item.id === userCodeStored && item.ativo)
+              if (user) {
+                const next = { c: config, ...data }
+                dataRef.current = next
+                setD(next)
+                setMe(user.id)
+              } else {
+                sessionStorage.removeItem(TOKEN_KEY)
+                sessionStorage.removeItem(USER_KEY)
+                tokenRef.current = ''
+                setD({ c: config, u: [], p: [], t: [], k: [], i: [], f: [], g: [], d: [] })
+              }
+            } catch (error) {
               sessionStorage.removeItem(TOKEN_KEY)
               sessionStorage.removeItem(USER_KEY)
               tokenRef.current = ''
               setD({ c: config, u: [], p: [], t: [], k: [], i: [], f: [], g: [], d: [] })
+              if (error.status !== 401) alerts.error('Falha ao conectar com a API', error.message)
             }
-          } catch (error) {
-            sessionStorage.removeItem(TOKEN_KEY)
-            sessionStorage.removeItem(USER_KEY)
-            tokenRef.current = ''
+          } else {
             setD({ c: config, u: [], p: [], t: [], k: [], i: [], f: [], g: [], d: [] })
-            if (error.status !== 401) alerts.error('Falha ao conectar com a API', error.message)
           }
-        } else {
-          setD({ c: config, u: [], p: [], t: [], k: [], i: [], f: [], g: [], d: [] })
+        } catch (error) {
+          alerts.error('Falha ao iniciar o frontend', error.message)
+        } finally {
+          if (active) setSessionReady(true)
         }
-      } catch (error) {
-        alerts.error('Falha ao iniciar o frontend', error.message)
-      } finally {
-        if (active) setSessionReady(true)
-      }
-    })()
+      })()
     return () => { active = false }
   }, [])
 
