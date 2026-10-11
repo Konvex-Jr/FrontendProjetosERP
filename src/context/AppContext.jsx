@@ -159,48 +159,125 @@ export function AppProvider({ children }) {
 
   useEffect(() => {
     let active = true
+
       ; (async () => {
         try {
+          console.log('[INIT] Iniciando AppContext')
+
+          console.log('[INIT] Lendo configuração')
           const config = await readConfig()
+          console.log('[INIT] Configuração carregada:', config)
+
           if (!active) return
+
+          console.log('[INIT] Lendo sessão')
           const token = sessionStorage.getItem(TOKEN_KEY)
           const userCodeStored = sessionStorage.getItem(USER_KEY)
+
+          console.log('[INIT] Token presente:', Boolean(token))
+          console.log('[INIT] Código do usuário:', userCodeStored)
+
           if (token && userCodeStored) {
             tokenRef.current = token
+
             try {
+              console.log('[INIT] Carregando dados da API')
+
               const data = await loadApiData(token)
+
+              console.log('[INIT] Dados carregados:', {
+                usuarios: data.u.length,
+                projetos: data.p.length,
+                tarefas: data.t.length,
+                capacitacoes: data.k.length,
+                checkins: data.i.length,
+                feedbacks: data.f.length,
+                pastas: data.g.length,
+                documentos: data.d.length,
+              })
+
               if (!active) return
-              const user = data.u.find(item => item.id === userCodeStored && item.ativo)
+
+              const user = data.u.find(
+                item => item.id === userCodeStored && item.ativo
+              )
+
+              console.log('[INIT] Usuário encontrado:', Boolean(user))
+
               if (user) {
-                const next = { c: config, ...data }
-                dataRef.current = next
-                setD(next)
-                setMe(user.id)
+                setMe(user)
+                setD({ ...data, c: config })
               } else {
                 sessionStorage.removeItem(TOKEN_KEY)
                 sessionStorage.removeItem(USER_KEY)
                 tokenRef.current = ''
-                setD({ c: config, u: [], p: [], t: [], k: [], i: [], f: [], g: [], d: [] })
+                setD({
+                  c: config,
+                  u: [],
+                  p: [],
+                  t: [],
+                  k: [],
+                  i: [],
+                  f: [],
+                  g: [],
+                  d: [],
+                })
               }
             } catch (error) {
+              console.error('[INIT] Erro ao carregar dados da API:', error)
+
               sessionStorage.removeItem(TOKEN_KEY)
               sessionStorage.removeItem(USER_KEY)
               tokenRef.current = ''
-              setD({ c: config, u: [], p: [], t: [], k: [], i: [], f: [], g: [], d: [] })
-              if (error.status !== 401) alerts.error('Falha ao conectar com a API', error.message)
+
+              setD({
+                c: config,
+                u: [],
+                p: [],
+                t: [],
+                k: [],
+                i: [],
+                f: [],
+                g: [],
+                d: [],
+              })
+
+              if (error.status !== 401) {
+                alerts.error('Falha ao conectar com a API', error.message)
+              }
             }
           } else {
-            setD({ c: config, u: [], p: [], t: [], k: [], i: [], f: [], g: [], d: [] })
+            console.log('[INIT] Nenhuma sessão encontrada')
+
+            setD({
+              c: config,
+              u: [],
+              p: [],
+              t: [],
+              k: [],
+              i: [],
+              f: [],
+              g: [],
+              d: [],
+            })
           }
         } catch (error) {
+          console.error('[INIT] Falha na inicialização:', error)
+          console.error('[INIT] Stack:', error?.stack)
+
           alerts.error('Falha ao iniciar o frontend', error.message)
         } finally {
-          if (active) setSessionReady(true)
+          if (active) {
+            console.log('[INIT] Inicialização finalizada')
+            setSessionReady(true)
+          }
         }
       })()
-    return () => { active = false }
-  }, [])
 
+    return () => {
+      active = false
+    }
+  }, [])
   const mb = !!DF && !!me && DF.u.find(user => user.id === me)?.perfil === 'membro'
   const D = useMemo(() => {
     if (!DF) return null
