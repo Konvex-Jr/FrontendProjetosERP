@@ -123,8 +123,13 @@ export function AppProvider({ children }) {
 
   const readConfig = async () => ({
     hoje: iso(new Date()),
+    perfis: ['diretor', 'gerente', 'membro'],
+    senioridades: {
+      junior: 'Júnior',
+      pleno: 'Pleno',
+      senior: 'Sênior',
+    },
   })
-
   const loadApiData = async token => {
     const [users, projects, tasks, trainings, checkins, feedbacks, folders] = await Promise.all([
       request('/usuarios', { token }),
