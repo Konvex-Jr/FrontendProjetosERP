@@ -4,20 +4,18 @@ import Ic from '../components/Icon'
 import Table from '../components/Table'
 import { PageBar } from '../components/Ui'
 import alerts from '../lib/alerts'
+import { normalizeSenioridades, slug } from '../lib/apiMappers'
 
 const PERFIS_PADRAO = ['diretor', 'gerente', 'membro']
-
-const SENIORIDADES_PADRAO = {
-  junior: 'Júnior',
-  pleno: 'Pleno',
-  senior: 'Sênior',
-}
 
 export default function Usuarios() {
   const { D, up, form } = useApp()
 
   const perfis = D?.c?.perfis ?? PERFIS_PADRAO
-  const senioridades = D?.c?.senioridades ?? SENIORIDADES_PADRAO
+  // A lista vem exclusivamente de GET /senioridades; nunca inventar opções locais.
+  const senioridadesApi = normalizeSenioridades(D?.senioridades ?? [])
+  const senioridades = Object.fromEntries(senioridadesApi.map(item => [slug(item.codigo), item.nome]))
+  const primeiraSenioridade = senioridadesApi[0]?.codigo ?? ''
   const usuarios = D?.u ?? []
 
   const editar = usuario =>
@@ -40,21 +38,23 @@ export default function Usuarios() {
         {
           k: 'senioridade',
           l: 'Senioridade',
-          o: Object.entries(senioridades),
-          s: valores => valores.perfil === 'membro',
+          o: senioridadesApi.map(item => [slug(item.codigo), item.nome]),
+          disabled: senioridadesApi.length === 0,
+          s: () => true,
         },
       ],
       usuario || {
         perfil: 'membro',
-        senioridade: 'junior',
+        senioridade: primeiraSenioridade,
       },
       valores => {
+        if (senioridadesApi.length === 0) {
+          alerts.error('Senioridades indisponíveis', 'A API não retornou senioridades cadastradas. Cadastre uma senioridade no banco de dados e tente novamente.')
+          return false
+        }
         const dados = {
           ...valores,
-          senioridade:
-            valores.perfil === 'membro'
-              ? valores.senioridade || 'junior'
-              : undefined,
+          senioridade: valores.senioridade || primeiraSenioridade,
         }
 
         up('u', atuais =>
@@ -77,6 +77,11 @@ export default function Usuarios() {
     )
 
   const alterarStatus = async (usuario, alteracoes) => {
+    if (senioridadesApi.length === 0) {
+      await alerts.error('Senioridades indisponíveis', 'Não é possível atribuir o perfil de membro enquanto a API não retornar senioridades cadastradas no banco de dados.')
+      return
+    }
+
     if (alteracoes.ativo === false && usuario.ativo) {
       const confirmado = await alerts.confirm({
         title: 'Inativar usuário?',
@@ -97,8 +102,8 @@ export default function Usuarios() {
     }
 
     const alteracoesFinais =
-      alteracoes.perfil === 'membro' && !usuario.senioridade
-        ? { ...alteracoes, senioridade: 'junior' }
+      !('senioridade' in alteracoes) && !usuario.senioridade && primeiraSenioridade
+        ? { ...alteracoes, senioridade: primeiraSenioridade }
         : alteracoes
 
     up('u', atuais =>
@@ -147,29 +152,25 @@ export default function Usuarios() {
       l: 'Senioridade',
       filter: 1,
       get: usuario =>
-        usuario.perfil === 'membro'
-          ? senioridades[usuario.senioridade] || '—'
-          : '—',
+        senioridades[usuario.senioridade] || '—',
       render: usuario =>
-        usuario.perfil === 'membro' ? (
+        (
           <select
             className="form-select form-select-sm auto"
             aria-label={`Senioridade de ${usuario.nome}`}
-            value={usuario.senioridade || 'junior'}
+            value={usuario.senioridade || primeiraSenioridade}
             onChange={evento =>
               alterarStatus(usuario, {
                 senioridade: evento.target.value,
               })
             }
           >
-            {Object.entries(senioridades).map(([chave, nome]) => (
-              <option key={chave} value={chave}>
-                {nome}
+            {senioridadesApi.map(item => (
+              <option key={item.codigo} value={slug(item.codigo)}>
+                {item.nome}
               </option>
             ))}
           </select>
-        ) : (
-          <small>—</small>
         ),
     },
     {

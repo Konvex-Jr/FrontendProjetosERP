@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useApp } from '../context/AppContext'
 import { fm, nid, sz, un } from '../lib/utils'
 import Ic from '../components/Icon'
@@ -8,7 +8,9 @@ import { PageBar } from '../components/Ui'
 import alerts from '../lib/alerts'
 
 export default function Gestao() {
-  const { D, up, form, me } = useApp()
+  const { D, up, form, me, uploadDocument, downloadDocument } = useApp()
+  const fileInput = useRef(null)
+  const [uploading, setUploading] = useState(false)
   const [pid, setPid] = useState(null), pa = D.g.find(x => x.id == pid), cnt = id => D.d.filter(x => x.pastaId == id).length
 
   const nova = f => form(f ? 'Renomear pasta' : 'Nova pasta', [{ k: 'nome', l: 'Nome da pasta' }], f ? { nome: f.nome } : {}, o => up('g', a => f ? a.map(x => x.id == f.id ? { ...x, nome: o.nome } : x) : [...a, { id: nid(a), ...o }]))
@@ -16,16 +18,22 @@ export default function Gestao() {
     const confirmed = await alerts.confirm({ title: 'Excluir pasta?', text: `A pasta e seus ${cnt(folder.id)} documento(s) serão excluídos.`, confirmText: 'Excluir pasta', danger: true })
     if (confirmed) up('g', folders => folders.filter(item => item.id != folder.id))
   }
-  const add = () => form('Adicionar documento por URL', [
-    { k: 'nome', l: 'Nome do documento' },
-    { k: 'url', l: 'URL do arquivo', t: 'url' },
-    { k: 'tam', l: 'Tamanho em bytes', t: 'number' },
-  ], { tam: 0 }, value => {
-    const ext = value.nome.includes('.') ? value.nome.split('.').pop().toUpperCase().slice(0, 5) : '—'
-    up('d', documents => [...documents, { id: nid(documents), pastaId: pid, nome: value.nome, url: value.url, tam: Number(value.tam || 0), ext, data: D.c.hoje, autor: un(D, me), autorId: me }])
-  })
+  const add = async event => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file || !pid) return
+    setUploading(true)
+    try {
+      await uploadDocument(pid, file)
+      await alerts.toastSuccess('Documento enviado', `${file.name} foi salvo na pasta.`)
+    } catch (error) {
+      await alerts.error('Não foi possível enviar o documento', error.message)
+    } finally {
+      setUploading(false)
+    }
+  }
   const ren = x => form('Renomear documento', [{ k: 'nome', l: 'Nome' }], { nome: x.nome }, o => up('d', a => a.map(y => y.id == x.id ? { ...y, nome: o.nome } : y)))
-  const bx = x => window.open(x.url, '_blank', 'noopener,noreferrer')
+  const bx = async x => { try { await downloadDocument(x.url) } catch (error) { await alerts.error('Não foi possível baixar o documento', error.message) } }
   const delD = async document => {
     const confirmed = await alerts.confirm({ title: 'Excluir documento?', text: document.nome, confirmText: 'Excluir documento', danger: true })
     if (confirmed) up('d', documents => documents.filter(item => item.id != document.id))
@@ -62,9 +70,10 @@ export default function Gestao() {
     <div className="dw">
       <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
         <div className="d-flex align-items-center gap-2"><button className="btn btn-g" onClick={() => setPid(null)}><Ic k="back" />Voltar</button><h1>{pa.nome}</h1></div>
-        <button className="btn btn-primary" onClick={add}><Ic k="plus" />Adicionar documento por URL</button>
+        <input ref={fileInput} type="file" hidden onChange={add} />
+        <button className="btn btn-primary" disabled={uploading} onClick={() => fileInput.current?.click()}><Ic k="upload" />{uploading ? 'Enviando…' : 'Adicionar documento'}</button>
       </div>
-      {L.length ? <Table cols={cols} rows={L} /> : <div className="dz"><Ic k="upload" /><b>Nenhum documento nesta pasta</b><small>Cadastre o nome e a URL do arquivo. O backend armazena metadados e não recebe upload binário.</small></div>}
+      {L.length ? <Table cols={cols} rows={L} /> : <div className="dz"><Ic k="upload" /><b>Nenhum documento nesta pasta</b><small>Selecione um arquivo para enviá-lo ao servidor (máximo de 20 MB).</small></div>}
     </div>
   )
 }

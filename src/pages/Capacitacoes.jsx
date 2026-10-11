@@ -131,10 +131,34 @@ function Feedbacks() {
 }
 
 export default function Capacitacoes() {
-  const { D } = useApp(), [ab, setAb] = useState('lista')
+  const { D, up, me } = useApp(), [ab, setAb] = useState('lista')
+  const [mostrarCriacao, setMostrarCriacao] = useState(false)
+  const [formacao, setFormacao] = useState({ titulo: '', data: '', hora: '09:00', vagas: 10, tipo: 'computacao', sala: '' })
+  const usuarioAtual = D?.u?.find(usuario => String(usuario.id) === String(me))
+  const podeCriar = usuarioAtual?.perfil === 'diretor'
+  const criar = evento => {
+    evento.preventDefault()
+    if (!formacao.titulo.trim() || !formacao.data || !formacao.hora || !formacao.sala.trim() || Number(formacao.vagas) < 1) return
+    up('k', atuais => [...atuais, { id: nid(), ...formacao, titulo: formacao.titulo.trim(), sala: formacao.sala.trim(), vagas: Number(formacao.vagas), instrutor: usuarioAtual?.nome || '', instrutorId: me, inscritos: [] }])
+    setMostrarCriacao(false)
+    setFormacao({ titulo: '', data: '', hora: '09:00', vagas: 10, tipo: 'computacao', sala: '' })
+  }
   return (
     <>
       <PageBar title="Capacitações" sub={ab == 'lista' ? 'Clique em um card para ver os detalhes e se inscrever.' : 'Avalie as capacitações que você participou e veja o retorno da turma.'} />
+      {podeCriar && ab === 'lista' && <div className="d-flex justify-content-end mb-3"><button className="btn btn-primary" onClick={() => setMostrarCriacao(value => !value)}>{mostrarCriacao ? 'Cancelar' : 'Criar capacitação'}</button></div>}
+      {podeCriar && mostrarCriacao && <form className="card card-body mb-3" onSubmit={criar}>
+        <h2 className="h5">Nova capacitação</h2>
+        <div className="row g-3">
+          <label className="col-md-6 form-label">Título<input required className="form-control mt-1" value={formacao.titulo} onChange={e => setFormacao(v => ({ ...v, titulo: e.target.value }))} /></label>
+          <label className="col-md-3 form-label">Data<input required type="date" min={D.c.hoje} className="form-control mt-1" value={formacao.data} onChange={e => setFormacao(v => ({ ...v, data: e.target.value }))} /></label>
+          <label className="col-md-3 form-label">Horário<input required type="time" className="form-control mt-1" value={formacao.hora} onChange={e => setFormacao(v => ({ ...v, hora: e.target.value }))} /></label>
+          <label className="col-md-4 form-label">Tipo<select className="form-select mt-1" value={formacao.tipo} onChange={e => setFormacao(v => ({ ...v, tipo: e.target.value }))}>{Object.entries(TIPO).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>
+          <label className="col-md-4 form-label">Sala<input required className="form-control mt-1" value={formacao.sala} onChange={e => setFormacao(v => ({ ...v, sala: e.target.value }))} /></label>
+          <label className="col-md-4 form-label">Vagas<input required type="number" min="1" step="1" className="form-control mt-1" value={formacao.vagas} onChange={e => setFormacao(v => ({ ...v, vagas: e.target.value }))} /></label>
+        </div>
+        <div className="d-flex justify-content-end mt-3"><button className="btn btn-primary" type="submit">Salvar capacitação</button></div>
+      </form>}
       <div className="d-flex flex-wrap gap-2 mb-3">
         {[['lista', 'Capacitações'], ['feedbacks', 'Feedbacks']].map(([k, l]) => (
           <button key={k} className={'btn btn-g' + (ab == k ? ' on' : '')} onClick={() => setAb(k)}>

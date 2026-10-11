@@ -80,3 +80,22 @@ test('request returns null for successful empty responses', async () => {
   globalThis.fetch = async () => response(204)
   assert.equal(await request('/usuarios/123', { method: 'DELETE', token: 'jwt-test' }), null)
 })
+
+
+test('request sends binary files without JSON serialization', async () => {
+  const originalFetch = globalThis.fetch
+  const file = new Blob(['conteudo do arquivo'], { type: 'application/pdf' })
+  let captured
+  globalThis.fetch = async (_url, options) => {
+    captured = options
+    return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { 'Content-Type': 'application/json' } })
+  }
+  try {
+    const { request } = await import('../src/services/api.js')
+    const result = await request('/pastas/folder/documents/upload', { method: 'POST', token: 'token', body: file, headers: { 'X-File-Name': 'arquivo.pdf' } })
+    assert.deepEqual(result, { ok: true })
+    assert.equal(captured.body, file)
+    assert.equal(captured.headers['Content-Type'], 'application/pdf')
+    assert.equal(captured.headers['access-token'], 'token')
+  } finally { globalThis.fetch = originalFetch }
+})

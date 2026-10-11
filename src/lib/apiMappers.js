@@ -117,14 +117,14 @@ export function adaptFeedback(feedback) {
   }
 }
 
-export function readConfig(registros = []) {
+export function readConfig(registros = [], usarPadrao = registros.length === 0) {
   const senioridades = registros.length
     ? registros
-    : [
+    : (usarPadrao ? [
         { codigo: 'junior', nome: 'Júnior', valorHora: 45 },
         { codigo: 'pleno', nome: 'Pleno', valorHora: 75 },
         { codigo: 'senior', nome: 'Sênior', valorHora: 120 },
-      ]
+      ] : [])
 
   return {
     hoje: iso(new Date()),
@@ -134,26 +134,49 @@ export function readConfig(registros = []) {
   }
 }
 
-export function resolveSenioridade(user, senioridades = []) {
-  if (user.perfil !== 'membro') return null
+export function normalizeSenioridades(registros = []) {
+  // A API normalmente retorna uma lista de entidades. Aceitamos também a forma
+  // de configuração usada pelas telas para evitar divergências entre versões.
+  const lista = Array.isArray(registros)
+    ? registros
+    : Object.entries(registros || {}).map(([codigo, valor]) =>
+      typeof valor === 'object' && valor !== null
+        ? { codigo: valor.codigo || codigo, ...valor }
+        : { codigo, nome: valor, valorHora: 0 }
+    )
 
+  return lista
+    .map(item => ({
+      codigo: String(item?.codigo ?? item?.code ?? item?.id ?? '').trim(),
+      nome: String(item?.nome ?? item?.name ?? '').trim(),
+      valorHora: Number(item?.valorHora ?? item?.valor_hora ?? item?.hourlyRate ?? 0),
+    }))
+    .filter(item => item.codigo && item.nome)
+}
+
+export function resolveSenioridade(user, registros = []) {
+  const senioridades = normalizeSenioridades(registros)
   const selecionada = user.senioridade
   const chave = typeof selecionada === 'object' && selecionada
-    ? selecionada.codigo || selecionada.nome
+    ? selecionada.codigo || selecionada.code || selecionada.nome || selecionada.name
     : selecionada
+  const chaveNormalizada = slug(chave)
   const encontrada = senioridades.find(item =>
-    slug(item.codigo) === slug(chave) || slug(item.nome) === slug(chave)
+    slug(item.codigo) === chaveNormalizada || slug(item.nome) === chaveNormalizada
   )
 
   if (encontrada) return encontrada
 
   const referencia = user.senioridadeRef
   if (referencia?.codigo) {
-    const senioridadeAtual = senioridades.find(item => item.codigo === referencia.codigo)
+    const senioridadeAtual = senioridades.find(item => slug(item.codigo) === slug(referencia.codigo))
     if (senioridadeAtual) return senioridadeAtual
   }
 
+  const opcoesDisponiveis = senioridades.map(item => `${item.codigo} (${item.nome})`).join(', ')
   throw new Error(
-    `Não foi possível identificar a senioridade "${String(chave || '')}" na API. Verifique os registros de senioridade disponíveis.`
+    senioridades.length
+      ? `A senioridade selecionada "${String(chave || '')}" não corresponde às opções retornadas pela API: ${opcoesDisponiveis}. Atualize a tela e tente novamente.`
+      : 'A API não retornou senioridades cadastradas. Verifique os dados da tabela senioridades no banco e atualize a tela.'
   )
 }

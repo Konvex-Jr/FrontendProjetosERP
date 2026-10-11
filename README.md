@@ -18,7 +18,7 @@ npm install
 Copie `.env.example` para `.env` e ajuste a URL da API:
 
 ```env
-VITE_API_URL=http://localhost:5001
+VITE_API_URL=http://localhost:5500
 ```
 
 Inicie o frontend:
@@ -27,7 +27,7 @@ Inicie o frontend:
 npm run dev
 ```
 
-A documentação Swagger do backend fica em `http://localhost:5001/api-docs`.
+A documentação Swagger do backend fica em `http://localhost:5500/api-docs`.
 
 ## Integração implementada
 
@@ -41,4 +41,10 @@ A API atual não disponibiliza rotas para criar/editar capacitações nem reativ
 
 ### Docker
 
-A imagem do frontend usa `VITE_API_URL=http://localhost:5001` por padrão, alinhado à porta padrão do backend. Ao publicar em outro host, passe `--build-arg VITE_API_URL=https://seu-host-da-api` ao construir a imagem. A URL precisa ser acessível pelo navegador do usuário.
+A imagem do frontend usa `VITE_API_URL=http://localhost:5500` por padrão, alinhado à porta padrão do backend. Ao publicar em outro host, passe `--build-arg VITE_API_URL=https://seu-host-da-api` ao construir a imagem. A URL precisa ser acessível pelo navegador do usuário.
+
+
+## Testes e senioridades
+- `npm test`: executa os testes do cliente HTTP, mapeadores e contratos de chamadas para todas as rotas HTTP declaradas pelo backend.
+- `npm run build`: valida o build de produção.
+- As opções de senioridade na tela de usuários são carregadas exclusivamente de `GET /senioridades`, que lê a tabela `senioridades` do banco. Não há opções fictícias de fallback nessa tela. Se a API retornar uma lista vazia, verifique se o schema foi aplicado e se a tabela contém registros.

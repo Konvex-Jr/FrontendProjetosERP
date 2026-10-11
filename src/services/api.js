@@ -1,4 +1,4 @@
-const API_URL = (import.meta.env?.VITE_API_URL || 'http://localhost:5001').replace(/\/$/, '')
+const API_URL = (import.meta.env?.VITE_API_URL || 'http://localhost:5500').replace(/\/$/, '')
 
 export class ApiError extends Error {
   constructor(message, status = 0) {
@@ -15,11 +15,12 @@ export async function request(path, { method = 'GET', body, token, headers = {} 
       method,
       headers: {
         Accept: 'application/json',
-        ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+        ...(body !== undefined && !(body instanceof FormData) && !(body instanceof Blob) ? { 'Content-Type': 'application/json' } : {}),
+        ...(body instanceof Blob && body.type ? { 'Content-Type': body.type } : {}),
         ...(token ? { 'access-token': token } : {}),
         ...headers,
       },
-      ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+      ...(body !== undefined ? { body: body instanceof FormData || body instanceof Blob ? body : JSON.stringify(body) } : {}),
     })
   } catch {
     throw new ApiError(`Não foi possível conectar à API em ${API_URL}. Verifique se o backend está em execução e se VITE_API_URL está correto.`)

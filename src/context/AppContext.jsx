@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { BLOQ, NAV, path } from '../lib/utils'
-import { request } from '../services/api'
+import { request, apiUrl } from '../services/api'
 import alerts from '../lib/alerts'
 import {
   adaptCheckin,
@@ -60,7 +60,7 @@ export function AppProvider({ children }) {
 
   const refresh = async (token = tokenRef.current, config) => {
     const apiData = await loadApiData(token)
-    const resolvedConfig = config || readConfig(apiData.senioridades)
+    const resolvedConfig = config || readConfig(apiData.senioridades, false)
     const next = { ...apiData, c: resolvedConfig }
     setD(next)
     return next
@@ -99,7 +99,7 @@ export function AppProvider({ children }) {
         if (!active) return
 
         const user = data.u.find(item => item.id === storedUserCode && item.ativo)
-        const config = readConfig(data.senioridades)
+        const config = readConfig(data.senioridades, false)
 
         if (!user) {
           sessionStorage.removeItem(TOKEN_KEY)
@@ -161,7 +161,7 @@ export function AppProvider({ children }) {
       tokenRef.current = result.token
       sessionStorage.setItem(TOKEN_KEY, result.token)
       sessionStorage.setItem(USER_KEY, user.id)
-      const config = readConfig(data.senioridades)
+      const config = readConfig(data.senioridades, false)
       setD({ ...data, c: config })
       setMe(user.id)
       navigate('/')
@@ -188,6 +188,42 @@ export function AppProvider({ children }) {
     setD(current => current ? { ...current, u: [], p: [], t: [], k: [], i: [], f: [], g: [], d: [] } : current)
     navigate('/login')
     window.scrollTo(0, 0)
+  }
+
+  const downloadDocument = async documentUrl => {
+    const token = tokenRef.current
+    if (!token) throw new Error('Sua sessão expirou. Entre novamente.')
+    const filename = decodeURIComponent(String(documentUrl).split('/').pop().split('?')[0])
+    const response = await fetch(`${apiUrl}/uploads/${encodeURIComponent(filename)}`, { headers: { 'access-token': token } })
+    if (!response.ok) {
+      let message = 'Não foi possível baixar o documento.'
+      try { message = (await response.json()).message || message } catch {}
+      throw new Error(message)
+    }
+    const blob = await response.blob()
+    const objectUrl = URL.createObjectURL(blob)
+    const anchor = document.createElement('a')
+    anchor.href = objectUrl
+    anchor.download = filename
+    document.body.appendChild(anchor)
+    anchor.click()
+    anchor.remove()
+    URL.revokeObjectURL(objectUrl)
+  }
+
+  const uploadDocument = async (folderId, file) => {
+    const token = tokenRef.current
+    if (!token) throw new Error('Sua sessão expirou. Entre novamente.')
+    if (!file) throw new Error('Selecione um arquivo para enviar.')
+    if (file.size > 20 * 1024 * 1024) throw new Error('O arquivo excede o limite de 20 MB.')
+    const encodedName = encodeURIComponent(file.name)
+    await request(`/pastas/${folderId}/documentos/upload`, {
+      method: 'POST',
+      token,
+      headers: { 'Content-Type': file.type || 'application/octet-stream', 'X-File-Name': encodedName },
+      body: file,
+    })
+    await refresh()
   }
 
   const persistCollection = async (key, before, after) => {
@@ -221,6 +257,7 @@ export function AppProvider({ children }) {
         }
       }
     } else if (key === 'k') {
+      for (const item of created) await request('/capacitacoes', { method: 'POST', token, body: { titulo: item.titulo, data: item.data, hora: item.hora, codigoInstrutor: item.instrutorId || me, vagas: Number(item.vagas), tipo: item.tipo, sala: item.sala } })
       for (const item of updated) {
         const old = oldById.get(String(item.id))
         const wasIn = (old.inscritos || []).some(code => String(code) === String(me))
@@ -256,12 +293,12 @@ export function AppProvider({ children }) {
           await request(`/usuarios/${item.id}`, { method: 'DELETE', token })
           continue
         }
-        const senioridade = item.perfil === 'membro' ? resolveSenioridade(item, DF?.senioridades || []) : null
+        const senioridade = resolveSenioridade(item, DF?.senioridades || [])
         await request(`/usuarios/${item.id}`, { method: 'PUT', token, body: { nome: item.nome, email: item.email, perfil: item.perfil, senioridade } })
       }
     }
     const refreshed = await loadApiData(token)
-    const next = { ...refreshed, c: readConfig(refreshed.senioridades) }
+    const next = { ...refreshed, c: readConfig(refreshed.senioridades, false) }
     setD(next)
   }
 
@@ -280,5 +317,5 @@ export function AppProvider({ children }) {
 
   if (!sessionReady || !DF) return <main className="container py-5">Carregando…</main>
 
-  return <Ctx.Provider value={{ D, DF, up, form, go, me, mb, nav, entrar, sair, md, setMd, loading, refresh, token: tokenRef.current }}>{children}</Ctx.Provider>
+  return <Ctx.Provider value={{ D, DF, up, form, go, me, mb, nav, entrar, sair, md, setMd, loading, refresh, uploadDocument, downloadDocument, token: tokenRef.current }}>{children}</Ctx.Provider>
 }

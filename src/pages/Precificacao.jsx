@@ -4,30 +4,19 @@ import { brl, chip } from '../lib/utils'
 import Multi from '../components/Multi'
 import { PageBar } from '../components/Ui'
 
-const SENIORIDADES_PADRAO = {
-  junior: 'Júnior',
-  pleno: 'Pleno',
-  senior: 'Sênior',
-}
-
-const VALORES_HORA_PADRAO = {
-  junior: 0,
-  pleno: 0,
-  senior: 0,
-}
 
 export default function Precificacao() {
   const { D } = useApp()
 
-  const senioridades = D?.c?.senioridades ?? SENIORIDADES_PADRAO
+  const senioridades = D?.c?.senioridades ?? {}
   const membros = (D?.u ?? []).filter(
-    u => u.ativo && u.perfil === 'membro'
+    u => u.ativo && u.senioridade && Object.hasOwn(senioridades, u.senioridade)
   )
 
   const [selecionados, setSelecionados] = useState([])
   const [horasPorMembro, setHorasPorMembro] = useState({})
   const [valoresHora, setValoresHora] = useState(
-    () => D?.c?.valorHora ?? VALORES_HORA_PADRAO
+    () => D?.c?.valorHora ?? {}
   )
   const [margem, setMargem] = useState(30)
   const [impostos, setImpostos] = useState(10)
@@ -35,7 +24,7 @@ export default function Precificacao() {
   const horas = id => horasPorMembro[id] ?? 40
 
   const valorHora = usuario =>
-    Number(valoresHora?.[usuario.senioridade || 'junior']) || 0
+    Number(valoresHora?.[usuario.senioridade]) || 0
 
   const fatorPreco =
     (1 + margem / 100) /
@@ -85,13 +74,13 @@ export default function Precificacao() {
     <>
       <PageBar
         title="Simular precificação"
-        sub="Escolha a equipe, defina as horas e veja o valor hora de cada membro por senioridade."
+        sub="Escolha diretores, gestores e membros com senioridade cadastrada, defina as horas e calcule o custo por pessoa."
       />
 
       <div className="row g-3">
         <div className="col-lg-8">
           <div className="card card-body">
-            <div className="form-label">Membros da proposta</div>
+            <div className="form-label">Equipe da proposta</div>
 
             <Multi
               opts={membros}
@@ -128,7 +117,7 @@ export default function Precificacao() {
                           <span className={chip()}>
                             {
                               senioridades[
-                              usuario.senioridade || 'junior'
+                              usuario.senioridade
                               ]
                             }
                           </span>

@@ -10,6 +10,7 @@ import {
   adaptUser,
   readConfig,
   resolveSenioridade,
+  normalizeSenioridades,
 } from '../src/lib/apiMappers.js'
 
 const senioridades = [
@@ -101,9 +102,49 @@ test('readConfig maps server seniority values without losing the hourly rate', (
 test('resolveSenioridade resolves values by code or display name and rejects unknown values', () => {
   assert.deepEqual(resolveSenioridade({ perfil: 'membro', senioridade: 'senior' }, senioridades), senioridades[1])
   assert.deepEqual(resolveSenioridade({ perfil: 'membro', senioridade: 'Júnior' }, senioridades), senioridades[0])
-  assert.equal(resolveSenioridade({ perfil: 'gerente', senioridade: 'junior' }, senioridades), null)
+  assert.deepEqual(resolveSenioridade({ perfil: 'gerente', senioridade: 'junior' }, senioridades), senioridades[0])
+  assert.deepEqual(resolveSenioridade({ perfil: 'diretor', senioridade: 'senior' }, senioridades), senioridades[1])
   assert.throws(
     () => resolveSenioridade({ perfil: 'membro', senioridade: 'especialista' }, senioridades),
-    /Não foi possível identificar a senioridade/,
+    /A senioridade selecionada/,
   )
+})
+
+
+test('resolveSenioridade accepts the UI configuration map and snake_case API fields', () => {
+  assert.deepEqual(
+    resolveSenioridade({ perfil: 'membro', senioridade: 'junior' }, { junior: 'Júnior', pleno: 'Pleno' }),
+    { codigo: 'junior', nome: 'Júnior', valorHora: 0 },
+  )
+  assert.deepEqual(
+    normalizeSenioridades([{ codigo: 'pleno', nome: 'Pleno', valor_hora: '75' }]),
+    [{ codigo: 'pleno', nome: 'Pleno', valorHora: 75 }],
+  )
+})
+
+test('readConfig does not invent seniorities when the authenticated API returns an empty list', () => {
+  assert.deepEqual(readConfig([], false).senioridades, {})
+  assert.deepEqual(readConfig().senioridades, { junior: 'Júnior', pleno: 'Pleno', senior: 'Sênior' })
+})
+
+
+test('normalizeSenioridades preserves database codes and handles an empty database list', () => {
+  const rows = normalizeSenioridades([
+    { codigo: 'DEV_JR', nome: 'Desenvolvedor Júnior', valor_hora: '62.50' },
+    { id: 'ARQ', name: 'Arquiteto', hourlyRate: 140 },
+  ])
+
+  assert.deepEqual(rows, [
+    { codigo: 'DEV_JR', nome: 'Desenvolvedor Júnior', valorHora: 62.5 },
+    { codigo: 'ARQ', nome: 'Arquiteto', valorHora: 140 },
+  ])
+  assert.deepEqual(normalizeSenioridades([]), [])
+  assert.deepEqual(readConfig([], false).senioridades, {})
+})
+
+test('resolveSenioridade resolves dynamic database codes without hard-coded options', () => {
+  const dbRows = [{ codigo: 'DEV_JR', nome: 'Desenvolvedor Júnior', valorHora: 62.5 }]
+  assert.deepEqual(resolveSenioridade({ perfil: 'membro', senioridade: 'dev_jr' }, dbRows), dbRows[0])
+  assert.throws(() => resolveSenioridade({ perfil: 'membro', senioridade: 'junior' }, dbRows), /não corresponde às opções retornadas pela API/)
+  assert.throws(() => resolveSenioridade({ perfil: 'membro', senioridade: 'junior' }, []), /não retornou senioridades cadastradas/)
 })
