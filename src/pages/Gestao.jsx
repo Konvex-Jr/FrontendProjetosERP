@@ -59,7 +59,7 @@ export default function Gestao() {
     { l: 'Ações', render: x => <ActionMenu items={[['download', 'Baixar', () => bx(x)], ['edit', 'Renomear', () => ren(x)], ['trash', 'Excluir', () => delD(x), 1]]} /> }
   ]
   return (
-    <div className={'dw' + (ov ? ' on' : '')} onDragOver={e => { e.preventDefault(); setOv(true) }} onDragLeave={e => !e.currentTarget.contains(e.relatedTarget) && setOv(false)} onDrop={e => { e.preventDefault(); setOv(false); add(e.dataTransfer.files) }}>
+    <div className="dw">
       <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
         <div className="d-flex align-items-center gap-2"><button className="btn btn-g" onClick={() => setPid(null)}><Ic k="back" />Voltar</button><h1>{pa.nome}</h1></div>
         <button className="btn btn-primary" onClick={add}><Ic k="plus" />Adicionar documento por URL</button>

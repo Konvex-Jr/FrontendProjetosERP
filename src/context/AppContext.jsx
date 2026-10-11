@@ -1,113 +1,25 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { BLOQ, NAV, path, iso } from '../lib/utils'
+import { BLOQ, NAV, path } from '../lib/utils'
 import { request } from '../services/api'
 import alerts from '../lib/alerts'
+import {
+  adaptCheckin,
+  adaptDocument,
+  adaptFeedback,
+  adaptProject,
+  adaptTask,
+  adaptTraining,
+  adaptUser,
+  readConfig,
+  resolveSenioridade,
+} from '../lib/apiMappers'
+
 
 const Ctx = createContext(null)
 export const useApp = () => useContext(Ctx)
 const TOKEN_KEY = 'konvex_access_token'
 const USER_KEY = 'konvex_user_code'
-
-const slug = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '_')
-const dateOnly = value => value ? String(value).slice(0, 10) : ''
-const userCode = value => typeof value === 'object' && value ? value.codigo : value
-
-function adaptUser(user) {
-  const senioridadeRef = user.senioridade || null
-  return {
-    id: user.codigo,
-    nome: user.nome,
-    email: user.email,
-    perfil: user.perfil,
-    ativo: user.ativo,
-    senha: undefined,
-    senioridade: senioridadeRef ? slug(senioridadeRef.nome).replace('junior', 'junior').replace('senior', 'senior') : undefined,
-    senioridadeRef,
-  }
-}
-
-function adaptProject(project) {
-  return {
-    id: project.codigo,
-    nome: project.nome,
-    descricao: project.descricao,
-    inicio: dateOnly(project.dataInicio),
-    fim: dateOnly(project.dataFim),
-    status: project.status,
-    membros: (project.membros || []).map(userCode),
-  }
-}
-
-function adaptTask(task) {
-  return {
-    id: task.codigo,
-    projetoId: userCode(task.projeto),
-    titulo: task.titulo,
-    descricao: task.descricao || '',
-    inicio: dateOnly(task.dataInicio),
-    fim: dateOnly(task.dataFim),
-    status: task.status,
-    prioridade: task.prioridade,
-    conclusao: task.dataConclusao ? dateOnly(task.dataConclusao) : undefined,
-    dependeDe: userCode(task.dependeDe) || undefined,
-    responsaveis: (task.responsaveis || []).map(userCode),
-    checklist: task.checklist || [],
-  }
-}
-
-function adaptTraining(training) {
-  return {
-    id: training.codigo,
-    titulo: training.titulo,
-    data: dateOnly(training.data),
-    hora: training.hora,
-    instrutor: training.instrutor?.nome || training.instrutor || '—',
-    instrutorId: userCode(training.instrutor),
-    vagas: training.vagas,
-    tipo: training.tipo,
-    sala: training.sala,
-    inscritos: (training.inscritos || []).map(userCode),
-  }
-}
-
-function adaptCheckin(checkin) {
-  return {
-    id: checkin.codigo,
-    usuarioId: userCode(checkin.usuario),
-    semana: dateOnly(checkin.semana),
-    humor: checkin.humor,
-    resumo: checkin.resumo,
-    aprendizados: checkin.aprendizados,
-    sentimento: checkin.sentimento || '',
-  }
-}
-
-function adaptDocument(document) {
-  return {
-    id: document.codigo,
-    pastaId: userCode(document.pasta),
-    nome: document.nome,
-    ext: document.extensao || '—',
-    tam: Number(document.tamanhoBytes || 0),
-    data: dateOnly(document.dataEnvio),
-    autor: document.autor?.nome || '—',
-    autorId: userCode(document.autor),
-    url: document.arquivoUrl,
-  }
-}
-
-function adaptFeedback(feedback) {
-  return {
-    id: feedback.codigo,
-    capId: userCode(feedback.capacitacao),
-    usuarioId: userCode(feedback.usuario),
-    nota: feedback.nota,
-    data: dateOnly(feedback.data),
-    bom: feedback.bom || '',
-    melhorar: feedback.melhorar || '',
-  }
-}
 
 const dateTime = value => new Date(`${value}T12:00:00`).toISOString()
 
@@ -118,23 +30,10 @@ export function AppProvider({ children }) {
   const [md, setMd] = useState(null)
   const [loading, setLoading] = useState(false)
   const [sessionReady, setSessionReady] = useState(false)
-  const dataRef = useRef(null)
   const tokenRef = useRef(sessionStorage.getItem(TOKEN_KEY) || '')
 
-  const readConfig = async () => {
-    const registros = await request('/senioridades')
-    const senioridades = Object.fromEntries(registros.map(item => [item.codigo, item.nome]))
-    const valorHora = Object.fromEntries(registros.map(item => [item.codigo, Number(item.valorHora)]))
-    return {
-      hoje: iso(new Date()),
-      perfis: ['diretor', 'gerente', 'membro'],
-      senioridades,
-      valorHora,
-      senioridadesApi: registros,
-    }
-  }
   const loadApiData = async token => {
-    const [users, projects, tasks, trainings, checkins, feedbacks, folders] = await Promise.all([
+    const [users, projects, tasks, trainings, checkins, feedbacks, folders, senioridades] = await Promise.all([
       request('/usuarios', { token }),
       request('/projetos', { token }),
       request('/tarefas', { token }),
@@ -142,6 +41,7 @@ export function AppProvider({ children }) {
       request('/checkins', { token }),
       request('/feedbacks', { token }),
       request('/pastas', { token }),
+      request('/senioridades', { token }),
     ])
     const documentsByFolder = await Promise.all(folders.map(folder => request(`/pastas/${folder.codigo}/documentos`, { token })))
     const documents = documentsByFolder.flat().map(adaptDocument)
@@ -154,14 +54,14 @@ export function AppProvider({ children }) {
       f: feedbacks.map(adaptFeedback),
       g: folders.map(folder => ({ id: folder.codigo, nome: folder.nome })),
       d: documents,
+      senioridades,
     }
   }
 
   const refresh = async (token = tokenRef.current, config) => {
-    const resolvedConfig = config || DF?.c || await readConfig()
     const apiData = await loadApiData(token)
-    const next = { c: resolvedConfig, ...apiData }
-    dataRef.current = next
+    const resolvedConfig = config || readConfig(apiData.senioridades)
+    const next = { ...apiData, c: resolvedConfig }
     setD(next)
     return next
   }
@@ -169,119 +69,71 @@ export function AppProvider({ children }) {
   useEffect(() => {
     let active = true
 
-      ; (async () => {
-        try {
-          console.log('[INIT] Iniciando AppContext')
+    const initialize = async () => {
+      const defaultConfig = readConfig()
+      const token = sessionStorage.getItem(TOKEN_KEY)
+      const storedUserCode = sessionStorage.getItem(USER_KEY)
 
-          console.log('[INIT] Lendo configuração')
-          const config = await readConfig()
-          console.log('[INIT] Configuração carregada:', config)
+      if (!token || !storedUserCode) {
+        sessionStorage.removeItem(TOKEN_KEY)
+        sessionStorage.removeItem(USER_KEY)
+        tokenRef.current = ''
+        setD({
+          c: defaultConfig,
+          u: [],
+          p: [],
+          t: [],
+          k: [],
+          i: [],
+          f: [],
+          g: [],
+          d: [],
+        })
+        return
+      }
 
-          if (!active) return
+      tokenRef.current = token
 
-          console.log('[INIT] Lendo sessão')
-          const token = sessionStorage.getItem(TOKEN_KEY)
-          const userCodeStored = sessionStorage.getItem(USER_KEY)
+      try {
+        const data = await loadApiData(token)
+        if (!active) return
 
-          console.log('[INIT] Token presente:', Boolean(token))
-          console.log('[INIT] Código do usuário:', userCodeStored)
+        const user = data.u.find(item => item.id === storedUserCode && item.ativo)
+        const config = readConfig(data.senioridades)
 
-          if (token && userCodeStored) {
-            tokenRef.current = token
-
-            try {
-              console.log('[INIT] Carregando dados da API')
-
-              const data = await loadApiData(token)
-
-              console.log('[INIT] Dados carregados:', {
-                usuarios: data.u.length,
-                projetos: data.p.length,
-                tarefas: data.t.length,
-                capacitacoes: data.k.length,
-                checkins: data.i.length,
-                feedbacks: data.f.length,
-                pastas: data.g.length,
-                documentos: data.d.length,
-              })
-
-              if (!active) return
-
-              const user = data.u.find(
-                item => item.id === userCodeStored && item.ativo
-              )
-
-              console.log('[INIT] Usuário encontrado:', Boolean(user))
-
-              if (user) {
-                setMe(user)
-                setD({ ...data, c: config })
-              } else {
-                sessionStorage.removeItem(TOKEN_KEY)
-                sessionStorage.removeItem(USER_KEY)
-                tokenRef.current = ''
-                setD({
-                  c: config,
-                  u: [],
-                  p: [],
-                  t: [],
-                  k: [],
-                  i: [],
-                  f: [],
-                  g: [],
-                  d: [],
-                })
-              }
-            } catch (error) {
-              console.error('[INIT] Erro ao carregar dados da API:', error)
-
-              sessionStorage.removeItem(TOKEN_KEY)
-              sessionStorage.removeItem(USER_KEY)
-              tokenRef.current = ''
-
-              setD({
-                c: config,
-                u: [],
-                p: [],
-                t: [],
-                k: [],
-                i: [],
-                f: [],
-                g: [],
-                d: [],
-              })
-
-              if (error.status !== 401) {
-                alerts.error('Falha ao conectar com a API', error.message)
-              }
-            }
-          } else {
-            console.log('[INIT] Nenhuma sessão encontrada')
-
-            setD({
-              c: config,
-              u: [],
-              p: [],
-              t: [],
-              k: [],
-              i: [],
-              f: [],
-              g: [],
-              d: [],
-            })
-          }
-        } catch (error) {
-          console.error('[INIT] Falha na inicialização:', error)
-          console.error('[INIT] Stack:', error?.stack)
-
-          alerts.error('Falha ao iniciar o frontend', error.message)
-        } finally {
-          if (active) {
-            console.log('[INIT] Inicialização finalizada')
-            setSessionReady(true)
-          }
+        if (!user) {
+          sessionStorage.removeItem(TOKEN_KEY)
+          sessionStorage.removeItem(USER_KEY)
+          tokenRef.current = ''
+          setMe(null)
+          setD({ ...data, c: config, u: [], p: [], t: [], k: [], i: [], f: [], g: [], d: [] })
+          return
         }
-      })()
+
+        setMe(user.id)
+        setD({ ...data, c: config })
+      } catch (error) {
+        console.error('Erro ao carregar dados da API:', error)
+        sessionStorage.removeItem(TOKEN_KEY)
+        sessionStorage.removeItem(USER_KEY)
+        tokenRef.current = ''
+        setMe(null)
+        setD({ c: defaultConfig, u: [], p: [], t: [], k: [], i: [], f: [], g: [], d: [] })
+
+        if (error.status !== 401) {
+          alerts.error('Falha ao conectar com a API', error.message)
+        }
+      }
+    }
+
+    initialize()
+      .catch(error => {
+        console.error('Falha na inicialização do frontend:', error)
+        alerts.error('Falha ao iniciar o frontend', error.message)
+      })
+      .finally(() => {
+        if (active) setSessionReady(true)
+      })
 
     return () => {
       active = false
@@ -301,22 +153,25 @@ export function AppProvider({ children }) {
     try {
       const result = await request('/auth/login', { method: 'POST', body: { email: email.trim().toLowerCase(), senha } })
       if (!result?.token) throw new Error('A API não retornou um token de autenticação.')
-      const users = await request('/usuarios', { token: result.token })
-      const user = users.map(adaptUser).find(item => item.email.toLowerCase() === email.trim().toLowerCase() && item.ativo)
+      const data = await loadApiData(result.token)
+      const emailNormalizado = email.trim().toLowerCase()
+      const user = data.u.find(item => item.email.toLowerCase() === emailNormalizado && item.ativo)
       if (!user) throw new Error('O login foi aceito, mas não foi possível identificar um usuário ativo com esse e-mail.')
+
       tokenRef.current = result.token
       sessionStorage.setItem(TOKEN_KEY, result.token)
       sessionStorage.setItem(USER_KEY, user.id)
-      const config = DF?.c || await readConfig()
-      const data = await loadApiData(result.token)
-      const next = { c: config, ...data }
-      dataRef.current = next
-      setD(next)
+      const config = readConfig(data.senioridades)
+      setD({ ...data, c: config })
       setMe(user.id)
       navigate('/')
       window.scrollTo(0, 0)
       alerts.toastSuccess('Login realizado', `Bem-vindo(a), ${user.nome.split(' ')[0]}.`)
     } catch (error) {
+      sessionStorage.removeItem(TOKEN_KEY)
+      sessionStorage.removeItem(USER_KEY)
+      tokenRef.current = ''
+      setMe(null)
       alerts.error('Não foi possível entrar', error.message)
       throw error
     } finally {
@@ -329,7 +184,8 @@ export function AppProvider({ children }) {
     sessionStorage.removeItem(USER_KEY)
     tokenRef.current = ''
     setMe(null)
-    setD(current => current ? { ...current, u: [], p: [], t: [], k: [], i: [], f: [] } : current)
+    setMd(null)
+    setD(current => current ? { ...current, u: [], p: [], t: [], k: [], i: [], f: [], g: [], d: [] } : current)
     navigate('/login')
     window.scrollTo(0, 0)
   }
@@ -357,11 +213,11 @@ export function AppProvider({ children }) {
       for (const item of created) await request('/tarefas', { method: 'POST', token, body: { codigoProjeto: item.projetoId, titulo: item.titulo, dataInicio: dateTime(item.inicio), dataFim: dateTime(item.fim), prioridade: item.prioridade, descricao: item.descricao || null, codigosResponsaveis: item.responsaveis || [] } })
       for (const item of updated) {
         const old = oldById.get(String(item.id))
-        const comparable = item => ({ ...item, status: undefined, conclusao: undefined, checklist: undefined })
+        const comparable = item => ({ ...item, status: undefined, conclusao: undefined })
         if (item.status !== old.status && JSON.stringify(comparable(item)) === JSON.stringify(comparable(old))) {
           await request(`/tarefas/${item.id}/status`, { method: 'PATCH', token, body: { status: item.status } })
         } else {
-          await request(`/tarefas/${item.id}`, { method: 'PUT', token, body: { titulo: item.titulo, dataInicio: dateTime(item.inicio), dataFim: dateTime(item.fim), status: item.status, prioridade: item.prioridade, descricao: item.descricao || null, codigosResponsaveis: item.responsaveis || [], codigoDependencia: item.dependeDe || null } })
+          await request(`/tarefas/${item.id}`, { method: 'PUT', token, body: { titulo: item.titulo, dataInicio: dateTime(item.inicio), dataFim: dateTime(item.fim), status: item.status, prioridade: item.prioridade, descricao: item.descricao || null, codigosResponsaveis: item.responsaveis || [], codigoDependencia: item.dependeDe || null, checklist: (item.checklist || []).map(checklistItem => ({ codigo: checklistItem.id, texto: checklistItem.texto, feito: Boolean(checklistItem.feito) })) } })
         }
       }
     } else if (key === 'k') {
@@ -391,8 +247,8 @@ export function AppProvider({ children }) {
     } else if (key === 'u') {
       for (const item of deleted) await request(`/usuarios/${item.id}`, { method: 'DELETE', token })
       for (const item of created) {
-        const senioridade = resolveSenioridade(item, DF?.c?.senioridadesApi || [])
-        await request('/auth/register', { method: 'POST', body: { nome: item.nome, email: item.email, senha: item.senha, perfil: item.perfil, senioridade } })
+        const senioridade = resolveSenioridade(item, DF?.senioridades || [])
+        await request('/usuarios', { method: 'POST', token, body: { nome: item.nome, email: item.email, senha: item.senha, perfil: item.perfil, senioridade } })
       }
       for (const item of updated) {
         const old = oldById.get(String(item.id))
@@ -400,16 +256,12 @@ export function AppProvider({ children }) {
           await request(`/usuarios/${item.id}`, { method: 'DELETE', token })
           continue
         }
-        const senioridade = item.perfil === 'membro' ? resolveSenioridade(item, DF?.c?.senioridadesApi || []) : null
+        const senioridade = item.perfil === 'membro' ? resolveSenioridade(item, DF?.senioridades || []) : null
         await request(`/usuarios/${item.id}`, { method: 'PUT', token, body: { nome: item.nome, email: item.email, perfil: item.perfil, senioridade } })
       }
     }
-    const config = DF?.c
     const refreshed = await loadApiData(token)
-    const localTasks = key === 't' ? after : (DF?.t || [])
-    refreshed.t = refreshed.t.map(task => { const localTask = localTasks.find(item => String(item.id) === String(task.id)); return localTask?.checklist ? { ...task, checklist: localTask.checklist } : task })
-    const next = { c: config, ...refreshed }
-    dataRef.current = next
+    const next = { ...refreshed, c: readConfig(refreshed.senioridades) }
     setD(next)
   }
 
@@ -429,32 +281,4 @@ export function AppProvider({ children }) {
   if (!sessionReady || !DF) return <main className="container py-5">Carregando…</main>
 
   return <Ctx.Provider value={{ D, DF, up, form, go, me, mb, nav, entrar, sair, md, setMd, loading, refresh, token: tokenRef.current }}>{children}</Ctx.Provider>
-}
-
-function resolveSenioridade(user, senioridades = []) {
-  if (user.perfil !== 'membro') return null
-
-  const selecionada = user.senioridadeRef ?? user.senioridade
-
-  if (selecionada && typeof selecionada === 'object') {
-    const encontradaPorCodigo = senioridades.find(item => item.codigo === selecionada.codigo)
-    if (encontradaPorCodigo) return encontradaPorCodigo
-
-    if (selecionada.nome) {
-      const encontrada = senioridades.find(item => slug(item.nome) === slug(selecionada.nome))
-      if (encontrada) return encontrada
-    }
-  }
-
-  if (typeof selecionada === 'string') {
-    const encontrada = senioridades.find(
-      item => item.codigo === selecionada || slug(item.codigo) === slug(selecionada) || slug(item.nome) === slug(selecionada)
-    )
-
-    if (encontrada) return encontrada
-  }
-
-  throw new Error(
-    `Não foi possível identificar a senioridade "${typeof selecionada === 'string' ? selecionada : ''}" na API. Verifique os códigos e registros de senioridade disponíveis.`
-  )
 }

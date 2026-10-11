@@ -19,7 +19,7 @@ export default function TaskModal({ D, up, t, p, T, close, del }) {
   }
   const chain = id => { const o = []; let x = T.find(y => y.id == id); while (x && !o.includes(x.id)) { o.push(x.id); x = T.find(y => y.id == x.dependeDe) } return o }
   const opts = T.filter(c => c.id != t.id && !chain(c.id).includes(t.id)), deps = T.filter(x => x.dependeDe == t.id)
-  const addI = () => { const v = nv.trim(); if (!v) return; setCl(a => [...a, { id: Math.max(0, ...a.map(x => x.id)) + 1, texto: v, feito: false }]); setNv('') }
+  const addI = () => { const v = nv.trim(); if (!v) return; setCl(a => [...a, { id: crypto.randomUUID(), texto: v, feito: false }]); setNv('') }
   useEffect(() => { const k = e => e.key == 'Escape' && close(); addEventListener('keydown', k); return () => removeEventListener('keydown', k) }, [])
   return (
     <>

@@ -33,8 +33,12 @@ A documentação Swagger do backend fica em `http://localhost:5001/api-docs`.
 
 O frontend usa `/auth/login`, `/usuarios`, `/projetos`, `/tarefas`, `/capacitacoes`, `/checkins` e `/feedbacks`. As chamadas autenticadas enviam o JWT no header `access-token`. A sessão é armazenada em `sessionStorage`.
 
-As operações de projeto, tarefa, inscrição em capacitação, check-in, feedback e usuário são enviadas à API. Os alertas e confirmações usam uma abstração em `src/lib/alerts.js`, baseada no SweetAlert2, para centralizar o estilo e o comportamento.
+As operações de projeto, tarefa (incluindo checklist), inscrição em capacitação, check-in, feedback, usuário, pastas e metadados de documentos são enviadas à API. O token JWT é enviado no cabeçalho `access-token`. Os alertas e confirmações são centralizados em `src/lib/alerts.js`, baseado no SweetAlert2.
 
 ## Limitações da API atual
 
-A API disponibilizada não possui rotas para criar capacitações, editar feedbacks separadamente, reativar usuários, gerir competências/estratégia, nem persistir checklist de tarefas. Essas áreas não são simuladas como se estivessem persistidas no backend. O cadastro de documentos por URL e a gestão de pastas também não possuem telas dedicadas neste frontend.
+A API atual não disponibiliza rotas para criar/editar capacitações nem reativar usuários. A tela de precificação é uma simulação local: alterações de valores, horas, margem e impostos não alteram os cadastros da API. Documentos são cadastrados por URL; o backend armazena metadados, não recebe arquivos binários.
+
+### Docker
+
+A imagem do frontend usa `VITE_API_URL=http://localhost:5001` por padrão, alinhado à porta padrão do backend. Ao publicar em outro host, passe `--build-arg VITE_API_URL=https://seu-host-da-api` ao construir a imagem. A URL precisa ser acessível pelo navegador do usuário.
