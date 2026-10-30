@@ -12,7 +12,6 @@ import {
   adaptTraining,
   adaptUser,
   readConfig,
-  resolveSenioridade,
 } from '../lib/apiMappers'
 
 
@@ -262,21 +261,6 @@ export function AppProvider({ children }) {
       for (const item of deleted) await request(`/documentos/${item.id}`, { method: 'DELETE', auth: true })
       for (const item of created) await request(`/pastas/${item.pastaId}/documentos`, { method: 'POST', auth: true, body: { nome: item.nome, tamanhoBytes: Number(item.tam || 0), dataEnvio: dateTime(item.data || DF.c.hoje), codigoAutor: item.autorId || me, arquivoUrl: item.url, extensao: item.ext && item.ext !== '—' ? item.ext : null } })
       for (const item of updated) await request(`/documentos/${item.id}`, { method: 'PUT', auth: true, body: { nome: item.nome } })
-    } else if (key === 'u') {
-      for (const item of deleted) await request(`/usuarios/${item.id}`, { method: 'DELETE', auth: true })
-      for (const item of created) {
-        const senioridade = resolveSenioridade(item, DF?.senioridades || [])
-        await request('/usuarios', { method: 'POST', auth: true, body: { nome: item.nome, email: item.email, senha: item.senha, perfil: item.perfil, senioridade } })
-      }
-      for (const item of updated) {
-        const old = oldById.get(String(item.id))
-        if (old.ativo && !item.ativo) {
-          await request(`/usuarios/${item.id}`, { method: 'DELETE', auth: true })
-          continue
-        }
-        const senioridade = resolveSenioridade(item, DF?.senioridades || [])
-        await request(`/usuarios/${item.id}`, { method: 'PUT', auth: true, body: { nome: item.nome, email: item.email, perfil: item.perfil, senioridade } })
-      }
     }
     const refreshed = await loadApiData()
     const next = { ...refreshed, c: readConfig(refreshed.senioridades, false) }
