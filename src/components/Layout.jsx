@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
-import { BLOQ, fm, ini, un, chip } from '../lib/utils'
+import { fm, ini, un, chip } from '../lib/utils'
 import Ic from './Icon'
 import FormModal from './FormModal'
 
@@ -48,10 +48,11 @@ function SideNav() {
 }
 
 export default function Layout() {
-  const { me, mb, md, setMd } = useApp(), { pathname } = useLocation()
+  const { me, nav, md, setMd } = useApp(), { pathname } = useLocation()
   if (!me) return <Navigate to="/login" replace />
   const secao = pathname.split('/')[1]
-  if (mb && BLOQ.includes(secao)) return <Navigate to="/" replace />
+  // Só abre telas que vieram no menu da pessoa (GET /auth/permissoes).
+  if (secao && !nav.some(([, , caminho]) => caminho === '/' + secao)) return <Navigate to="/" replace />
   return (
     <>
       <Header />

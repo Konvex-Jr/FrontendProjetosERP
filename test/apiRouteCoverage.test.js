@@ -3,7 +3,8 @@ import { test } from 'node:test'
 import { request } from '../src/services/api.js'
 
 const routeContracts = [
-  ['POST', '/auth/register'], ['POST', '/auth/login'],
+  ['POST', '/auth/login'], ['POST', '/auth/refresh'], ['POST', '/auth/logout'],
+  ['GET', '/auth/me'], ['GET', '/auth/permissoes'],
   ['GET', '/usuarios'], ['GET', '/senioridades'], ['POST', '/usuarios'],
   ['PUT', '/usuarios/user-1'], ['DELETE', '/usuarios/user-1'],
   ['GET', '/projetos'], ['POST', '/projetos'], ['PUT', '/projetos/project-1'],
