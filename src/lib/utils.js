@@ -18,7 +18,6 @@ export const NAV = [
   ['precificacao', 'Simular precificação', '/precificacao'],
   ['usuarios', 'Usuários', '/usuarios']
 ]
-export const BLOQ = ['estrategia', 'usuarios', 'precificacao']
 export const path = (n, pid) => n === 'projeto' ? '/projetos/' + pid : (NAV.find(x => x[0] === n)?.[2] || '/')
 
 export const chip = (c = '') => 'badge rounded-pill ' + c
