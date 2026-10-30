@@ -19,6 +19,11 @@ const routeContracts = [
   ['DELETE', '/pastas/folder-1'], ['GET', '/pastas/folder-1/documentos'],
   ['POST', '/pastas/folder-1/documentos'], ['PUT', '/documentos/doc-1'],
   ['DELETE', '/documentos/doc-1'],
+  ['GET', '/usuarios/user-1/perfil'], ['PATCH', '/usuarios/user-1/status'], ['PUT', '/usuarios/user-1/senha'],
+  ['PUT', '/auth/perfil'], ['PUT', '/auth/senha'],
+  ['GET', '/areas'], ['POST', '/areas'], ['PUT', '/areas/area-1'],
+  ['GET', '/cargos'], ['POST', '/cargos'], ['PUT', '/cargos/cargo-1'],
+  ['POST', '/senioridades'], ['PUT', '/senioridades/sen-1'],
 ]
 
 test(`cliente HTTP cobre todos os ${routeContracts.length} contratos de rota do backend`, async () => {
