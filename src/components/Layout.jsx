@@ -24,7 +24,7 @@ function Header() {
             <span className="sun"><Ic k="sun" /></span><span className="moon"><Ic k="moon" /></span>
           </button>
           <span className="hu"><b>{un(D, me)}</b><small>{D.u.find(u => u.id == me)?.perfil}</small></span>
-          <span className="av" title={un(D, me)}>{ini(un(D, me))}</span>
+          <span className="av" role="button" title="Meu perfil" onClick={() => navigate('/perfil')}>{ini(un(D, me))}</span>
           <button className="btn btn-g btn-sm" onClick={sair}><Ic k="logout" />Sair</button>
         </div>
       </div>

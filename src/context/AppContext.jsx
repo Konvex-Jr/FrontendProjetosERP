@@ -12,7 +12,6 @@ import {
   adaptTraining,
   adaptUser,
   readConfig,
-  resolveSenioridade,
 } from '../lib/apiMappers'
 
 
@@ -216,16 +215,8 @@ export function AppProvider({ children }) {
     const deleted = before.filter(item => !newById.has(String(item.id)))
     const updated = after.filter(item => oldById.has(String(item.id)) && JSON.stringify(item) !== JSON.stringify(oldById.get(String(item.id))))
 
-    if (key === 'p') {
-      for (const item of deleted) await request(`/projetos/${item.id}`, { method: 'DELETE', auth: true })
-      for (const item of created) await request('/projetos', { method: 'POST', auth: true, body: { nome: item.nome, descricao: item.descricao, dataInicio: dateTime(item.inicio), dataFim: dateTime(item.fim), codigosMembros: item.membros || [] } })
-      for (const item of updated) {
-        const old = oldById.get(String(item.id))
-        const statusOnly = item.status !== old.status && ['nome', 'descricao', 'inicio', 'fim', 'membros'].every(field => JSON.stringify(item[field]) === JSON.stringify(old[field]))
-        if (statusOnly) await request(`/projetos/${item.id}/status`, { method: 'PATCH', auth: true })
-        else await request(`/projetos/${item.id}`, { method: 'PUT', auth: true, body: { nome: item.nome, descricao: item.descricao, dataInicio: dateTime(item.inicio), dataFim: dateTime(item.fim), codigosMembros: item.membros || [] } })
-      }
-    } else if (key === 't') {
+    // Projetos e Equipe usam src/services/projetos.js (chamadas diretas).
+    if (key === 't') {
       for (const item of deleted) await request(`/tarefas/${item.id}`, { method: 'DELETE', auth: true })
       for (const item of created) await request('/tarefas', { method: 'POST', auth: true, body: { codigoProjeto: item.projetoId, titulo: item.titulo, dataInicio: dateTime(item.inicio), dataFim: dateTime(item.fim), prioridade: item.prioridade, descricao: item.descricao || null, codigosResponsaveis: item.responsaveis || [] } })
       for (const item of updated) {
@@ -262,21 +253,6 @@ export function AppProvider({ children }) {
       for (const item of deleted) await request(`/documentos/${item.id}`, { method: 'DELETE', auth: true })
       for (const item of created) await request(`/pastas/${item.pastaId}/documentos`, { method: 'POST', auth: true, body: { nome: item.nome, tamanhoBytes: Number(item.tam || 0), dataEnvio: dateTime(item.data || DF.c.hoje), codigoAutor: item.autorId || me, arquivoUrl: item.url, extensao: item.ext && item.ext !== '—' ? item.ext : null } })
       for (const item of updated) await request(`/documentos/${item.id}`, { method: 'PUT', auth: true, body: { nome: item.nome } })
-    } else if (key === 'u') {
-      for (const item of deleted) await request(`/usuarios/${item.id}`, { method: 'DELETE', auth: true })
-      for (const item of created) {
-        const senioridade = resolveSenioridade(item, DF?.senioridades || [])
-        await request('/usuarios', { method: 'POST', auth: true, body: { nome: item.nome, email: item.email, senha: item.senha, perfil: item.perfil, senioridade } })
-      }
-      for (const item of updated) {
-        const old = oldById.get(String(item.id))
-        if (old.ativo && !item.ativo) {
-          await request(`/usuarios/${item.id}`, { method: 'DELETE', auth: true })
-          continue
-        }
-        const senioridade = resolveSenioridade(item, DF?.senioridades || [])
-        await request(`/usuarios/${item.id}`, { method: 'PUT', auth: true, body: { nome: item.nome, email: item.email, perfil: item.perfil, senioridade } })
-      }
     }
     const refreshed = await loadApiData()
     const next = { ...refreshed, c: readConfig(refreshed.senioridades, false) }
