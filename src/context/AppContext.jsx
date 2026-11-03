@@ -1,11 +1,9 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { path } from '../lib/utils'
-import { request, fetchAutenticado, sessao } from '../services/api'
+import { request, sessao } from '../services/api'
 import alerts from '../lib/alerts'
 import {
-  adaptCheckin,
-  adaptDocument,
   adaptFeedback,
   adaptProject,
   adaptTask,
@@ -17,7 +15,7 @@ import {
 
 const Ctx = createContext(null)
 export const useApp = () => useContext(Ctx)
-const VAZIO = { u: [], p: [], t: [], k: [], i: [], f: [], g: [], d: [] }
+const VAZIO = { u: [], p: [], t: [], k: [], f: [] }
 const SEM_ACESSO = { permissoes: [], menu: [] }
 
 const dateTime = value => new Date(`${value}T12:00:00`).toISOString()
@@ -37,27 +35,20 @@ export function AppProvider({ children }) {
   }
 
   const loadApiData = async () => {
-    const [users, projects, tasks, trainings, checkins, feedbacks, folders, senioridades] = await Promise.all([
+    const [users, projects, tasks, trainings, feedbacks, senioridades] = await Promise.all([
       request('/usuarios', { auth: true }),
       request('/projetos', { auth: true }),
       request('/tarefas', { auth: true }),
       request('/capacitacoes', { auth: true }),
-      request('/checkins', { auth: true }),
       request('/feedbacks', { auth: true }),
-      request('/pastas', { auth: true }),
       request('/senioridades', { auth: true }),
     ])
-    const documentsByFolder = await Promise.all(folders.map(folder => request(`/pastas/${folder.codigo}/documentos`, { auth: true })))
-    const documents = documentsByFolder.flat().map(adaptDocument)
     return {
       u: users.map(adaptUser),
       p: projects.map(adaptProject),
       t: tasks.map(adaptTask),
       k: trainings.map(adaptTraining),
-      i: checkins.map(adaptCheckin),
       f: feedbacks.map(adaptFeedback),
-      g: folders.map(folder => ({ id: folder.codigo, nome: folder.nome })),
-      d: documents,
       senioridades,
     }
   }
@@ -113,12 +104,12 @@ export function AppProvider({ children }) {
   }, [])
   // Ações liberadas pelo backend (GET /auth/permissoes); a API continua checando cada uma.
   const pode = permissao => acesso.permissoes.includes(permissao)
-  // Sem permissão de gestor, a pessoa vê só os próprios projetos, tarefas e check-ins.
+  // Sem permissão de gestor, a pessoa vê só os próprios projetos, tarefas e feedbacks.
   const mb = !!DF && !!me && !pode('projetos.editar')
   const D = useMemo(() => {
     if (!DF) return null
     return mb
-      ? { ...DF, priv: true, p: DF.p.filter(project => project.membros.includes(me)), t: DF.t.filter(task => (task.responsaveis || []).includes(me)), i: DF.i.filter(item => item.usuarioId === me), f: DF.f.filter(item => item.usuarioId === me) }
+      ? { ...DF, priv: true, p: DF.p.filter(project => project.membros.includes(me)), t: DF.t.filter(task => (task.responsaveis || []).includes(me)), f: DF.f.filter(item => item.usuarioId === me) }
       : DF
   }, [DF, me, mb])
   const nav = acesso.menu.map(item => [item.chave, item.rotulo, item.caminho])
@@ -173,40 +164,6 @@ export function AppProvider({ children }) {
     return () => { sessao.onExpirada = null }
   }, [])
 
-  const downloadDocument = async documentUrl => {
-    if (!sessao.ativa) throw new Error('Sua sessão expirou. Entre novamente.')
-    const filename = decodeURIComponent(String(documentUrl).split('/').pop().split('?')[0])
-    const response = await fetchAutenticado(`/uploads/${encodeURIComponent(filename)}`)
-    if (!response.ok) {
-      let message = 'Não foi possível baixar o documento.'
-      try { message = (await response.json()).message || message } catch {}
-      throw new Error(message)
-    }
-    const blob = await response.blob()
-    const objectUrl = URL.createObjectURL(blob)
-    const anchor = document.createElement('a')
-    anchor.href = objectUrl
-    anchor.download = filename
-    document.body.appendChild(anchor)
-    anchor.click()
-    anchor.remove()
-    URL.revokeObjectURL(objectUrl)
-  }
-
-  const uploadDocument = async (folderId, file) => {
-    if (!sessao.ativa) throw new Error('Sua sessão expirou. Entre novamente.')
-    if (!file) throw new Error('Selecione um arquivo para enviar.')
-    if (file.size > 20 * 1024 * 1024) throw new Error('O arquivo excede o limite de 20 MB.')
-    const encodedName = encodeURIComponent(file.name)
-    await request(`/pastas/${folderId}/documentos/upload`, {
-      method: 'POST',
-      auth: true,
-      headers: { 'Content-Type': file.type || 'application/octet-stream', 'X-File-Name': encodedName },
-      body: file,
-    })
-    await refresh()
-  }
-
   const persistCollection = async (key, before, after) => {
     if (!sessao.ativa) throw new Error('Sua sessão expirou. Entre novamente.')
     const oldById = new Map(before.map(item => [String(item.id), item]))
@@ -215,7 +172,7 @@ export function AppProvider({ children }) {
     const deleted = before.filter(item => !newById.has(String(item.id)))
     const updated = after.filter(item => oldById.has(String(item.id)) && JSON.stringify(item) !== JSON.stringify(oldById.get(String(item.id))))
 
-    // Projetos, Equipe e Tarefas usam src/services/<modulo>.js (chamadas diretas).
+    // Projetos, Equipe, Tarefas e Documentos usam src/services/<modulo>.js (chamadas diretas).
     if (key === 'k') {
       for (const item of created) await request('/capacitacoes', { method: 'POST', auth: true, body: { titulo: item.titulo, data: item.data, hora: item.hora, codigoInstrutor: item.instrutorId || me, vagas: Number(item.vagas), tipo: item.tipo, sala: item.sala } })
       for (const item of updated) {
@@ -226,21 +183,8 @@ export function AppProvider({ children }) {
           await request(`/capacitacoes/${item.id}/inscricoes${isIn ? '' : `/${me}`}`, { method: isIn ? 'POST' : 'DELETE', auth: true, ...(isIn ? { body: { codigoUsuario: me } } : {}) })
         }
       }
-    } else if (key === 'i') {
-      for (const item of [...created, ...updated]) {
-        const existed = oldById.has(String(item.id)) || before.some(old => String(old.usuarioId) === String(item.usuarioId) && old.semana === item.semana)
-        await request('/checkins', { method: existed ? 'PUT' : 'POST', auth: true, body: { codigoUsuario: item.usuarioId, semana: item.semana, resumo: item.resumo, aprendizados: item.aprendizados, humor: Number(item.humor), sentimento: item.sentimento || null } })
-      }
     } else if (key === 'f') {
       for (const item of created) await request(`/capacitacoes/${item.capId}/feedbacks`, { method: 'POST', auth: true, body: { codigoUsuario: item.usuarioId, nota: Number(item.nota), bom: item.bom || null, melhorar: item.melhorar || null, data: dateTime(item.data) } })
-    } else if (key === 'g') {
-      for (const item of deleted) await request(`/pastas/${item.id}`, { method: 'DELETE', auth: true })
-      for (const item of created) await request('/pastas', { method: 'POST', auth: true, body: { nome: item.nome } })
-      for (const item of updated) await request(`/pastas/${item.id}`, { method: 'PUT', auth: true, body: { nome: item.nome } })
-    } else if (key === 'd') {
-      for (const item of deleted) await request(`/documentos/${item.id}`, { method: 'DELETE', auth: true })
-      for (const item of created) await request(`/pastas/${item.pastaId}/documentos`, { method: 'POST', auth: true, body: { nome: item.nome, tamanhoBytes: Number(item.tam || 0), dataEnvio: dateTime(item.data || DF.c.hoje), codigoAutor: item.autorId || me, arquivoUrl: item.url, extensao: item.ext && item.ext !== '—' ? item.ext : null } })
-      for (const item of updated) await request(`/documentos/${item.id}`, { method: 'PUT', auth: true, body: { nome: item.nome } })
     }
     const refreshed = await loadApiData()
     const next = { ...refreshed, c: readConfig(refreshed.senioridades, false) }
@@ -262,5 +206,5 @@ export function AppProvider({ children }) {
 
   if (!sessionReady || !DF) return <main className="container py-5">Carregando…</main>
 
-  return <Ctx.Provider value={{ D, DF, up, form, go, me, mb, nav, entrar, sair, md, setMd, loading, refresh, uploadDocument, downloadDocument, pode }}>{children}</Ctx.Provider>
+  return <Ctx.Provider value={{ D, DF, up, form, go, me, mb, nav, entrar, sair, md, setMd, loading, refresh, pode }}>{children}</Ctx.Provider>
 }

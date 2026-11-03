@@ -84,32 +84,6 @@ export function adaptTraining(training) {
   }
 }
 
-export function adaptCheckin(checkin) {
-  return {
-    id: checkin.codigo,
-    usuarioId: userCode(checkin.usuario),
-    semana: dateOnly(checkin.semana),
-    humor: checkin.humor,
-    resumo: checkin.resumo,
-    aprendizados: checkin.aprendizados,
-    sentimento: checkin.sentimento || '',
-  }
-}
-
-export function adaptDocument(document) {
-  return {
-    id: document.codigo,
-    pastaId: userCode(document.pasta),
-    nome: document.nome,
-    ext: document.extensao || '—',
-    tam: Number(document.tamanhoBytes || 0),
-    data: dateOnly(document.dataEnvio),
-    autor: document.autor?.nome || '—',
-    autorId: userCode(document.autor),
-    url: document.arquivoUrl,
-  }
-}
-
 export function adaptFeedback(feedback) {
   return {
     id: feedback.codigo,

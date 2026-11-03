@@ -1,8 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import {
-  adaptCheckin,
-  adaptDocument,
   adaptFeedback,
   adaptProject,
   adaptTask,
@@ -58,20 +56,11 @@ test('adaptProject and adaptTask normalize nested resource references and dates'
   assert.deepEqual(task.checklist, [{ id: 'item-1', texto: 'Cobrir 422', feito: true }])
 })
 
-test('adaptTraining, adaptCheckin, adaptDocument and adaptFeedback map API relations', () => {
+test('adaptTraining and adaptFeedback map API relations', () => {
   const training = adaptTraining({
     codigo: 'training-1', titulo: 'Segurança', data: '2026-10-10', hora: '09:00',
     instrutor: { codigo: 'user-1', nome: 'Ana' }, inscritos: [{ codigo: 'user-2' }],
     vagas: 10, tipo: 'computacao', sala: 'Lab 1',
-  })
-  const checkin = adaptCheckin({
-    codigo: 'checkin-1', usuario: { codigo: 'user-1' }, semana: '2026-10-05', humor: 4,
-    resumo: 'Boa semana', aprendizados: 'Testes', sentimento: null,
-  })
-  const document = adaptDocument({
-    codigo: 'doc-1', pasta: { codigo: 'folder-1' }, nome: 'api.pdf', extensao: 'PDF',
-    tamanhoBytes: '2048', dataEnvio: '2026-10-09', autor: { codigo: 'user-1', nome: 'Ana' },
-    arquivoUrl: 'https://example.com/api.pdf',
   })
   const feedback = adaptFeedback({
     codigo: 'feedback-1', capacitacao: { codigo: 'training-1' }, usuario: { codigo: 'user-2' },
@@ -81,11 +70,6 @@ test('adaptTraining, adaptCheckin, adaptDocument and adaptFeedback map API relat
   assert.equal(training.instrutor, 'Ana')
   assert.equal(training.instrutorId, 'user-1')
   assert.deepEqual(training.inscritos, ['user-2'])
-  assert.equal(checkin.usuarioId, 'user-1')
-  assert.equal(checkin.sentimento, '')
-  assert.equal(document.pastaId, 'folder-1')
-  assert.equal(document.tam, 2048)
-  assert.equal(document.autor, 'Ana')
   assert.equal(feedback.capId, 'training-1')
   assert.equal(feedback.bom, '')
 })
