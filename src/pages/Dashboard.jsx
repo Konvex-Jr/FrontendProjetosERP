@@ -4,6 +4,25 @@ import { PC, ST, TIPO, chip, d, fm, hj, un } from '../lib/utils'
 import Burn from '../components/Burn'
 import Ic from '../components/Icon'
 import { Prog } from '../components/Ui'
+import { abrirCom } from '../lib/atalho'
+import { indicadores } from '../lib/indicadores'
+
+/** Os sete indicadores da Konvex (RF-110), só para a gestão. Cada número abre a lista correspondente. */
+function Indicadores({ D, go }) {
+  const abrir = ([tela, filtro]) => { if (filtro) abrirCom(tela, filtro); go(tela) }
+  return (
+    <section className="card card-body mb-3" aria-label="Indicadores da Konvex">
+      <h2>Indicadores da Konvex</h2>
+      <div className="kpi">
+        {indicadores(D, hj(D)).map(i => (
+          <button key={i.chave} type="button" className={'kpi-i' + (i.alerta && i.numero ? ' al' : '')} title={i.dica} onClick={() => abrir(i.destino)}>
+            <b>{i.numero}</b><span>{i.rotulo}</span><small>{i.dica}</small>
+          </button>
+        ))}
+      </div>
+    </section>
+  )
+}
 
 function Agenda({ D, me, go }) {
   const h = hj(D)
@@ -22,7 +41,7 @@ function Agenda({ D, me, go }) {
               <span className={chip(lt ? 'er' : '')}>{fm(t.fim)}</span>
             </div>
           )
-        }) : <small>Você não tem tarefas abertas.</small>}
+        }) : <small>Você não tem tarefas abertas. Veja o painel <button className="btn btn-link p-0 align-baseline" onClick={() => go('tarefas')}>Tarefas</button>.</small>}
       </div></div>
       <div className="col-md-6"><div className="card card-body h-100">
         <h2>Minhas capacitações</h2>
@@ -44,7 +63,7 @@ function Agenda({ D, me, go }) {
 }
 
 export default function Dashboard() {
-  const { D, go, me, nav } = useApp()
+  const { D, go, me, nav, pode } = useApp()
   const mine = D.t.filter(t => (t.responsaveis || []).includes(me)), ab = mine.filter(t => t.status != 'concluida')
   const lt = ab.filter(t => d(t.fim) < hj(D)).length, cap = D.k.filter(c => c.inscritos.includes(me) && c.data >= D.c.hoje).length
   return (
@@ -63,10 +82,12 @@ export default function Dashboard() {
         </div>
       </section>
 
+      {pode('projetos.verTodos') && <Indicadores D={D} go={go} />}
+
       <div className="row g-3 mb-3">
         <div className="col-lg-8"><div className="card card-body h-100">
-          <h2>Burndown de tarefas</h2>
-          {D.t.length ? <Burn D={D} /> : <small>Você ainda não tem tarefas atribuídas.</small>}
+          <h2>Burndown das minhas tarefas</h2>
+          {mine.length ? <Burn D={D} T={mine} /> : <small>Quando você tiver tarefas atribuídas, o andamento delas aparece aqui.</small>}
         </div></div>
         <div className="col-lg-4"><div className="card card-body h-100">
           <h2>Resumo das minhas tarefas</h2>
@@ -76,7 +97,7 @@ export default function Dashboard() {
               return <div key={k}><div className="d-flex justify-content-between"><span>{ST[k]}</span><b>{n}</b></div><Prog v={n / mine.length * 100} /></div>
             })}
             <small>{mine.length} {mine.length == 1 ? 'tarefa atribuída' : 'tarefas atribuídas'} a você</small>
-          </> : <small>Você não tem tarefas atribuídas.</small>}
+          </> : <small>Nenhuma tarefa atribuída a você ainda.</small>}
         </div></div>
       </div>
 

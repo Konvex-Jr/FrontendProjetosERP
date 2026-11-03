@@ -770,7 +770,10 @@ svg.i {
     background: transparent;
     padding: 6px 8px;
     margin-left: -8px;
-    width: calc(100% + 8px)
+    width: calc(100% + 8px);
+    resize: none;
+    overflow: hidden;
+    line-height: 1.25
 }
 
 .tt0:hover {
@@ -1150,4 +1153,58 @@ button.st1:hover,
 
 .tl {
     fill: var(--ac)
+}
+/* Indicadores do Dashboard (11b). auto-fit: 7 por linha no desktop, menos em telas menores, sem @media. */
+.kpi {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+    gap: 10px
+}
+
+.kpi-i {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    text-align: left;
+    border: 1px solid var(--ln);
+    background: transparent;
+    border-radius: 14px;
+    padding: 12px 14px;
+    cursor: pointer;
+    color: inherit
+}
+
+.kpi-i:hover,
+.kpi-i:focus-visible {
+    border-color: var(--ac)
+}
+
+.kpi-i b {
+    font-size: 26px;
+    line-height: 1.1
+}
+
+.kpi-i span {
+    font-weight: 700;
+    font-size: 13px
+}
+
+.kpi-i small {
+    font-size: 11px;
+    color: var(--mu)
+}
+
+.kpi-i.al b {
+    color: #b42318
+}
+
+/* Nome do projeto no cartão do kanban: uma linha, cortado com reticências (nome inteiro no title). */
+.kb-or {
+    display: inline-block;
+    max-width: calc(100% - 40px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: middle
 }

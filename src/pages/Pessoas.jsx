@@ -1,4 +1,6 @@
+import { useState } from 'react'
 import { useApp } from '../context/AppContext'
+import { consumir } from '../lib/atalho'
 import { chip, fd } from '../lib/utils'
 import Ic from '../components/Icon'
 import Table from '../components/Table'
@@ -15,6 +17,7 @@ const SAIDA = ['alumni', 'inativo']
 /** RF-010 a RF-016: cadastro e acompanhamento de pessoas (gestores). */
 export default function Pessoas() {
   const { form, go, me, pode, refresh } = useApp()
+  const [filtros] = useState(() => consumir('usuarios'))
   const { dados, carregando, recarregar } = useCarregar(async () => {
     const [lista, areas, cargos, senioridades] = await Promise.all([
       pessoas.listar(), configuracoes.areas(), configuracoes.cargos(), configuracoes.senioridades(),
@@ -125,7 +128,7 @@ export default function Pessoas() {
         <button className="btn btn-primary" onClick={() => editar()} disabled={!senioridades.length}><Ic k="plus" />Nova pessoa</button>
       </PageBar>
       {!senioridades.length && <p className="text-mu">Cadastre uma senioridade em Configurações antes de criar pessoas.</p>}
-      <Table cols={colunas} rows={linhas} />
+      <Table cols={colunas} rows={linhas} filtros={filtros} vazio="Ninguém cadastrado ainda. Use “Nova pessoa”." />
     </>
   )
 }
