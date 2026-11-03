@@ -7,7 +7,6 @@ import {
   adaptTraining,
   adaptUser,
   readConfig,
-  resolveSenioridade,
   normalizeSenioridades,
 } from '../src/lib/apiMappers.js'
 
@@ -83,23 +82,7 @@ test('readConfig maps server seniority values without losing the hourly rate', (
   assert.match(config.hoje, /^\d{4}-\d{2}-\d{2}$/)
 })
 
-test('resolveSenioridade resolves values by code or display name and rejects unknown values', () => {
-  assert.deepEqual(resolveSenioridade({ perfil: 'membro', senioridade: 'senior' }, senioridades), senioridades[1])
-  assert.deepEqual(resolveSenioridade({ perfil: 'membro', senioridade: 'Júnior' }, senioridades), senioridades[0])
-  assert.deepEqual(resolveSenioridade({ perfil: 'gerente', senioridade: 'junior' }, senioridades), senioridades[0])
-  assert.deepEqual(resolveSenioridade({ perfil: 'diretor', senioridade: 'senior' }, senioridades), senioridades[1])
-  assert.throws(
-    () => resolveSenioridade({ perfil: 'membro', senioridade: 'especialista' }, senioridades),
-    /A senioridade selecionada/,
-  )
-})
-
-
-test('resolveSenioridade accepts the UI configuration map and snake_case API fields', () => {
-  assert.deepEqual(
-    resolveSenioridade({ perfil: 'membro', senioridade: 'junior' }, { junior: 'Júnior', pleno: 'Pleno' }),
-    { codigo: 'junior', nome: 'Júnior', valorHora: 0 },
-  )
+test('normalizeSenioridades accepts snake_case API fields', () => {
   assert.deepEqual(
     normalizeSenioridades([{ codigo: 'pleno', nome: 'Pleno', valor_hora: '75' }]),
     [{ codigo: 'pleno', nome: 'Pleno', valorHora: 75 }],
@@ -124,11 +107,4 @@ test('normalizeSenioridades preserves database codes and handles an empty databa
   ])
   assert.deepEqual(normalizeSenioridades([]), [])
   assert.deepEqual(readConfig([], false).senioridades, {})
-})
-
-test('resolveSenioridade resolves dynamic database codes without hard-coded options', () => {
-  const dbRows = [{ codigo: 'DEV_JR', nome: 'Desenvolvedor Júnior', valorHora: 62.5 }]
-  assert.deepEqual(resolveSenioridade({ perfil: 'membro', senioridade: 'dev_jr' }, dbRows), dbRows[0])
-  assert.throws(() => resolveSenioridade({ perfil: 'membro', senioridade: 'junior' }, dbRows), /não corresponde às opções retornadas pela API/)
-  assert.throws(() => resolveSenioridade({ perfil: 'membro', senioridade: 'junior' }, []), /não retornou senioridades cadastradas/)
 })

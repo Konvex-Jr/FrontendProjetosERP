@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react'
 import { useApp } from '../context/AppContext'
-import { DAY, PC, ST, chip, fm, iso, nm } from '../lib/utils'
+import { DAY, PC, ST, chip, d, fm, hj, iso, nm } from '../lib/utils'
+import { consumir } from '../lib/atalho'
+import { fimDaSemana } from '../lib/indicadores'
 import Ic from '../components/Icon'
 import Table from '../components/Table'
 import TaskModal from '../components/TaskModal'
@@ -13,6 +15,16 @@ import { STATUS_ATIVOS, projetos } from '../services/projetos'
 import { CATEGORIAS, acoesTarefa, origemTarefa, papelNaTarefa, tarefas } from '../services/tarefas'
 
 const VISOES = [['kanban', 'Kanban'], ['lista', 'Lista']]
+const PRAZOS = [['', 'Prazo: todos'], ['atrasadas', 'Atrasadas'], ['semana', 'Vencem esta semana']]
+
+/** Filtro de prazo (só na tela): atrasadas = abertas com prazo antes de hoje; semana = abertas que vencem de hoje até domingo. */
+export function noPrazo(t, prazo, hoje) {
+  if (!prazo) return true
+  if (t.status == 'concluida') return false
+  const fim = d(t.fim)
+  if (prazo == 'atrasadas') return fim < hoje
+  return fim >= hoje && fim <= fimDaSemana(hoje)
+}
 const equipeAtual = projeto => (projeto?.participacoes || []).filter(x => !x.dataSaida).map(x => x.usuario.codigo)
 
 /** Filtro de "origem" do painel → parâmetros do GET /tarefas. */
@@ -32,7 +44,7 @@ export function filtroApi({ pessoa, origem, status }) {
 export default function Tarefas() {
   const { D, form, me, pode, refresh } = useApp()
   const gestao = pode('tarefas.gerirTodas'), atribui = pode('tarefas.atribuir')
-  const [filtro, setFiltro] = useState({ pessoa: me, origem: '', status: '' })
+  const [filtro, setFiltro] = useState(() => ({ pessoa: me, origem: '', status: '', prazo: '', ...consumir('tarefas') }))
   const [visao, setVisao] = useState('kanban'), [tk, setTk] = useState(null)
   const set = (k, v) => setFiltro(f => ({ ...f, [k]: v }))
 
@@ -42,7 +54,7 @@ export default function Tarefas() {
   }, [filtro.pessoa, filtro.origem, filtro.status, me])
 
   const porCodigo = useMemo(() => new Map((dados?.projetos || []).map(p => [p.codigo, p])), [dados])
-  const T = dados?.tarefas || []
+  const T = (dados?.tarefas || []).filter(t => noPrazo(t, filtro.prazo, hj(D)))
   const papelDe = t => papelNaTarefa({ me, gestao, atribui, projeto: porCodigo.get(t.projetoId), tarefa: t })
 
   const salvarTarefa = async (chamada, ok) => {
@@ -96,9 +108,9 @@ export default function Tarefas() {
   }
   const podeCriar = tipos.length > 0
 
-  const pessoas = [['', 'Todas as pessoas'], [me, 'Minhas tarefas'], ...D.u.filter(u => u.id !== me && u.ativo !== false).map(u => [u.id, u.nome])]
+  const pessoas = [['', 'Pessoa: todas'], [me, 'Minhas tarefas'], ...D.u.filter(u => u.id !== me && u.ativo !== false).map(u => [u.id, u.nome])]
   const origens = [
-    ['', 'Projetos e avulsas'], ['avulsas', 'Só avulsas'],
+    ['', 'Origem: todas'], ['avulsas', 'Só avulsas'],
     ...CATEGORIAS.map(([k, l]) => ['cat:' + k, l]),
     ...(dados?.projetos || []).map(p => ['proj:' + p.codigo, 'Projeto: ' + p.nome]),
   ]
@@ -110,7 +122,7 @@ export default function Tarefas() {
 
   const colunas = [
     { k: 'titulo', l: 'Tarefa', render: t => <button className="btn btn-link p-0 text-start" onClick={() => setTk(t.id)}>{t.titulo}</button> },
-    { k: 'origem', l: 'Projeto / categoria', get: origemTarefa, filter: true },
+    { k: 'origem', l: 'Projeto / categoria', fl: 'Origem', get: origemTarefa, filter: true },
     { k: 'resp', l: 'Responsáveis', get: t => nm(D, t.responsaveis) },
     { k: 'fim', l: 'Prazo', render: t => fm(t.fim) },
     { k: 'prioridade', l: 'Prioridade', filter: true, render: t => <span className={chip(PC[t.prioridade])}>{t.prioridade}</span> },
@@ -128,11 +140,17 @@ export default function Tarefas() {
       <div className="fl d-flex flex-wrap gap-2 mb-3">
         {gestao ? sel('Pessoa', 'pessoa', pessoas) : <Seg items={[[me, 'Minhas tarefas'], ['', 'Tudo o que vejo']]} value={filtro.pessoa} onChange={v => set('pessoa', v)} />}
         {sel('Projeto ou categoria', 'origem', origens)}
-        {sel('Situação', 'status', [['', 'Todas as situações'], ...Object.entries(ST)])}
+        {sel('Situação', 'status', [['', 'Situação: todas'], ...Object.entries(ST)])}
+        {sel('Prazo', 'prazo', PRAZOS)}
       </div>
+      {!carregando && !T.length && (
+        <div className="card card-body mb-3"><small>{filtro.status || filtro.origem || filtro.prazo || filtro.pessoa != me
+          ? 'Nenhuma tarefa com estes filtros. Mude os filtros acima.'
+          : 'Você não tem tarefas.' + (podeCriar ? ' Use “Nova tarefa” para criar uma.' : ' Quando alguém atribuir uma a você, ela aparece aqui.')}</small></div>
+      )}
       {visao == 'kanban'
         ? <KanbanTarefas D={D} T={T} papelDe={papelDe} acoes={acoes} abrir={setTk} adicionar={podeCriar ? nova : null} origem />
-        : <div className="card card-body"><Table cols={colunas} rows={T} /></div>}
+        : <div className="card card-body"><Table cols={colunas} rows={T} vazio="Nenhuma tarefa para mostrar." /></div>}
       {aberta && (
         <TaskModal D={D} papel={papelDe(aberta)} me={me} t={aberta} T={T}
           p={projetoAberto ? { id: projetoAberto.codigo, nome: projetoAberto.nome, membros: equipeAtual(projetoAberto) } : null}

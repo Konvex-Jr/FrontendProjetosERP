@@ -115,7 +115,7 @@ export default function EquipeProjeto({ projeto, todos, gente, gestor, aoSalvar 
           <span><span className={chip('er')}>Alerta</span> {excedidos.map(p => p.usuario.nome).join(', ')} {excedidos.length === 1 ? 'está' : 'estão'} com mais de 100% de alocação somando os projetos ativos.</span>
         </div>
       )}
-      <Table cols={colsAtivas} rows={ativas} />
+      <Table cols={colsAtivas} rows={ativas} vazio={gestor ? "Ninguém na equipe ainda. Use “Adicionar pessoa”." : "Ninguém na equipe atual."} />
       {encerradas.length > 0 && (
         <>
           <h3 className="h6 fw-bold mt-4">Histórico da equipe</h3>

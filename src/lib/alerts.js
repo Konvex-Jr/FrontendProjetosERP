@@ -17,14 +17,14 @@ const alerts = {
   success: (title, text = '') => show({ icon: 'success', title, text, confirmButtonText: 'Continuar' }),
   error: (title = 'Não foi possível concluir', text = 'Tente novamente.') => show({ icon: 'error', title, text, confirmButtonText: 'Entendi' }),
   info: (title, text = '') => show({ icon: 'info', title, text, confirmButtonText: 'Entendi' }),
-  confirm: async ({ title = 'Confirmar ação?', text = 'Esta operação não poderá ser desfeita.', confirmText = 'Confirmar', danger = false } = {}) => {
+  confirm: async ({ title = 'Confirmar ação?', text = 'Esta operação não poderá ser desfeita.', confirmText = 'Confirmar', cancelText = 'Cancelar', danger = false } = {}) => {
     const result = await show({
       icon: danger ? 'warning' : 'question',
       title,
       text,
       showCancelButton: true,
       confirmButtonText: confirmText,
-      cancelButtonText: 'Cancelar',
+      cancelButtonText: cancelText,
       reverseButtons: true,
       ...(danger ? { confirmButtonColor: '#b42318' } : {}),
     })

@@ -81,7 +81,7 @@ function Pasta({ pasta, gere, form, executar, voltar }) {
   const cols = [
     { k: 'nome', l: 'Documento', render: x => <a className="fn" href={x.url} target="_blank" rel="noopener noreferrer"><Ic k="file" />{x.nome}</a> },
     { k: 'dominio', l: 'Onde está', filter: 1 },
-    { k: 'autor', l: 'Adicionado por', filter: 1 },
+    { k: 'autor', l: 'Adicionado por', fl: 'Autor', filter: 1 },
     { k: 'data', l: 'Data', render: x => fm(x.data) },
     { l: 'Ações', render: x => <ActionMenu items={[['open', 'Abrir', () => abrir(x)], ...(gere ? [['edit', 'Editar', () => doc(x)], ['trash', 'Excluir', () => delD(x), 1]] : [])]} /> },
   ]

@@ -1,11 +1,28 @@
 const API_URL = (import.meta.env?.VITE_API_URL || 'http://localhost:5001').replace(/\/$/, '')
 
 export class ApiError extends Error {
-  constructor(message, status = 0) {
+  constructor(message, status = 0, codigo = '') {
     super(message)
     this.name = 'ApiError'
     this.status = status
+    this.codigo = codigo
   }
+}
+
+export const SEM_CONEXAO = 'Sem conexão com o servidor. Confira a internet e tente de novo.'
+
+/**
+ * Mensagem que a pessoa vê quando a API recusa a chamada (um lugar só).
+ * Regras de negócio (400/403/404/422) já vêm em português da API; erros do servidor
+ * e respostas sem mensagem viram uma frase que diz o que fazer.
+ */
+export function mensagemDeErro(status, data) {
+  if (status >= 500) return 'O servidor teve um problema. Tente de novo em instantes; se continuar, avise a gestão.'
+  if (data?.message) return data.message
+  if (status === 403) return 'Você não tem permissão para esta ação.'
+  if (status === 404) return 'Não encontrado. Pode ter sido excluído; recarregue a página.'
+  if (status === 413) return 'O conteúdo enviado é grande demais.'
+  return `Não foi possível concluir (erro ${status}). Tente de novo.`
 }
 
 /**
@@ -44,7 +61,9 @@ async function chamar(path, init) {
   try {
     return await fetch(`${API_URL}${path}`, init)
   } catch {
-    throw new ApiError(`Não foi possível conectar à API em ${API_URL}. Verifique se o backend está em execução e se VITE_API_URL está correto.`)
+    // Detalhe técnico só no console; a pessoa vê uma frase simples.
+    console.warn(`API inacessível em ${API_URL} (confira o backend e VITE_API_URL).`)
+    throw new ApiError(SEM_CONEXAO)
   }
 }
 
@@ -84,9 +103,9 @@ function expirar() {
 
 /**
  * fetch autenticado: envia o token da sessão e, se a API responder 401,
- * renova uma vez e repete. Devolve o Response (útil para downloads).
+ * renova uma vez e repete. Devolve o Response.
  */
-export async function fetchAutenticado(path, { headers = {}, ...init } = {}) {
+async function fetchAutenticado(path, { headers = {}, ...init } = {}) {
   const enviar = () => chamar(path, { ...init, headers: { ...headers, ...(sessao.token ? { 'access-token': sessao.token } : {}) } })
   let response = await enviar()
   if (response.status === 401 && sessao.refreshToken) {
@@ -119,7 +138,7 @@ export async function request(path, { method = 'GET', body, token, auth = false,
   const data = await lerCorpo(response)
 
   if (!response.ok) {
-    throw new ApiError(data?.message || `A API retornou HTTP ${response.status}.`, response.status)
+    throw new ApiError(mensagemDeErro(response.status, data), response.status, data?.codigo || '')
   }
 
   return data

@@ -48,6 +48,9 @@ function Comentarios({ t, papel }) {
   )
 }
 
+/** Título em textarea que cresce com o texto (no celular, títulos longos não ficam cortados). */
+const crescer = el => { if (el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 2 + 'px' } }
+
 export default function TaskModal({ D, salvar, t, p, T, close, del, tog, papel }) {
   const [draft, setDraft] = useState({ ...t }), [nv, setNv] = useState('')
   const cl = draft.checklist || [], dn = cl.filter(x => x.feito).length
@@ -76,7 +79,9 @@ export default function TaskModal({ D, salvar, t, p, T, close, del, tog, papel }
             <div className="modal-body">
               {/* Só líder e gestão editam; os demais veem a tarefa sem poder alterar. */}
               <fieldset disabled={!papel.organiza}>
-              <input className="tt0 form-control" aria-label="Título da tarefa" value={draft.titulo} onChange={e => patch({ titulo: e.target.value })} />
+              <textarea ref={crescer} rows={1} className="tt0 form-control" aria-label="Título da tarefa" value={draft.titulo}
+                onChange={e => { patch({ titulo: e.target.value.replace(/\n/g, ' ') }); crescer(e.target) }}
+                onKeyDown={e => e.key == 'Enter' && e.preventDefault()} />
               <small>{origem}{t.criadaPor ? ` · criada por ${t.criadaPor}` : ''}{t.status == 'concluida' && t.conclusao ? ` · concluída em ${fm(t.conclusao)}${t.concluidaPor ? ' por ' + t.concluidaPor : ''}` : ''}</small>
               <div className="row g-4 mt-1 tcols">
                 <div className="col-md-8">

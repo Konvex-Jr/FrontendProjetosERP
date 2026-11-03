@@ -7,6 +7,8 @@ import Table from '../components/Table'
 import { Av, PageBar, Prog } from '../components/Ui'
 import alerts from '../lib/alerts'
 import useCarregar from '../lib/useCarregar'
+import { consumir } from '../lib/atalho'
+import { GRUPOS_PROJETO } from '../lib/indicadores'
 import { configuracoes, pessoas } from '../services/pessoas'
 import { COR_STATUS_PROJETO, PRIORIDADE_PROJETO, STATUS_PROJETO, projetos, rotuloStatusProjeto } from '../services/projetos'
 
@@ -45,7 +47,7 @@ export const StatusProjeto = ({ s }) => <span className={chip(COR_STATUS_PROJETO
 /** RF-020 e RF-021: lista de projetos. Equipe e tarefas ficam dentro de cada projeto. */
 export default function Projetos() {
   const { D, me, mb, form, go, pode, refresh } = useApp()
-  const [pv, setPv] = useState('grid')
+  const [pv, setPv] = useState('grid'), [grupo, setGrupo] = useState(() => consumir('projetos') || '')
   const gestor = pode('projetos.editar')
   const { dados, carregando, recarregar } = useCarregar(async () => {
     const [lista, gente, areas] = await Promise.all([
@@ -101,7 +103,18 @@ export default function Projetos() {
     { l: 'Equipe', render: p => <Av D={D} ids={membrosAtivos(p)} /> },
     { l: 'Ações', render: p => <Ac p={p} /> },
   ]
-  const linhas = lista.map(p => ({ ...p, id: p.codigo }))
+  const linhas = lista.filter(p => !grupo || GRUPOS_PROJETO[grupo].status.includes(p.status)).map(p => ({ ...p, id: p.codigo }))
+  const vazio = grupo ? 'Nenhum projeto neste grupo. Escolha “Todos” no filtro.'
+    : gestor ? 'Nenhum projeto cadastrado. Use “Novo projeto”.'
+      : 'Você ainda não participa de nenhum projeto. Quando a gestão incluir você numa equipe, ele aparece aqui.'
+  const filtroGrupo = (
+    <div className="fl d-flex flex-wrap gap-2 mb-3">
+      <select className="form-select w-auto" style={{ maxWidth: 260 }} aria-label="Grupo de projetos" value={grupo} onChange={e => setGrupo(e.target.value)}>
+        <option value="">Situação: todos</option>
+        {Object.entries(GRUPOS_PROJETO).map(([k, g]) => <option key={k} value={k}>{g.rotulo}</option>)}
+      </select>
+    </div>
+  )
 
   return (
     <>
@@ -110,9 +123,10 @@ export default function Projetos() {
         <button className={'btn btn-g' + (pv == 'lista' ? ' on' : '')} onClick={() => setPv('lista')}>Linhas</button>
         {gestor && <button className="btn btn-primary" onClick={() => editar()}><Ic k="plus" />Novo projeto</button>}
       </PageBar>
+      {filtroGrupo}
       {pv == 'grid'
         ? <div className="row g-3">
-          {!linhas.length && <div className="col-12"><div className="card card-body">Nenhum projeto ainda.</div></div>}
+          {!linhas.length && <div className="col-12"><div className="card card-body">{vazio}</div></div>}
           {linhas.map(p => (
             <div className="col-md-6 col-xl-4" key={p.id}>
               <div className="card card-body pj hoverable h-100" onClick={() => go('projeto', p.codigo)}>
@@ -125,7 +139,7 @@ export default function Projetos() {
               </div>
             </div>))}
         </div>
-        : <Table cols={cols} rows={linhas} />}
+        : <Table cols={cols} rows={linhas} vazio={vazio} />}
     </>
   )
 }

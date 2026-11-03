@@ -109,7 +109,7 @@ export default function Configuracoes() {
         <button className="btn btn-primary" onClick={atual.novo}><Ic k="plus" />Novo item</button>
       </PageBar>
       <div className="mb-3"><Seg items={ABAS} value={aba} onChange={setAba} /></div>
-      <Table key={aba} cols={atual.colunas} rows={atual.linhas.map(x => ({ ...x, id: x.codigo }))} />
+      <Table key={aba} cols={atual.colunas} rows={atual.linhas.map(x => ({ ...x, id: x.codigo }))} vazio="Nenhum item nesta lista. Use “Novo item”." />
     </>
   )
 }
