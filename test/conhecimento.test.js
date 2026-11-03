@@ -64,3 +64,8 @@ test('markdown: negrito, itálico, código e só links http(s)', () => {
   assert.deepEqual(trechos('[x](javascript:alert(1))').map(x => x.t), ['txt', 'txt'])
   assert.deepEqual(trechos('2 * 3 * 4'), [{ t: 'txt', texto: '2 * 3 * 4' }])
 })
+
+test('adaptConhecimento traz as iniciativas que usam o item (12b)', () => {
+  assert.deepEqual(adaptConhecimento({ ...api, iniciativas: [{ codigo: 'i1', nome: 'Chatbot' }] }).iniciativas, [{ id: 'i1', nome: 'Chatbot' }])
+  assert.deepEqual(adaptConhecimento(api).iniciativas, [])
+})

@@ -51,7 +51,7 @@ function Comentarios({ t, papel }) {
 /** Título em textarea que cresce com o texto (no celular, títulos longos não ficam cortados). */
 const crescer = el => { if (el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 2 + 'px' } }
 
-export default function TaskModal({ D, salvar, t, p, T, close, del, tog, papel }) {
+export default function TaskModal({ D, salvar, t, p, T, close, del, tog, papel, iniciativas }) {
   const [draft, setDraft] = useState({ ...t }), [nv, setNv] = useState('')
   const cl = draft.checklist || [], dn = cl.filter(x => x.feito).length
   const patch = o => setDraft(current => ({ ...current, ...o })), setCl = f => patch({ checklist: f(cl) })
@@ -67,7 +67,10 @@ export default function TaskModal({ D, salvar, t, p, T, close, del, tog, papel }
   const opts = doProjeto.filter(c => c.id != t.id && !chain(c.id).includes(t.id)), deps = doProjeto.filter(x => x.dependeDe == t.id)
   // Avulsa: qualquer pessoa ativa; de projeto: equipe atual.
   const gente = t.avulsa ? D.u.filter(u => u.ativo !== false || (t.responsaveis || []).includes(u.id)) : D.u.filter(u => (p?.membros || []).includes(u.id))
-  const origem = t.avulsa ? 'Tarefa avulsa · ' + rotuloCategoria(t.categoria) : 'em ' + (p?.nome || t.projetoNome || 'projeto')
+  const origem = t.avulsa ? 'Tarefa avulsa · ' + rotuloCategoria(t.categoria) + (t.iniciativaNome ? ' · Iniciativa: ' + t.iniciativaNome : '') : 'em ' + (p?.nome || t.projetoNome || 'projeto')
+  // Tarefa de Inovação pode ser ligada a uma iniciativa (sessão 12b); a iniciativa atual continua na lista.
+  const opsIniciativa = [...(iniciativas || [])]
+  if (t.iniciativaId && !opsIniciativa.some(o => o[0] === t.iniciativaId)) opsIniciativa.push([t.iniciativaId, t.iniciativaNome])
   const addI = () => { const v = nv.trim(); if (!v) return; setCl(a => [...a, { id: crypto.randomUUID(), texto: v, feito: false }]); setNv('') }
   useEffect(() => { const k = e => e.key == 'Escape' && close(); addEventListener('keydown', k); return () => removeEventListener('keydown', k) }, [])
   return (
@@ -105,6 +108,7 @@ export default function TaskModal({ D, salvar, t, p, T, close, del, tog, papel }
                 </div>
                 <div className="col-md-4">
                   {t.avulsa && <L l="Categoria"><select className="form-select mt-1" value={draft.categoria} onChange={e => patch({ categoria: e.target.value })}>{CATEGORIAS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></L>}
+                  {t.avulsa && draft.categoria == 'inovacao' && iniciativas && <L l="Iniciativa"><select className="form-select mt-1" value={draft.iniciativaId || ''} onChange={e => patch({ iniciativaId: e.target.value || undefined })}>{opsIniciativa.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></L>}
                   <L l="Situação"><select className="form-select mt-1" value={draft.status} onChange={e => st(e.target.value)}>{Object.entries(ST).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></L>
                   <L l="Prioridade"><select className="form-select mt-1" value={draft.prioridade} onChange={e => patch({ prioridade: e.target.value })}>{['P1', 'P2', 'P3', 'P4'].map(x => <option key={x}>{x}</option>)}</select></L>
                   <L l="Início"><input className="form-control mt-1" type="date" value={draft.inicio} onChange={e => patch({ inicio: e.target.value })} /></L>
