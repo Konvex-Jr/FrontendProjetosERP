@@ -46,6 +46,28 @@ export const tarefas = {
   editar: t => send('PUT', `/tarefas/${t.id}`, corpoTarefa(t)),
   alterarStatus: (codigo, status) => send('PATCH', `/tarefas/${codigo}/status`, { status }),
   excluir: codigo => send('DELETE', `/tarefas/${codigo}`),
+  comentarios: codigo => get(`/tarefas/${codigo}/comentarios`),
+  comentar: (codigo, texto) => send('POST', `/tarefas/${codigo}/comentarios`, { texto }),
+  apagarComentario: (codigo, codigoComentario) => send('DELETE', `/tarefas/${codigo}/comentarios/${codigoComentario}`),
   /** Salva usando PATCH quando só o status mudou; senão PUT. */
   salvar: (antes, depois) => (soMudouStatus(antes, depois) ? tarefas.alterarStatus(depois.id, depois.status) : tarefas.editar(depois)),
+}
+
+/**
+ * O que a pessoa pode fazer nas tarefas do projeto (mesmas regras da API, sessão 8b).
+ * Gestão (tarefas.gerirTodas) e líder organizam tudo; participante da equipe atual cria,
+ * conclui/reabre só as suas e comenta; quem está fora só vê.
+ */
+export function papelNasTarefas({ me, gestao, projeto }) {
+  const membros = (projeto?.participacoes || []).filter(x => !x.dataSaida).map(x => x.usuario.codigo)
+  const lider = Boolean(me) && projeto?.lider?.codigo === me
+  const organiza = Boolean(gestao) || lider
+  const participa = organiza || membros.includes(me)
+  return {
+    lider,
+    organiza,
+    participa,
+    podeStatus: t => organiza || (participa && (t.responsaveis || []).includes(me)),
+    podeApagarComentario: c => organiza || c.autor?.codigo === me,
+  }
 }

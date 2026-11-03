@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { corpoNovaTarefa, corpoTarefa, soMudouStatus, tarefas } from '../src/services/tarefas.js'
+import { corpoNovaTarefa, corpoTarefa, papelNasTarefas, soMudouStatus, tarefas } from '../src/services/tarefas.js'
 import { sessao } from '../src/services/api.js'
 
 const capturar = async fn => {
@@ -56,4 +56,31 @@ test('salvar usa PATCH quando só o status muda e PUT no resto', async () => {
     ['DELETE', '/tarefas/t1'],
   ])
   assert.deepEqual(chamadas[2].body, { status: 'concluida' })
+})
+
+test('papel nas tarefas: gestão e líder organizam; participante só as suas; de fora só vê', () => {
+  const projeto = {
+    lider: { codigo: 'lid' },
+    participacoes: [
+      { usuario: { codigo: 'lid' }, dataSaida: null },
+      { usuario: { codigo: 'par' }, dataSaida: null },
+      { usuario: { codigo: 'saiu' }, dataSaida: '2026-10-01' },
+    ],
+  }
+  const sua = { responsaveis: ['par'] }, outra = { responsaveis: ['lid'] }
+  const gestao = papelNasTarefas({ me: 'g', gestao: true, projeto })
+  assert.equal(gestao.organiza, true)
+  const lider = papelNasTarefas({ me: 'lid', gestao: false, projeto })
+  assert.equal(lider.lider, true)
+  assert.equal(lider.podeStatus(sua), true)
+  const par = papelNasTarefas({ me: 'par', gestao: false, projeto })
+  assert.equal(par.organiza, false)
+  assert.equal(par.participa, true)
+  assert.equal(par.podeStatus(sua), true)
+  assert.equal(par.podeStatus(outra), false)
+  assert.equal(par.podeApagarComentario({ autor: { codigo: 'par' } }), true)
+  assert.equal(par.podeApagarComentario({ autor: { codigo: 'lid' } }), false)
+  const saiu = papelNasTarefas({ me: 'saiu', gestao: false, projeto })
+  assert.equal(saiu.participa, false)
+  assert.equal(saiu.podeStatus({ responsaveis: ['saiu'] }), false)
 })
