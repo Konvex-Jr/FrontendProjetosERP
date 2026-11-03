@@ -4,7 +4,7 @@ import Ic from './Icon'
 import Table from './Table'
 import ActionMenu from './ActionMenu'
 import alerts from '../lib/alerts'
-import { LIMITE_ALOCACAO, alocacaoPorPessoa, equipe, rotuloStatusProjeto } from '../services/projetos'
+import { LIMITE_ALOCACAO, alocacaoPorPessoa, equipe, projetos, rotuloStatusProjeto } from '../services/projetos'
 import { rotuloStatus } from '../services/pessoas'
 
 /** Mostra o alerta de RN-04 depois de salvar: avisa, mas não bloqueia. */
@@ -70,9 +70,16 @@ export default function EquipeProjeto({ projeto, todos, gente, gestor, aoSalvar 
     { k: 'dataSaida', l: 'Saída do projeto', t: 'date', opt: true, h: 'Vazio = hoje. A participação continua no histórico do projeto.' },
   ], { dataSaida: '' }, v => salvar(() => equipe.encerrar(projeto.codigo, p.codigo, v.dataSaida), 'Participação encerrada', p.usuario.nome))
 
+  // Líder (sessão 8b): organiza as tarefas do projeto. Só a gestão escolhe.
+  const codigoLider = projeto.lider?.codigo
+  const ehLider = p => p.usuario.codigo === codigoLider
+  const definirLider = p => salvar(() => projetos.definirLider(projeto.codigo, ehLider(p) ? null : p.usuario.codigo),
+    ehLider(p) ? 'Projeto ficou sem líder' : `${p.usuario.nome} agora é líder`)
+
   const pessoa = p => (
     <button className="btn btn-link p-0 text-start" onClick={() => go('perfil', p.usuario.codigo)}>
       {p.usuario.nome}{p.usuario.status && p.usuario.status !== 'ativo' ? <small className="ms-1">({rotuloStatus(p.usuario.status)})</small> : null}
+      {!p.dataSaida && ehLider(p) && <span className={chip('ok') + ' ms-1'} title="Organiza as tarefas do projeto">Líder</span>}
     </button>
   )
 
@@ -83,7 +90,7 @@ export default function EquipeProjeto({ projeto, todos, gente, gestor, aoSalvar 
     { k: 'alocacao', l: 'Neste projeto', render: p => p.alocacao + '%' },
     { k: 'total', l: 'Total da pessoa', get: p => totais[p.usuario.codigo] || 0, render: p => <Total v={totais[p.usuario.codigo] || 0} /> },
     { k: 'entrada', l: 'Entrada', get: p => String(p.dataEntrada), render: p => fd(p.dataEntrada) },
-    ...(gestor ? [{ l: 'Ações', render: p => <ActionMenu items={[['edit', 'Editar', () => editar(p)], ['undo', 'Tirar da equipe', () => encerrar(p), 1]]} /> }] : []),
+    ...(gestor ? [{ l: 'Ações', render: p => <ActionMenu items={[['edit', 'Editar', () => editar(p)], ['star', ehLider(p) ? 'Tirar liderança' : 'Tornar líder', () => definirLider(p)], ['undo', 'Tirar da equipe', () => encerrar(p), 1]]} /> }] : []),
   ]
   const colsHistorico = [
     { k: 'nome', l: 'Pessoa', get: p => p.usuario.nome, render: pessoa },
@@ -98,6 +105,7 @@ export default function EquipeProjeto({ projeto, todos, gente, gestor, aoSalvar 
       <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
         <small>
           {ativas.length} {ativas.length === 1 ? 'pessoa' : 'pessoas'} na equipe.
+          {gestor && !codigoLider && ativas.length > 0 && ' Sem líder: use o menu de ações para escolher quem organiza as tarefas.'}
           {!contaNaAlocacao && ` Projeto ${rotuloStatusProjeto(projeto.status)}: não conta na alocação.`}
         </small>
         {gestor && <button className="btn btn-primary" onClick={adicionar}><Ic k="plus" />Adicionar pessoa</button>}
