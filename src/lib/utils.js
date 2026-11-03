@@ -12,6 +12,7 @@ export const NAV = [
   ['tarefas', 'Tarefas', '/tarefas'],
   ['projetos', 'Projetos', '/projetos'],
   ['capacitacoes', 'Capacitações', '/capacitacoes'],
+  ['conhecimento', 'Base de Inteligência', '/conhecimento'],
   ['estrategia', 'Visão Estratégica', '/estrategia'],
   ['gestao', 'Gestão', '/gestao'],
   ['precificacao', 'Simular precificação', '/precificacao'],
@@ -19,7 +20,7 @@ export const NAV = [
   ['configuracoes', 'Configurações', '/configuracoes'],
   ['perfil', 'Meu perfil', '/perfil']
 ]
-export const path = (n, pid) => n === 'projeto' ? '/projetos/' + pid : n === 'perfil' && pid ? '/perfil/' + pid : (NAV.find(x => x[0] === n)?.[2] || '/')
+export const path = (n, pid) => n === 'projeto' ? '/projetos/' + pid : n === 'perfil' && pid ? '/perfil/' + pid : n === 'conhecimento' && pid ? '/conhecimento/' + pid : (NAV.find(x => x[0] === n)?.[2] || '/')
 
 export const chip = (c = '') => 'badge rounded-pill ' + c
 export const nid = () => crypto.randomUUID()
