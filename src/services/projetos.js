@@ -67,6 +67,8 @@ export const projetos = {
   editar: (codigo, dados) => send('PUT', `/projetos/${codigo}`, corpoProjeto(dados)),
   alterarStatus: (codigo, status) => send('PATCH', `/projetos/${codigo}/status`, { status }),
   excluir: codigo => send('DELETE', `/projetos/${codigo}`),
+  /** Líder do projeto: código de alguém da equipe atual, ou null para tirar. */
+  definirLider: (codigo, codigoUsuario) => send('PUT', `/projetos/${codigo}/lider`, { codigoUsuario: codigoUsuario || null }),
 }
 
 /** Aba Equipe. Cada chamada devolve { projeto, alocacao } com o alerta da pessoa (RN-04). */

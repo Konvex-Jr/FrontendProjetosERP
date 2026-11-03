@@ -54,6 +54,7 @@ export function adaptTask(task) {
     status: task.status,
     prioridade: task.prioridade,
     conclusao: task.dataConclusao ? dateOnly(task.dataConclusao) : undefined,
+    concluidaPor: task.concluidaPor ? (task.concluidaPor.nomeExibicao || task.concluidaPor.nome) : undefined,
     dependeDe: userCode(task.dependeDe) || undefined,
     responsaveis: (task.responsaveis || []).map(userCode),
     checklist: (task.checklist || []).map(item => ({

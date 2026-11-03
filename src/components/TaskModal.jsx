@@ -2,12 +2,53 @@ import { useEffect, useState } from 'react'
 import Ic from './Icon'
 import Multi from './Multi'
 import { Prog } from './Ui'
-import { ST, chip } from '../lib/utils'
+import { ST, chip, fm } from '../lib/utils'
+import { tarefas } from '../services/tarefas'
 import alerts from '../lib/alerts'
 
 const L = ({ l, children }) => <label className="form-label w-100 mb-3">{l}{children}</label>
 
-export default function TaskModal({ D, salvar, t, p, T, close, del }) {
+/** Comentários da tarefa (sessão 8b): equipe comenta; autor, líder e gestão apagam. */
+function Comentarios({ t, papel }) {
+  const [lista, setLista] = useState(null), [texto, setTexto] = useState(''), [enviando, setEnviando] = useState(false)
+  const carregar = () => tarefas.comentarios(t.id).then(setLista).catch(error => { setLista([]); alerts.error('Não foi possível carregar os comentários', error.message) })
+  useEffect(() => { carregar() }, [t.id])
+  const enviar = async () => {
+    const v = texto.trim()
+    if (!v || enviando) return
+    setEnviando(true)
+    try { await tarefas.comentar(t.id, v); setTexto(''); await carregar() } catch (error) { alerts.error('Não foi possível comentar', error.message) } finally { setEnviando(false) }
+  }
+  const apagar = async c => {
+    if (!await alerts.confirm({ title: 'Apagar comentário?', confirmText: 'Apagar', danger: true })) return
+    try { await tarefas.apagarComentario(t.id, c.codigo); await carregar() } catch (error) { alerts.error('Não foi possível apagar', error.message) }
+  }
+  const quando = v => { const x = new Date(v); return x.toLocaleDateString('pt-BR') + ' ' + x.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) }
+  return (
+    <div className="mt-4 tcols">
+      <h4><Ic k="msg" />Comentários{lista?.length > 0 && <span className={chip()}>{lista.length}</span>}</h4>
+      {lista === null && <small>Carregando…</small>}
+      {lista?.length === 0 && <small className="d-block mb-2">Nenhum comentário ainda.</small>}
+      {lista?.map(c => (
+        <div key={c.codigo} className="d-flex justify-content-between gap-2 py-2 border-bottom">
+          <div style={{ minWidth: 0 }}>
+            <small className="d-block"><b>{c.autor.nomeExibicao || c.autor.nome}</b> · {quando(c.criadoEm)}</small>
+            <div style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{c.texto}</div>
+          </div>
+          {papel.podeApagarComentario(c) && <button className="dots" aria-label="Apagar comentário" title="Apagar" onClick={() => apagar(c)}><Ic k="trash" /></button>}
+        </div>
+      ))}
+      {papel.participa && (
+        <div className="d-flex gap-2 mt-2">
+          <textarea className="form-control" rows={2} placeholder="Escreva um comentário…" aria-label="Novo comentário" value={texto} onChange={e => setTexto(e.target.value)} />
+          <button className="btn btn-g align-self-end" disabled={!texto.trim() || enviando} onClick={enviar}>Comentar</button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+export default function TaskModal({ D, salvar, t, p, T, close, del, tog, papel }) {
   const [draft, setDraft] = useState({ ...t }), [nv, setNv] = useState('')
   const cl = draft.checklist || [], dn = cl.filter(x => x.feito).length
   const patch = o => setDraft(current => ({ ...current, ...o })), setCl = f => patch({ checklist: f(cl) })
@@ -28,13 +69,15 @@ export default function TaskModal({ D, salvar, t, p, T, close, del }) {
         <div className="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg" role="dialog" aria-label="Detalhes da tarefa" onClick={e => e.stopPropagation()}>
           <div className="modal-content">
             <div className="modal-body">
+              {/* Só líder e gestão editam; os demais veem a tarefa sem poder alterar. */}
+              <fieldset disabled={!papel.organiza}>
               <input className="tt0 form-control" aria-label="Título da tarefa" value={draft.titulo} onChange={e => patch({ titulo: e.target.value })} />
-              <small>em {p.nome}</small>
+              <small>em {p.nome}{t.status == 'concluida' && t.conclusao ? ` · concluída em ${fm(t.conclusao)}${t.concluidaPor ? ' por ' + t.concluidaPor : ''}` : ''}</small>
               <div className="row g-4 mt-1 tcols">
                 <div className="col-md-8">
                   <h4><Ic k="list" />Descrição</h4>
                   <textarea className="form-control" rows={4} aria-label="Descrição" placeholder="Adicione uma descrição mais detalhada…" value={draft.descricao || ''} onChange={e => patch({ descricao: e.target.value })} />
-                  <h4><Ic k="check" />Checklist{cl.length > 0 && <span className={chip()}>{dn}/{cl.length}</span>}</h4>
+                  {(papel.organiza || cl.length > 0) && <h4><Ic k="check" />Checklist{cl.length > 0 && <span className={chip()}>{dn}/{cl.length}</span>}</h4>}
                   {cl.length > 0 && <Prog v={dn / cl.length * 100} cls={dn == cl.length ? 'ok' : ''} />}
                   {cl.map(x => (
                     <div className="d-flex align-items-center justify-content-between gap-1" key={x.id}>
@@ -42,13 +85,13 @@ export default function TaskModal({ D, salvar, t, p, T, close, del }) {
                         <input type="checkbox" className="form-check-input" checked={x.feito} onChange={() => setCl(a => a.map(y => y.id == x.id ? { ...y, feito: !y.feito } : y))} />
                         <span className={'form-check-label ms-1 ' + (x.feito ? 'dn' : '')}>{x.texto}</span>
                       </label>
-                      <button className="dots" aria-label="Remover item" onClick={() => setCl(a => a.filter(y => y.id != x.id))}><Ic k="x" /></button>
+                      {papel.organiza && <button className="dots" aria-label="Remover item" onClick={() => setCl(a => a.filter(y => y.id != x.id))}><Ic k="x" /></button>}
                     </div>
                   ))}
-                  <div className="d-flex gap-2 mt-2">
+                  {papel.organiza && <div className="d-flex gap-2 mt-2">
                     <input className="form-control" placeholder="Adicionar item" aria-label="Novo item do checklist" value={nv} onChange={e => setNv(e.target.value)} onKeyDown={e => e.key == 'Enter' && addI()} />
                     <button className="btn btn-g" onClick={addI}>Adicionar</button>
-                  </div>
+                  </div>}
                 </div>
                 <div className="col-md-4">
                   <L l="Situação"><select className="form-select mt-1" value={draft.status} onChange={e => st(e.target.value)}>{Object.entries(ST).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></L>
@@ -60,11 +103,20 @@ export default function TaskModal({ D, salvar, t, p, T, close, del }) {
                   {deps.length > 0 && <div><div className="form-label">Tarefas que dependem desta</div>{deps.map(x => <span key={x.id} className={chip('d-block mt-1 text-wrap')}>{x.titulo}</span>)}</div>}
                 </div>
               </div>
-              <div className="d-flex justify-content-end gap-2 mt-4">
-                <button className="btn btn-g" onClick={remove}><Ic k="trash" />Excluir tarefa</button>
-                <button className="btn btn-g" onClick={close}>Cancelar</button>
-                <button className="btn btn-primary" onClick={save}>Salvar alterações</button>
-              </div>
+              </fieldset>
+              <Comentarios t={t} papel={papel} />
+              {papel.organiza ? (
+                <div className="d-flex flex-wrap justify-content-end gap-2 mt-4">
+                  <button className="btn btn-g" onClick={remove}><Ic k="trash" />Excluir tarefa</button>
+                  <button className="btn btn-g" onClick={close}>Cancelar</button>
+                  <button className="btn btn-primary" onClick={save}>Salvar alterações</button>
+                </div>
+              ) : (
+                <div className="d-flex flex-wrap justify-content-end gap-2 mt-4">
+                  <button className="btn btn-g" onClick={close}>Fechar</button>
+                  {papel.podeStatus(t) && <button className="btn btn-primary" onClick={() => { tog(t); close() }}><Ic k={t.status == 'concluida' ? 'undo' : 'check'} />{t.status == 'concluida' ? 'Reabrir' : 'Concluir'}</button>}
+                </div>
+              )}
             </div>
           </div>
         </div>
