@@ -3,6 +3,7 @@ import { DAY, PC, chip, d, fm, hj, iso } from '../lib/utils'
 import { origemTarefa } from '../services/tarefas'
 import Ic from './Icon'
 import ActionMenu from './ActionMenu'
+import alerts from '../lib/alerts'
 import { Av } from './Ui'
 
 export const COLUNAS = ['Essa semana', 'Semana que vem', 'Daqui a duas semanas', 'Concluído']
@@ -63,7 +64,7 @@ export default function KanbanTarefas({ D, T, papelDe, acoes, abrir, adicionar, 
                   onDragStart={e => { dg.current = t; e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', String(t.id)) }}
                   onDragEnd={() => { dg.current = null; setOv(null) }}>
                   <span className={chip(PC[t.prioridade])}>{t.prioridade}</span>
-                  {origem && <span className={chip(t.avulsa ? 'p3 ms-1' : 'ms-1')} title={t.avulsa ? 'Tarefa avulsa' : 'Projeto'}>{origemTarefa(t)}</span>}
+                  {origem && <span className={chip(t.avulsa ? 'p3 ms-1 kb-or' : 'ms-1 kb-or')} title={(t.avulsa ? 'Tarefa avulsa: ' : 'Projeto: ') + origemTarefa(t)}>{origemTarefa(t)}</span>}
                   <b>{t.titulo}</b>
                   <div className="tkf">
                     <span className="bds">
@@ -74,7 +75,7 @@ export default function KanbanTarefas({ D, T, papelDe, acoes, abrir, adicionar, 
                     </span>
                     <Av D={D} ids={t.responsaveis} />
                   </div>
-                  {papel.podeStatus(t) && <span className="cm t"><ActionMenu items={[[dn ? 'undo' : 'check', dn ? 'Reabrir' : 'Concluir', () => acoes.tog(t)], ...(papel.organiza ? [['trash', 'Excluir', () => acoes.del(t.id), 1]] : [])]} /></span>}
+                  {papel.podeStatus(t) && <span className="cm t"><ActionMenu items={[[dn ? 'undo' : 'check', dn ? 'Reabrir' : 'Concluir', () => acoes.tog(t)], ...(papel.organiza ? [['trash', 'Excluir', async () => { if (await alerts.confirm({ title: 'Excluir tarefa?', text: t.titulo, confirmText: 'Excluir tarefa', danger: true })) acoes.del(t.id) }, 1]] : [])]} /></span>}
                 </div>
               )
             })}

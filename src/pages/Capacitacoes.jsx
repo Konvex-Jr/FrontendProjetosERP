@@ -4,6 +4,7 @@ import { TIPO, chip, d, fm, nid, un } from '../lib/utils'
 import Ic from '../components/Icon'
 import ActionMenu from '../components/ActionMenu'
 import { Av, PageBar, Prog, Stars } from '../components/Ui'
+import alerts from '../lib/alerts'
 
 function CapCard({ D, e, big, on, open, tog }) {
   const full = e.inscritos.length >= e.vagas, past = e.data < D.c.hoje, n = e.inscritos.length
@@ -52,9 +53,14 @@ function CapDetalhe({ D, c, on, tog, close }) {
 }
 
 function Lista() {
-  const { D, up, me } = useApp()
+  const { D, up, me, pode } = useApp()
   const [sel, setSel] = useState(null), [tp, setTp] = useState(''), [mi, setMi] = useState(false)
-  const tog = c => up('k', a => a.map(x => x.id == c.id ? { ...x, inscritos: x.inscritos.includes(me) ? x.inscritos.filter(i => i != me) : [...x.inscritos, me] } : x))
+  const tog = async c => {
+    const inscrito = c.inscritos.includes(me)
+    if (inscrito && !await alerts.confirm({ title: 'Cancelar inscrição?', text: c.titulo, confirmText: 'Cancelar inscrição', cancelText: 'Manter', danger: true })) return
+    up('k', a => a.map(x => x.id == c.id ? { ...x, inscritos: inscrito ? x.inscritos.filter(i => i != me) : [...x.inscritos, me] } : x))
+    alerts.toastSuccess(inscrito ? 'Inscrição cancelada' : 'Inscrição feita', c.titulo)
+  }
   const L = D.k.filter(e => (!tp || e.tipo == tp) && (!mi || e.inscritos.includes(me))).sort((a, b) => (a.data + a.hora) > (b.data + b.hora) ? 1 : -1)
   const nx = L.filter(e => e.data >= D.c.hoje), ps = L.filter(e => e.data < D.c.hoje), feat = nx.slice(0, 2), rest = nx.slice(2)
   const c = sel && D.k.find(x => x.id == sel)
@@ -75,7 +81,8 @@ function Lista() {
         <button className={'btn btn-g' + (mi ? ' on' : '')} onClick={() => setMi(!mi)}><Ic k="check" />Minhas inscrições</button>
       </div>
       {sec('Próximas capacitações', feat, 1)}{sec('Mais adiante', rest)}{sec('Já realizadas', ps)}
-      {!L.length && <div className="card card-body">Nenhuma capacitação encontrada. Ajuste os filtros.</div>}
+      {!L.length && <div className="card card-body">{D.k.length ? 'Nenhuma capacitação com estes filtros. Escolha “Todas” ou desmarque “Minhas inscrições”.'
+        : 'Nenhuma capacitação cadastrada ainda.' + (pode('capacitacoes.gerir') ? ' Use “Criar capacitação”.' : ' Quando a gestão marcar uma, ela aparece aqui.')}</div>}
       {c && <CapDetalhe D={D} c={c} on={c.inscritos.includes(me)} tog={tog} close={() => setSel(null)} />}
     </>
   )
@@ -109,7 +116,7 @@ function Feedbacks() {
               ))}
             </div>
           )
-        }) : <div className="card card-body"><small>Nenhum feedback enviado ainda.</small></div>}
+        }) : <div className="card card-body"><small>Nenhum feedback enviado ainda. Depois de uma capacitação, use “Dar feedback” ao lado.</small></div>}
       </div>
       <div className="col-lg-4"><div className="card card-body">
         <h2>Dar feedback</h2>
@@ -145,8 +152,9 @@ export default function Capacitacoes() {
   }
   return (
     <>
-      <PageBar title="Capacitações" sub={ab == 'lista' ? 'Clique em um card para ver os detalhes e se inscrever.' : 'Avalie as capacitações que você participou e veja o retorno da turma.'} />
-      {podeCriar && ab === 'lista' && <div className="d-flex justify-content-end mb-3"><button className="btn btn-primary" onClick={() => setMostrarCriacao(value => !value)}>{mostrarCriacao ? 'Cancelar' : 'Criar capacitação'}</button></div>}
+      <PageBar title="Capacitações" sub={ab == 'lista' ? 'Clique em um card para ver os detalhes e se inscrever.' : 'Avalie as capacitações de que você participou e veja o retorno da turma.'}>
+        {podeCriar && ab === 'lista' && <button className={'btn ' + (mostrarCriacao ? 'btn-g' : 'btn-primary')} onClick={() => setMostrarCriacao(value => !value)}>{mostrarCriacao ? <><Ic k="x" />Cancelar</> : <><Ic k="plus" />Criar capacitação</>}</button>}
+      </PageBar>
       {podeCriar && mostrarCriacao && <form className="card card-body mb-3" onSubmit={criar}>
         <h2 className="h5">Nova capacitação</h2>
         <div className="row g-3">
