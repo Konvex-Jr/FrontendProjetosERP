@@ -184,6 +184,9 @@ function Ficha({ id }) {
             ? <button key={p.id} type="button" className={chip('kc-tag')} onClick={() => go('projeto', p.id)}>{p.nome}</button>
             : <span key={p.id} className={chip('')}>{p.nome}</span>)}
         </div></div>}
+        {!!item.iniciativas.length && <div className="kc-s"><h3 className="h6 fw-bold">Iniciativas de inovação</h3><div className="kc-tags">
+          {item.iniciativas.map(i => <button key={i.id} type="button" className={chip('kc-tag')} onClick={() => go('iniciativas', i.id)}>{i.nome}</button>)}
+        </div></div>}
         {!!item.links.length && <div className="kc-s"><h3 className="h6 fw-bold">Links</h3><ul className="kc-l">
           {item.links.map(l => <li key={l}><a href={l} target="_blank" rel="noopener noreferrer"><Ic k="link" />{l}</a></li>)}
         </ul></div>}

@@ -22,6 +22,8 @@ export const adaptConhecimento = (c) => ({
   autorId: c.autor?.codigo || '',
   autor: c.autor?.nome || '—',
   projetos: (c.projetos || []).map(p => ({ id: p.codigo, nome: p.nome })),
+  // Iniciativas que usam o item (sessão 12b; a ligação é feita na iniciativa).
+  iniciativas: (c.iniciativas || []).map(i => ({ id: i.codigo, nome: i.nome })),
   podeAlterar: Boolean(c.podeAlterar),
   atualizadoEm: c.atualizadoEm || '',
 })
