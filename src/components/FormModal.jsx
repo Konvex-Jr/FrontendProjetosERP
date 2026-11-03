@@ -3,10 +3,11 @@ import Multi from './Multi'
 
 /**
  * Campos: k (chave), l (rótulo), t (tipo do input ou 'textarea'), o (opções de select),
- * c (opções de múltipla escolha; pode ser função dos valores), s (mostrar se), opt (opcional), h (dica abaixo do campo).
+ * c (opções de múltipla escolha; pode ser função dos valores), s (mostrar se), opt (opcional), h (dica abaixo do campo),
+ * rows (linhas do textarea). `largo`: modal mais largo para textos longos (ex.: Base de Inteligência).
  * `save` pode ser assíncrono; se devolver false (ou falhar), o modal continua aberto.
  */
-export default function FormModal({ t, fs, init, save, close }) {
+export default function FormModal({ t, fs, init, save, close, largo }) {
   const [v, setV] = useState(init), set = (k, x) => setV(o => ({ ...o, [k]: x }))
   const [salvando, setSalvando] = useState(false)
   const enviar = async e => {
@@ -23,14 +24,14 @@ export default function FormModal({ t, fs, init, save, close }) {
   const campo = x => {
     const comum = { className: 'form-control mt-1', required: !x.opt, value: v[x.k] ?? '', onChange: e => set(x.k, e.target.value) }
     if (x.o) return <select className="form-select mt-1" disabled={Boolean(x.disabled)} value={v[x.k] ?? ''} onChange={e => set(x.k, e.target.value)}>{x.o.map(o => <option key={o[0]} value={o[0]}>{o[1]}</option>)}</select>
-    if (x.t === 'textarea') return <textarea rows={3} {...comum} />
+    if (x.t === 'textarea') return <textarea rows={x.rows || 3} {...comum} />
     return <input type={x.t || 'text'} {...comum} />
   }
   return (
     <>
       <div className="modal-backdrop show" />
       <div className="modal d-block" tabIndex="-1" onClick={close}>
-        <div className="modal-dialog modal-dialog-centered" style={{ maxWidth: 440 }} onClick={e => e.stopPropagation()}>
+        <div className="modal-dialog modal-dialog-centered" style={{ maxWidth: largo ? 680 : 440 }} onClick={e => e.stopPropagation()}>
           <form className="modal-content" onSubmit={enviar}>
             <div className="modal-body">
               <h3 className="h5 fw-bold mb-3">{t}</h3>

@@ -3,8 +3,9 @@ import { useState } from 'react'
 /**
  * Tabela configurável (ADR-007). `vazio`: texto quando não há linhas (diga o que fazer em seguida).
  * `filtros`: valores iniciais dos selects, por chave da coluna (ex.: vindo de um atalho do Dashboard).
+ * `busca={false}`: esconde a busca e os filtros internos (quando a tela filtra pela API, como a Base).
  */
-export default function Table({ cols, rows, vazio, filtros }) {
+export default function Table({ cols, rows, vazio, filtros, busca = true }) {
   const [q, setQ] = useState(''), [s, setS] = useState({ k: null, dir: 1 }), [f, setF] = useState(filtros || {})
   const val = (r, c) => c.get ? c.get(r) : r[c.k]
   let R = rows.filter(r => cols.every(c => !f[c.k] || String(val(r, c)) == f[c.k]) && (!q || cols.some(c => c.k && String(val(r, c)).toLowerCase().includes(q.toLowerCase()))))
@@ -12,7 +13,7 @@ export default function Table({ cols, rows, vazio, filtros }) {
   const sort = c => c.k && setS(o => ({ k: c.k, dir: o.k == c.k ? -o.dir : 1 }))
   return (
     <div>
-      <div className="fl d-flex flex-wrap gap-2 mb-2">
+      {busca && <div className="fl d-flex flex-wrap gap-2 mb-2">
         <input className="form-control w-auto flex-grow-1" style={{ maxWidth: 260 }} placeholder="Buscar…" aria-label="Buscar" value={q} onChange={e => setQ(e.target.value)} />
         {cols.filter(c => c.filter).map(c => (
           <select key={c.k} className="form-select w-auto" style={{ maxWidth: 260 }} aria-label={'Filtrar ' + c.l} value={f[c.k] || ''} onChange={e => setF({ ...f, [c.k]: e.target.value })}>
@@ -20,7 +21,7 @@ export default function Table({ cols, rows, vazio, filtros }) {
             {[...new Set(rows.map(r => String(val(r, c))))].sort().map(v => <option key={v}>{v}</option>)}
           </select>
         ))}
-      </div>
+      </div>}
       <div className="tw">
         <table className="table table-hover align-middle tc">
           <thead>
