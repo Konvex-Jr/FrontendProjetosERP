@@ -8,6 +8,7 @@ import Tarefas from './pages/Tarefas'
 import Capacitacoes from './pages/Capacitacoes'
 import Estrategia from './pages/Estrategia'
 import Gestao from './pages/Gestao'
+import Conhecimento from './pages/Conhecimento'
 import Precificacao from './pages/Precificacao'
 import Pessoas from './pages/Pessoas'
 import Perfil from './pages/Perfil'
@@ -23,6 +24,8 @@ export default function App() {
         <Route path="projetos" element={<Projetos />} />
         <Route path="projetos/:id" element={<Projeto />} />
         <Route path="capacitacoes" element={<Capacitacoes />} />
+        <Route path="conhecimento" element={<Conhecimento />} />
+        <Route path="conhecimento/:id" element={<Conhecimento />} />
         <Route path="estrategia" element={<Estrategia />} />
         <Route path="gestao" element={<Gestao />} />
         <Route path="precificacao" element={<Precificacao />} />

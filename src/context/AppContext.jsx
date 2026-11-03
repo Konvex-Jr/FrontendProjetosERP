@@ -201,7 +201,7 @@ export function AppProvider({ children }) {
     })
   }
 
-  const form = (title, fields, initial, save) => setMd({ t: title, fs: fields, init: initial, save })
+  const form = (title, fields, initial, save, opcoes = {}) => setMd({ t: title, fs: fields, init: initial, save, ...opcoes })
   const go = (name, pid) => { navigate(path(name, pid)); window.scrollTo(0, 0) }
 
   if (!sessionReady || !DF) return <main className="container py-5">Carregando…</main>

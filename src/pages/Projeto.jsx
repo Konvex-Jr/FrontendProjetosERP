@@ -14,8 +14,9 @@ import { projetos, rotuloPrioridade } from '../services/projetos'
 import { acoesTarefa, papelNasTarefas, tarefas } from '../services/tarefas'
 import { adaptTask } from '../lib/apiMappers'
 import { StatusProjeto, camposProjeto, valoresProjeto } from './Projetos'
+import { ItensDoProjeto } from './Conhecimento'
 
-const ABAS = [['tarefas', 'Tarefas'], ['geral', 'Visão geral'], ['equipe', 'Equipe']]
+const ABAS = [['tarefas', 'Tarefas'], ['geral', 'Visão geral'], ['equipe', 'Equipe'], ['base', 'Base']]
 
 export default function Projeto() {
   const { D, form, go, me, pode, refresh } = useApp(), { id } = useParams(), pid = id
@@ -130,6 +131,7 @@ export default function Projeto() {
       <div className="mb-3"><Seg items={ABAS} value={aba} onChange={setAba} /></div>
       {aba == 'tarefas' && (pt == 'kanban' ? kanban() : gantt())}
       {aba == 'geral' && geral()}
+      {aba == 'base' && <ItensDoProjeto projeto={projeto} />}
       {aba == 'equipe' && <EquipeProjeto projeto={projeto} todos={todos} gente={gente} gestor={gestor} aoSalvar={aoSalvar} />}
       {tk && T.find(x => x.id == tk) && <TaskModal D={D} papel={papel} me={me} salvar={(antes, depois) => acoes.salvar(antes, depois, 'Tarefa salva')} t={T.find(x => x.id == tk)} p={p} T={T} close={() => setTk(null)} del={acoes.del} tog={acoes.tog} />}
     </>
