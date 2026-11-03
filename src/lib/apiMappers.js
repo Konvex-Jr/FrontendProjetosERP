@@ -51,6 +51,8 @@ export function adaptTask(task) {
     projetoNome: task.projeto?.nome,
     avulsa: !task.projeto,
     categoria: task.categoria || undefined,
+    iniciativaId: task.iniciativa?.codigo || undefined,
+    iniciativaNome: task.iniciativa?.nome || undefined,
     criadaPor: task.criadaPor ? (task.criadaPor.nomeExibicao || task.criadaPor.nome) : undefined,
     titulo: task.titulo,
     descricao: task.descricao || '',
