@@ -25,6 +25,7 @@ export function adaptUser(user) {
     email: user.email,
     perfil: user.perfil,
     ativo: user.ativo,
+    status: user.status,
     senha: undefined,
     senioridade: senioridadeValue ? slug(senioridadeValue) : undefined,
     senioridadeRef,
@@ -131,31 +132,4 @@ export function normalizeSenioridades(registros = []) {
       valorHora: Number(item?.valorHora ?? item?.valor_hora ?? item?.hourlyRate ?? 0),
     }))
     .filter(item => item.codigo && item.nome)
-}
-
-export function resolveSenioridade(user, registros = []) {
-  const senioridades = normalizeSenioridades(registros)
-  const selecionada = user.senioridade
-  const chave = typeof selecionada === 'object' && selecionada
-    ? selecionada.codigo || selecionada.code || selecionada.nome || selecionada.name
-    : selecionada
-  const chaveNormalizada = slug(chave)
-  const encontrada = senioridades.find(item =>
-    slug(item.codigo) === chaveNormalizada || slug(item.nome) === chaveNormalizada
-  )
-
-  if (encontrada) return encontrada
-
-  const referencia = user.senioridadeRef
-  if (referencia?.codigo) {
-    const senioridadeAtual = senioridades.find(item => slug(item.codigo) === slug(referencia.codigo))
-    if (senioridadeAtual) return senioridadeAtual
-  }
-
-  const opcoesDisponiveis = senioridades.map(item => `${item.codigo} (${item.nome})`).join(', ')
-  throw new Error(
-    senioridades.length
-      ? `A senioridade selecionada "${String(chave || '')}" não corresponde às opções retornadas pela API: ${opcoesDisponiveis}. Atualize a tela e tente novamente.`
-      : 'A API não retornou senioridades cadastradas. Verifique os dados da tabela senioridades no banco e atualize a tela.'
-  )
 }
