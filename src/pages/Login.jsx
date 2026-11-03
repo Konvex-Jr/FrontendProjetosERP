@@ -17,7 +17,7 @@ export default function Login() {
       <aside className="lgb col-lg-6 d-none d-lg-flex flex-column justify-content-center gap-2">
         <img src={import.meta.env.BASE_URL + 'assets/logo-branca.png'} alt="Konvex Jr" />
         <h1>Bem-vindo de volta.</h1>
-        <p>Seus projetos, capacitações e o check-in da semana estão te esperando.</p>
+        <p>Seus projetos, tarefas e capacitações estão te esperando.</p>
       </aside>
       <div className="lgf col-12 col-lg-6 d-flex align-items-center justify-content-center p-4">
         <form onSubmit={send}>

@@ -6,14 +6,12 @@ export const fm = s => s.slice(8) + '/' + s.slice(5, 7)
 export const TIPO = { mecanica: 'Mecânica', computacao: 'Computação', eletrica: 'Elétrica' }
 export const PC = { P1: 'er', P2: 'wa', P3: 'p3', P4: '' }
 export const ST = { pendente: 'Pendente', andamento: 'Em andamento', concluida: 'Concluída' }
-export const HUM = ['Difícil', 'Cansativa', 'Ok', 'Boa', 'Ótima']
 
 export const NAV = [
   ['dashboard', 'Dashboard', '/'],
   ['tarefas', 'Tarefas', '/tarefas'],
   ['projetos', 'Projetos', '/projetos'],
   ['capacitacoes', 'Capacitações', '/capacitacoes'],
-  ['checkins', 'Check-in semanal', '/checkins'],
   ['estrategia', 'Visão Estratégica', '/estrategia'],
   ['gestao', 'Gestão', '/gestao'],
   ['precificacao', 'Simular precificação', '/precificacao'],

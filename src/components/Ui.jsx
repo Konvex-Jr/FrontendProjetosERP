@@ -1,11 +1,9 @@
 import Ic from './Icon'
-import { ini, un, chip, HUM } from '../lib/utils'
+import { ini, un } from '../lib/utils'
 
 export const Av = ({ D, ids }) => (
   <span>{ids.map(i => { const u = D.u.find(x => x.id == i); return <span key={i} className="av" title={u?.nome}>{ini(u?.nome || '?')}</span> })}</span>
 )
-
-export const Hm = ({ n }) => <span className={chip(n >= 4 ? 'ok' : n == 3 ? '' : n == 2 ? 'wa' : 'er')}>{HUM[n - 1]}</span>
 
 export const Stars = ({ n, set }) => (
   <span className="stars" role={set ? 'radiogroup' : 'img'} aria-label={'Nota ' + n + ' de 5'}>
