@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { corpoNovaTarefa, corpoTarefa, papelNasTarefas, soMudouStatus, tarefas } from '../src/services/tarefas.js'
+import { corpoNovaTarefa, corpoTarefa, origemTarefa, papelNaTarefa, papelNasTarefas, soMudouStatus, tarefas } from '../src/services/tarefas.js'
 import { sessao } from '../src/services/api.js'
 
 const capturar = async fn => {
@@ -83,4 +83,30 @@ test('papel nas tarefas: gestão e líder organizam; participante só as suas; d
   const saiu = papelNasTarefas({ me: 'saiu', gestao: false, projeto })
   assert.equal(saiu.participa, false)
   assert.equal(saiu.podeStatus({ responsaveis: ['saiu'] }), false)
+})
+
+test('tarefa avulsa (8c): corpo com categoria e regras de quem organiza', () => {
+  const nova = corpoNovaTarefa(null, { titulo: 'Pesquisa', categoria: 'inovacao', inicio: '2026-11-03', fim: '2026-11-07', responsaveis: ['u2'] })
+  assert.equal(nova.codigoProjeto, undefined)
+  assert.equal(nova.categoria, 'inovacao')
+  assert.deepEqual(nova.codigosResponsaveis, ['u2'])
+  assert.equal(corpoTarefa({ ...tarefa, avulsa: true, categoria: 'execucao' }).categoria, 'execucao')
+  assert.equal(corpoTarefa(tarefa).categoria, undefined)
+
+  const avulsa = { ...tarefa, projetoId: undefined, avulsa: true, categoria: 'inovacao', responsaveis: ['u1'] }
+  const gestao = papelNaTarefa({ me: 'g', gestao: true, atribui: true, tarefa: avulsa })
+  assert.equal(gestao.organiza, true)
+  const resp = papelNaTarefa({ me: 'u1', tarefa: avulsa })
+  assert.equal(resp.organiza, false)
+  assert.equal(resp.participa, true)
+  assert.equal(resp.podeStatus(avulsa), true)
+  const outro = papelNaTarefa({ me: 'u9', tarefa: avulsa })
+  assert.equal(outro.participa, false)
+  assert.equal(outro.podeStatus(avulsa), false)
+  // Tarefa de projeto continua com as regras da 8b.
+  const projeto = { participacoes: [{ usuario: { codigo: 'u1' } }], lider: null }
+  assert.equal(papelNaTarefa({ me: 'u1', projeto, tarefa }).podeStatus(tarefa), true)
+  assert.equal(papelNaTarefa({ me: 'u1', projeto, tarefa }).organiza, false)
+  assert.equal(origemTarefa(avulsa), 'Inovação')
+  assert.equal(origemTarefa({ ...tarefa, projetoNome: 'Site' }), 'Site')
 })

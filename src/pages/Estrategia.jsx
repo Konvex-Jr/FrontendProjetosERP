@@ -10,7 +10,7 @@ const TB = { late: ['Atrasadas', 'er'], and: ['Em andamento', 'an'], done: ['Con
 export default function Estrategia() {
   const { D, go } = useApp()
   const T = D.t, h = hj(D), ativos = D.u.filter(u => u.ativo), [tab, setTab] = useState('late')
-  const late = t => t.status != 'concluida' && d(t.fim) < h, pn = id => D.p.find(p => p.id == id)?.nome
+  const late = t => t.status != 'concluida' && d(t.fim) < h, pn = id => D.p.find(p => p.id == id)?.nome || 'Tarefa avulsa'
   const G = { late: T.filter(late), and: T.filter(t => t.status != 'concluida' && !late(t)), done: T.filter(t => t.status == 'concluida') }
 
   const crit = D.p.filter(p => p.status == 'em_execucao').map(p => {
@@ -45,7 +45,7 @@ export default function Estrategia() {
           <div className="d-flex flex-wrap gap-1 mb-2">{Object.keys(TB).map(k => <button key={k} className={'btn btn-g btn-sm' + (tab == k ? ' on' : '')} onClick={() => setTab(k)}>{TB[k][0]}</button>)}</div>
           <div className="lst">
             {G[tab].length ? G[tab].map(t => (
-              <div className="ag" key={t.id} onClick={() => go('projeto', t.projetoId)}>
+              <div className="ag" key={t.id} onClick={() => (t.avulsa ? go('tarefas') : go('projeto', t.projetoId))}>
                 <span className={chip(PC[t.prioridade])}>{t.prioridade}</span>
                 <div><b>{t.titulo}</b><small>{pn(t.projetoId)} · {nm(D, t.responsaveis)}</small></div>
                 <span className={chip()}>{fm(tab == 'done' ? t.conclusao : t.fim)}</span>

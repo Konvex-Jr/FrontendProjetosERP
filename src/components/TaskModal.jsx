@@ -3,7 +3,7 @@ import Ic from './Icon'
 import Multi from './Multi'
 import { Prog } from './Ui'
 import { ST, chip, fm } from '../lib/utils'
-import { tarefas } from '../services/tarefas'
+import { CATEGORIAS, rotuloCategoria, tarefas } from '../services/tarefas'
 import alerts from '../lib/alerts'
 
 const L = ({ l, children }) => <label className="form-label w-100 mb-3">{l}{children}</label>
@@ -59,7 +59,12 @@ export default function TaskModal({ D, salvar, t, p, T, close, del, tog, papel }
     if (confirmed) { del(t.id); close() }
   }
   const chain = id => { const o = []; let x = T.find(y => y.id == id); while (x && !o.includes(x.id)) { o.push(x.id); x = T.find(y => y.id == x.dependeDe) } return o }
-  const opts = T.filter(c => c.id != t.id && !chain(c.id).includes(t.id)), deps = T.filter(x => x.dependeDe == t.id)
+  // Dependência só entre tarefas do mesmo projeto (o painel global mistura projetos e avulsas).
+  const doProjeto = t.avulsa ? [] : T.filter(c => c.projetoId == t.projetoId)
+  const opts = doProjeto.filter(c => c.id != t.id && !chain(c.id).includes(t.id)), deps = doProjeto.filter(x => x.dependeDe == t.id)
+  // Avulsa: qualquer pessoa ativa; de projeto: equipe atual.
+  const gente = t.avulsa ? D.u.filter(u => u.ativo !== false || (t.responsaveis || []).includes(u.id)) : D.u.filter(u => (p?.membros || []).includes(u.id))
+  const origem = t.avulsa ? 'Tarefa avulsa · ' + rotuloCategoria(t.categoria) : 'em ' + (p?.nome || t.projetoNome || 'projeto')
   const addI = () => { const v = nv.trim(); if (!v) return; setCl(a => [...a, { id: crypto.randomUUID(), texto: v, feito: false }]); setNv('') }
   useEffect(() => { const k = e => e.key == 'Escape' && close(); addEventListener('keydown', k); return () => removeEventListener('keydown', k) }, [])
   return (
@@ -72,7 +77,7 @@ export default function TaskModal({ D, salvar, t, p, T, close, del, tog, papel }
               {/* Só líder e gestão editam; os demais veem a tarefa sem poder alterar. */}
               <fieldset disabled={!papel.organiza}>
               <input className="tt0 form-control" aria-label="Título da tarefa" value={draft.titulo} onChange={e => patch({ titulo: e.target.value })} />
-              <small>em {p.nome}{t.status == 'concluida' && t.conclusao ? ` · concluída em ${fm(t.conclusao)}${t.concluidaPor ? ' por ' + t.concluidaPor : ''}` : ''}</small>
+              <small>{origem}{t.criadaPor ? ` · criada por ${t.criadaPor}` : ''}{t.status == 'concluida' && t.conclusao ? ` · concluída em ${fm(t.conclusao)}${t.concluidaPor ? ' por ' + t.concluidaPor : ''}` : ''}</small>
               <div className="row g-4 mt-1 tcols">
                 <div className="col-md-8">
                   <h4><Ic k="list" />Descrição</h4>
@@ -94,12 +99,13 @@ export default function TaskModal({ D, salvar, t, p, T, close, del, tog, papel }
                   </div>}
                 </div>
                 <div className="col-md-4">
+                  {t.avulsa && <L l="Categoria"><select className="form-select mt-1" value={draft.categoria} onChange={e => patch({ categoria: e.target.value })}>{CATEGORIAS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></L>}
                   <L l="Situação"><select className="form-select mt-1" value={draft.status} onChange={e => st(e.target.value)}>{Object.entries(ST).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></L>
                   <L l="Prioridade"><select className="form-select mt-1" value={draft.prioridade} onChange={e => patch({ prioridade: e.target.value })}>{['P1', 'P2', 'P3', 'P4'].map(x => <option key={x}>{x}</option>)}</select></L>
                   <L l="Início"><input className="form-control mt-1" type="date" value={draft.inicio} onChange={e => patch({ inicio: e.target.value })} /></L>
                   <L l="Fim"><input className="form-control mt-1" type="date" value={draft.fim} onChange={e => patch({ fim: e.target.value })} /></L>
-                  <div className="mb-3"><div className="form-label">Responsáveis</div><Multi opts={D.u.filter(u => p.membros.includes(u.id))} value={draft.responsaveis || []} onChange={z => patch({ responsaveis: z })} /></div>
-                  <L l="Depende de"><select className="form-select mt-1" value={draft.dependeDe || ''} onChange={e => patch({ dependeDe: e.target.value || undefined })}><option value="">Nenhuma</option>{opts.map(c => <option key={c.id} value={c.id}>{c.titulo}</option>)}</select></L>
+                  <div className="mb-3"><div className="form-label">Responsáveis</div><Multi opts={gente} value={draft.responsaveis || []} onChange={z => patch({ responsaveis: z })} /></div>
+                  {!t.avulsa && <L l="Depende de"><select className="form-select mt-1" value={draft.dependeDe || ''} onChange={e => patch({ dependeDe: e.target.value || undefined })}><option value="">Nenhuma</option>{opts.map(c => <option key={c.id} value={c.id}>{c.titulo}</option>)}</select></L>}
                   {deps.length > 0 && <div><div className="form-label">Tarefas que dependem desta</div>{deps.map(x => <span key={x.id} className={chip('d-block mt-1 text-wrap')}>{x.titulo}</span>)}</div>}
                 </div>
               </div>

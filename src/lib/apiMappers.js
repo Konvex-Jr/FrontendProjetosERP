@@ -46,7 +46,11 @@ export function adaptProject(project) {
 export function adaptTask(task) {
   return {
     id: task.codigo,
-    projetoId: userCode(task.projeto),
+    projetoId: userCode(task.projeto) || undefined,
+    projetoNome: task.projeto?.nome,
+    avulsa: !task.projeto,
+    categoria: task.categoria || undefined,
+    criadaPor: task.criadaPor ? (task.criadaPor.nomeExibicao || task.criadaPor.nome) : undefined,
     titulo: task.titulo,
     descricao: task.descricao || '',
     inicio: dateOnly(task.dataInicio),

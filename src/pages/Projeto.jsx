@@ -1,26 +1,25 @@
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
-import { DAY, PC, chip, d, fm, hj, iso, nm } from '../lib/utils'
+import { DAY, d, fm, iso, nm } from '../lib/utils'
 import Ic from '../components/Icon'
-import ActionMenu from '../components/ActionMenu'
 import TaskModal from '../components/TaskModal'
+import KanbanTarefas, { semanas } from '../components/KanbanTarefas'
 import EquipeProjeto from '../components/EquipeProjeto'
 import { Av, PageBar, Seg } from '../components/Ui'
 import alerts from '../lib/alerts'
 import useCarregar from '../lib/useCarregar'
 import { configuracoes, pessoas } from '../services/pessoas'
 import { projetos, rotuloPrioridade } from '../services/projetos'
-import { papelNasTarefas, tarefas } from '../services/tarefas'
+import { acoesTarefa, papelNasTarefas, tarefas } from '../services/tarefas'
 import { adaptTask } from '../lib/apiMappers'
 import { StatusProjeto, camposProjeto, valoresProjeto } from './Projetos'
 
-const COLS = ['Essa semana', 'Semana que vem', 'Daqui a duas semanas', 'Concluído']
 const ABAS = [['tarefas', 'Tarefas'], ['geral', 'Visão geral'], ['equipe', 'Equipe']]
 
 export default function Projeto() {
   const { D, form, go, me, pode, refresh } = useApp(), { id } = useParams(), pid = id
-  const [pt, setPt] = useState('kanban'), [ov, setOv] = useState(null), [tk, setTk] = useState(null), dg = useRef(null)
+  const [pt, setPt] = useState('kanban'), [tk, setTk] = useState(null)
   const [aba, setAba] = useState('tarefas')
   const gestor = pode('projetos.editar')
   const { dados, carregando, recarregar } = useCarregar(async () => {
@@ -37,9 +36,7 @@ export default function Projeto() {
   const aoSalvar = async () => { await recarregar(); refresh().catch(() => {}) }
   const p = { id: projeto.codigo, nome: projeto.nome, membros: projeto.participacoes.filter(x => !x.dataSaida).map(x => x.usuario.codigo) }
   const papel = papelNasTarefas({ me, gestao: pode('tarefas.gerirTodas'), projeto })
-  const T = dados.tarefas, h = hj(D)
-  const m = +h - ((h.getDay() + 6) % 7) * DAY
-  const col = t => t.status == 'concluida' ? 3 : Math.min(2, Math.max(0, Math.floor((+d(t.fim) - m) / (7 * DAY))))
+  const T = dados.tarefas, { h, m } = semanas(D)
 
   const add = i => form('Nova tarefa',
     [{ k: 'titulo', l: 'Título' }, { k: 'prioridade', l: 'Prioridade', o: ['P1', 'P2', 'P3', 'P4'].map(x => [x, x]) }, ...(papel.organiza ? [{ k: 'responsaveis', l: 'Responsáveis', c: D.u.filter(u => p.membros.includes(u.id)) }] : []), { k: 'inicio', l: 'Início', t: 'date' }, { k: 'fim', l: 'Fim', t: 'date' }],
@@ -56,67 +53,11 @@ export default function Projeto() {
       return false
     }
   }
-  const tog = t => salvarTarefa(() => tarefas.alterarStatus(t.id, t.status == 'concluida' ? 'andamento' : 'concluida'))
-  const delT = tid => salvarTarefa(() => tarefas.excluir(tid), 'Tarefa excluída')
-  const drop = (x, i) => {
-    // Participante só conclui/reabre (sem mudar prazo); quem organiza também move entre semanas.
-    if (!papel.organiza) {
-      const was = x.status == 'concluida'
-      if (i == 3 && !was) tog(x)
-      else if (i < 3 && was) tog(x)
-      return
-    }
-    let o
-    if (i == 3) o = x.status == 'concluida' ? x : { ...x, status: 'concluida' }
-    else {
-      const was = x.status == 'concluida'
-      if (!was && col(x) == i) return
-      const mon = m + 7 * i * DAY, fim = iso(mon + 4 * DAY)
-      o = { ...x, status: was ? 'andamento' : x.status, conclusao: undefined, fim }
-      if (x.inicio > fim) o.inicio = iso(mon)
-    }
-    if (o !== x) salvarTarefa(() => tarefas.salvar(x, o))
-  }
+  const acoes = acoesTarefa(salvarTarefa)
 
   const a = Math.min(...T.map(t => +d(t.inicio))), z = Math.max(...T.map(t => +d(t.fim))) + DAY, L = z - a, pc = x => (x - a) / L * 100, hp = pc(+h)
 
-  const kanban = () => (
-    <div className="kb">
-      {COLS.map((c, i) => {
-        const l = T.filter(t => col(t) == i).sort((a, b) => a.prioridade > b.prioridade ? 1 : a.prioridade < b.prioridade ? -1 : a.fim > b.fim ? 1 : -1)
-        return (
-          <div className={'col-k' + (ov === i ? ' over' : '')} key={c}
-            onDragOver={e => { e.preventDefault(); setOv(i) }}
-            onDragLeave={e => !e.currentTarget.contains(e.relatedTarget) && setOv(null)}
-            onDrop={e => { e.preventDefault(); setOv(null); dg.current && drop(dg.current, i); dg.current = null }}>
-            <h3>{c}<span className={chip()}>{l.length}</span></h3>
-            {l.map(t => {
-              const lt = t.status != 'concluida' && d(t.fim) < h, dn = t.status == 'concluida'
-              return (
-                <div key={t.id} draggable={papel.organiza || papel.podeStatus(t)} className="tk" onClick={() => setTk(t.id)}
-                  onDragStart={e => { dg.current = t; e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', String(t.id)) }}
-                  onDragEnd={() => { dg.current = null; setOv(null) }}>
-                  <span className={chip(PC[t.prioridade])}>{t.prioridade}</span>
-                  <b>{t.titulo}</b>
-                  <div className="tkf">
-                    <span className="bds">
-                      <span className={'bd ' + (dn ? 'ok' : lt ? 'er' : '')} title={dn ? 'Concluída' : lt ? 'Atrasada' : 'Prazo'}><Ic k="clock" />{fm(dn && t.conclusao ? t.conclusao : t.fim)}</span>
-                      {(t.checklist || []).length > 0 && <span className={'bd ' + (t.checklist.every(x => x.feito) ? 'ok' : '')}><Ic k="check" />{t.checklist.filter(x => x.feito).length}/{t.checklist.length}</span>}
-                      {t.dependeDe && <span className="bd" title="Depende de outra tarefa"><Ic k="link" /></span>}
-                      {t.descricao && <span className="bd" title="Tem descrição"><Ic k="list" /></span>}
-                    </span>
-                    <Av D={D} ids={t.responsaveis} />
-                  </div>
-                  {papel.podeStatus(t) && <span className="cm t"><ActionMenu items={[[dn ? 'undo' : 'check', dn ? 'Reabrir' : 'Concluir', () => tog(t)], ...(papel.organiza ? [['trash', 'Excluir', () => delT(t.id), 1]] : [])]} /></span>}
-                </div>
-              )
-            })}
-            {i < 3 && papel.participa && <button className="btn btn-ghost addc" onClick={() => add(i)}><Ic k="plus" />Adicionar tarefa</button>}
-          </div>
-        )
-      })}
-    </div>
-  )
+  const kanban = () => <KanbanTarefas D={D} T={T} papelDe={() => papel} acoes={acoes} abrir={setTk} adicionar={papel.participa ? add : null} />
 
   const gantt = () => !T.length
     ? <div className="card card-body">Nenhuma tarefa ainda. Use “Nova tarefa”.</div>
@@ -190,7 +131,7 @@ export default function Projeto() {
       {aba == 'tarefas' && (pt == 'kanban' ? kanban() : gantt())}
       {aba == 'geral' && geral()}
       {aba == 'equipe' && <EquipeProjeto projeto={projeto} todos={todos} gente={gente} gestor={gestor} aoSalvar={aoSalvar} />}
-      {tk && T.find(x => x.id == tk) && <TaskModal D={D} papel={papel} me={me} salvar={(antes, depois) => salvarTarefa(() => tarefas.salvar(antes, depois), 'Tarefa salva')} t={T.find(x => x.id == tk)} p={p} T={T} close={() => setTk(null)} del={delT} tog={tog} />}
+      {tk && T.find(x => x.id == tk) && <TaskModal D={D} papel={papel} me={me} salvar={(antes, depois) => acoes.salvar(antes, depois, 'Tarefa salva')} t={T.find(x => x.id == tk)} p={p} T={T} close={() => setTk(null)} del={acoes.del} tog={acoes.tog} />}
     </>
   )
 }
