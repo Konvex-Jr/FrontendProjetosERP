@@ -120,7 +120,7 @@ export default function Projeto() {
   return (
     <>
       <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
-        <div className="d-flex align-items-center gap-2">{voltar}<h1>{projeto.nome}</h1><StatusProjeto s={projeto.status} /></div>
+        <div className="cab d-flex align-items-center gap-2">{voltar}<h1>{projeto.nome}</h1><StatusProjeto s={projeto.status} /></div>
         {aba == 'tarefas' && <div className="d-flex flex-wrap gap-2">
           <button className={'btn btn-g' + (pt == 'kanban' ? ' on' : '')} onClick={() => setPt('kanban')}>Kanban</button>
           <button className={'btn btn-g' + (pt == 'gantt' ? ' on' : '')} onClick={() => setPt('gantt')}>Cronograma</button>

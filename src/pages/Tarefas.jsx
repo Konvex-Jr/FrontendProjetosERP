@@ -125,7 +125,7 @@ export default function Tarefas() {
         <Seg items={VISOES} value={visao} onChange={setVisao} />
         {podeCriar && <button className="btn btn-primary" onClick={() => nova()}><Ic k="plus" />Nova tarefa</button>}
       </PageBar>
-      <div className="d-flex flex-wrap gap-2 mb-3">
+      <div className="fl d-flex flex-wrap gap-2 mb-3">
         {gestao ? sel('Pessoa', 'pessoa', pessoas) : <Seg items={[[me, 'Minhas tarefas'], ['', 'Tudo o que vejo']]} value={filtro.pessoa} onChange={v => set('pessoa', v)} />}
         {sel('Projeto ou categoria', 'origem', origens)}
         {sel('Situação', 'status', [['', 'Todas as situações'], ...Object.entries(ST)])}

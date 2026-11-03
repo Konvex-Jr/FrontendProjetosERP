@@ -8,7 +8,7 @@ export default function Table({ cols, rows }) {
   const sort = c => c.k && setS(o => ({ k: c.k, dir: o.k == c.k ? -o.dir : 1 }))
   return (
     <div>
-      <div className="d-flex flex-wrap gap-2 mb-2">
+      <div className="fl d-flex flex-wrap gap-2 mb-2">
         <input className="form-control w-auto flex-grow-1" style={{ maxWidth: 260 }} placeholder="Buscar…" aria-label="Buscar" value={q} onChange={e => setQ(e.target.value)} />
         {cols.filter(c => c.filter).map(c => (
           <select key={c.k} className="form-select w-auto" style={{ maxWidth: 260 }} aria-label={'Filtrar ' + c.l} value={f[c.k] || ''} onChange={e => setF({ ...f, [c.k]: e.target.value })}>
@@ -18,7 +18,7 @@ export default function Table({ cols, rows }) {
         ))}
       </div>
       <div className="tw">
-        <table className="table table-hover align-middle">
+        <table className="table table-hover align-middle tc">
           <thead>
             <tr>{cols.map((c, i) => (
               <th key={i} className={c.k ? '' : 'n'} onClick={() => sort(c)} aria-sort={s.k == c.k ? (s.dir > 0 ? 'ascending' : 'descending') : undefined}>
@@ -27,8 +27,9 @@ export default function Table({ cols, rows }) {
             ))}</tr>
           </thead>
           <tbody>
-            {R.map(r => <tr key={r.id}>{cols.map((c, i) => <td key={i}>{c.render ? c.render(r) : val(r, c)}</td>)}</tr>)}
-            {!R.length && <tr><td colSpan={cols.length}><small>Nada encontrado. Ajuste a busca ou os filtros.</small></td></tr>}
+            {/* data-l e as classes permitem virar cartão no celular (ver .tc em components.css). */}
+            {R.map(r => <tr key={r.id}>{cols.map((c, i) => <td key={i} data-l={c.l} className={c.l === 'Ações' ? 'tc-a' : i === 0 ? 'tc-t' : ''}>{c.render ? c.render(r) : val(r, c)}</td>)}</tr>)}
+            {!R.length && <tr className="tc-v"><td colSpan={cols.length}><small>Nada encontrado. Ajuste a busca ou os filtros.</small></td></tr>}
           </tbody>
         </table>
       </div>

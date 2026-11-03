@@ -25,25 +25,51 @@ function Header() {
           </button>
           <span className="hu"><b>{un(D, me)}</b><small>{D.u.find(u => u.id == me)?.perfil}</small></span>
           <span className="av" role="button" title="Meu perfil" onClick={() => navigate('/perfil')}>{ini(un(D, me))}</span>
-          <button className="btn btn-g btn-sm" onClick={sair}><Ic k="logout" />Sair</button>
+          <button className="btn btn-g btn-sm hs-sair" onClick={sair} aria-label="Sair"><Ic k="logout" /><span>Sair</span></button>
         </div>
       </div>
     </header>
   )
 }
 
+// No celular (até 991 px) a barra inferior mostra só os primeiros itens; o resto fica na gaveta "Mais".
+const ITENS_BARRA = 4
+
 function SideNav() {
   const { nav, go } = useApp(), { pathname } = useLocation()
+  const [gaveta, setGaveta] = useState(false)
   const ativo = nav.findIndex(([, , p]) => p === '/' ? pathname === '/' : pathname.startsWith(p))
+  const comMais = nav.length > ITENS_BARRA + 1
+  const ir = k => { setGaveta(false); go(k) }
   return (
-    <nav id="menu" aria-label="Menu principal" style={{ '--i': Math.max(0, ativo) }}>
-      <i className="pill" />
-      {nav.map(([k, l], i) => (
-        <a key={k} role="button" tabIndex={0} className={i === ativo ? 'on' : ''} aria-current={i === ativo ? 'page' : undefined} aria-label={l} data-l={l} onClick={() => go(k)} onKeyDown={e => e.key == 'Enter' && go(k)}>
-          <Ic k={k} />
-        </a>
-      ))}
-    </nav>
+    <>
+      <nav id="menu" aria-label="Menu principal" className={comMais ? 'cm-mais' : ''} style={{ '--i': Math.max(0, ativo) }}>
+        <i className="pill" />
+        {nav.map(([k, l], i) => (
+          <a key={k} role="button" tabIndex={0} className={(i === ativo ? 'on' : '') + (comMais && i >= ITENS_BARRA ? ' ex' : '')} aria-current={i === ativo ? 'page' : undefined} aria-label={l} data-l={l} onClick={() => ir(k)} onKeyDown={e => e.key == 'Enter' && ir(k)}>
+            <Ic k={k} />
+          </a>
+        ))}
+        {comMais && (
+          <button type="button" className={'mais' + (ativo >= ITENS_BARRA ? ' on' : '')} aria-label="Mais opções do menu" aria-expanded={gaveta} onClick={() => setGaveta(true)}>
+            <Ic k="menu" />
+          </button>
+        )}
+      </nav>
+      {gaveta && (
+        <>
+          <div className="gv-fundo" onClick={() => setGaveta(false)} />
+          <div className="gv" role="dialog" aria-label="Menu">
+            <div className="gv-t"><b>Menu</b><button type="button" className="btn btn-g btn-sm" aria-label="Fechar menu" onClick={() => setGaveta(false)}><Ic k="x" /></button></div>
+            {nav.map(([k, l], i) => (
+              <button type="button" key={k} className={'gv-i' + (i === ativo ? ' on' : '')} aria-current={i === ativo ? 'page' : undefined} onClick={() => ir(k)}>
+                <Ic k={k} /><span>{l}</span>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </>
   )
 }
 
