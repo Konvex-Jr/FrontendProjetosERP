@@ -7,12 +7,12 @@ import alerts from '../lib/alerts'
 
 const L = ({ l, children }) => <label className="form-label w-100 mb-3">{l}{children}</label>
 
-export default function TaskModal({ D, up, t, p, T, close, del }) {
+export default function TaskModal({ D, salvar, t, p, T, close, del }) {
   const [draft, setDraft] = useState({ ...t }), [nv, setNv] = useState('')
   const cl = draft.checklist || [], dn = cl.filter(x => x.feito).length
   const patch = o => setDraft(current => ({ ...current, ...o })), setCl = f => patch({ checklist: f(cl) })
   const st = value => patch({ status: value, conclusao: value == 'concluida' ? D.c.hoje : undefined })
-  const save = () => { up('t', a => a.map(item => item.id == t.id ? draft : item)); close() }
+  const save = async () => { if (await salvar(t, draft) !== false) close() }
   const remove = async () => {
     const confirmed = await alerts.confirm({ title: 'Excluir tarefa?', text: 'Esta ação não poderá ser desfeita.', confirmText: 'Excluir tarefa', danger: true })
     if (confirmed) { del(t.id); close() }

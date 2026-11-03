@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
-import { DAY, PC, chip, d, fm, hj, iso, nid, nm } from '../lib/utils'
+import { DAY, PC, chip, d, fm, hj, iso, nm } from '../lib/utils'
 import Ic from '../components/Icon'
 import ActionMenu from '../components/ActionMenu'
 import TaskModal from '../components/TaskModal'
@@ -11,21 +11,24 @@ import alerts from '../lib/alerts'
 import useCarregar from '../lib/useCarregar'
 import { configuracoes, pessoas } from '../services/pessoas'
 import { projetos, rotuloPrioridade } from '../services/projetos'
+import { tarefas } from '../services/tarefas'
+import { adaptTask } from '../lib/apiMappers'
 import { StatusProjeto, camposProjeto, valoresProjeto } from './Projetos'
 
 const COLS = ['Essa semana', 'Semana que vem', 'Daqui a duas semanas', 'Concluído']
 const ABAS = [['tarefas', 'Tarefas'], ['geral', 'Visão geral'], ['equipe', 'Equipe']]
 
 export default function Projeto() {
-  const { D, up, form, go, me, pode, refresh } = useApp(), { id } = useParams(), pid = id
+  const { D, form, go, me, pode, refresh } = useApp(), { id } = useParams(), pid = id
   const [pt, setPt] = useState('kanban'), [ov, setOv] = useState(null), [tk, setTk] = useState(null), dg = useRef(null)
   const [aba, setAba] = useState('tarefas')
   const gestor = pode('projetos.editar')
   const { dados, carregando, recarregar } = useCarregar(async () => {
-    const [projeto, todos, gente, areas] = await Promise.all([
+    const [projeto, todos, gente, areas, lista] = await Promise.all([
       projetos.buscar(pid), projetos.listar(), gestor ? pessoas.listar() : [], gestor ? configuracoes.areas() : [],
+      tarefas.listar({ codigoProjeto: pid }),
     ])
-    return { projeto, todos, gente, areas }
+    return { projeto, todos, gente, areas, tarefas: lista.map(adaptTask) }
   }, [pid, gestor])
   const voltar = <button className="btn btn-g" onClick={() => go('projetos')}><Ic k="back" />Voltar</button>
   if (!dados) return <PageBar title="Projeto" sub={carregando ? 'Carregando…' : 'Projeto não encontrado.'}>{voltar}</PageBar>
@@ -33,25 +36,39 @@ export default function Projeto() {
   // Depois de salvar: recarrega o projeto e os dados compartilhados (tarefas, avatares, painel).
   const aoSalvar = async () => { await recarregar(); refresh().catch(() => {}) }
   const p = { id: projeto.codigo, nome: projeto.nome, membros: projeto.participacoes.filter(x => !x.dataSaida).map(x => x.usuario.codigo) }
-  const T = D.t.filter(t => t.projetoId == pid), h = hj(D)
+  const T = dados.tarefas, h = hj(D)
   const m = +h - ((h.getDay() + 6) % 7) * DAY
   const col = t => t.status == 'concluida' ? 3 : Math.min(2, Math.max(0, Math.floor((+d(t.fim) - m) / (7 * DAY))))
 
   const add = i => form('Nova tarefa',
     [{ k: 'titulo', l: 'Título' }, { k: 'prioridade', l: 'Prioridade', o: ['P1', 'P2', 'P3', 'P4'].map(x => [x, x]) }, { k: 'responsaveis', l: 'Responsáveis', c: D.u.filter(u => p.membros.includes(u.id)) }, { k: 'inicio', l: 'Início', t: 'date' }, { k: 'fim', l: 'Fim', t: 'date' }],
     { prioridade: 'P3', responsaveis: D.priv ? [me] : [], ...(typeof i == 'number' && i < 3 ? { inicio: D.c.hoje, fim: iso(m + (7 * i + 4) * DAY) } : {}) },
-    o => up('t', a => [...a, { id: nid(a), projetoId: pid, status: 'pendente', ...o }]))
-  const tog = t => up('t', a => a.map(x => x.id == t.id ? { ...x, status: x.status == 'concluida' ? 'andamento' : 'concluida', conclusao: x.status == 'concluida' ? undefined : D.c.hoje } : x))
-  const delT = tid => up('t', a => a.filter(x => x.id != tid).map(x => x.dependeDe == tid ? { ...x, dependeDe: undefined } : x))
-  const drop = (t, i) => up('t', a => a.map(x => {
-    if (x.id != t.id) return x
-    if (i == 3) return x.status == 'concluida' ? x : { ...x, status: 'concluida', conclusao: D.c.hoje }
-    const was = x.status == 'concluida'
-    if (!was && col(x) == i) return x
-    const mon = m + 7 * i * DAY, fim = iso(mon + 4 * DAY), o = { ...x, status: was ? 'andamento' : x.status, conclusao: undefined, fim }
-    if (x.inicio > fim) o.inicio = iso(mon)
-    return o
-  }))
+    o => salvarTarefa(() => tarefas.criar(pid, o), 'Tarefa criada'))
+  // Toda alteração de tarefa vai direto para a API; depois recarrega a tela e o painel.
+  const salvarTarefa = async (chamada, ok) => {
+    try {
+      await chamada()
+      if (ok) alerts.toastSuccess(ok)
+      await aoSalvar()
+    } catch (error) {
+      alerts.error('Não foi possível salvar', error.message)
+      return false
+    }
+  }
+  const tog = t => salvarTarefa(() => tarefas.alterarStatus(t.id, t.status == 'concluida' ? 'andamento' : 'concluida'))
+  const delT = tid => salvarTarefa(() => tarefas.excluir(tid), 'Tarefa excluída')
+  const drop = (x, i) => {
+    let o
+    if (i == 3) o = x.status == 'concluida' ? x : { ...x, status: 'concluida' }
+    else {
+      const was = x.status == 'concluida'
+      if (!was && col(x) == i) return
+      const mon = m + 7 * i * DAY, fim = iso(mon + 4 * DAY)
+      o = { ...x, status: was ? 'andamento' : x.status, conclusao: undefined, fim }
+      if (x.inicio > fim) o.inicio = iso(mon)
+    }
+    if (o !== x) salvarTarefa(() => tarefas.salvar(x, o))
+  }
 
   const a = Math.min(...T.map(t => +d(t.inicio))), z = Math.max(...T.map(t => +d(t.fim))) + DAY, L = z - a, pc = x => (x - a) / L * 100, hp = pc(+h)
 
@@ -164,7 +181,7 @@ export default function Projeto() {
       {aba == 'tarefas' && (pt == 'kanban' ? kanban() : gantt())}
       {aba == 'geral' && geral()}
       {aba == 'equipe' && <EquipeProjeto projeto={projeto} todos={todos} gente={gente} gestor={gestor} aoSalvar={aoSalvar} />}
-      {tk && T.find(x => x.id == tk) && <TaskModal D={D} up={up} t={T.find(x => x.id == tk)} p={p} T={T} close={() => setTk(null)} del={delT} />}
+      {tk && T.find(x => x.id == tk) && <TaskModal D={D} salvar={(antes, depois) => salvarTarefa(() => tarefas.salvar(antes, depois), 'Tarefa salva')} t={T.find(x => x.id == tk)} p={p} T={T} close={() => setTk(null)} del={delT} />}
     </>
   )
 }
