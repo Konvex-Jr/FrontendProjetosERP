@@ -6,7 +6,6 @@ import Projetos from './pages/Projetos'
 import Projeto from './pages/Projeto'
 import Tarefas from './pages/Tarefas'
 import Capacitacoes from './pages/Capacitacoes'
-import Checkins from './pages/Checkins'
 import Estrategia from './pages/Estrategia'
 import Gestao from './pages/Gestao'
 import Precificacao from './pages/Precificacao'
@@ -24,7 +23,6 @@ export default function App() {
         <Route path="projetos" element={<Projetos />} />
         <Route path="projetos/:id" element={<Projeto />} />
         <Route path="capacitacoes" element={<Capacitacoes />} />
-        <Route path="checkins" element={<Checkins />} />
         <Route path="estrategia" element={<Estrategia />} />
         <Route path="gestao" element={<Gestao />} />
         <Route path="precificacao" element={<Precificacao />} />

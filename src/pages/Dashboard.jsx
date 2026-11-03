@@ -55,7 +55,7 @@ export default function Dashboard() {
           <p>{d(D.c.hoje).toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}. Vamos organizar a semana?</p>
           <div className="d-flex flex-wrap gap-2 mt-3">
             <button className="btn btn-primary" onClick={() => go('projetos')}>Ver projetos</button>
-            <button className="btn btn-ol" onClick={() => go('checkins')}>Fazer check-in</button>
+            <button className="btn btn-ol" onClick={() => go('tarefas')}>Minhas tarefas</button>
           </div>
         </div>
         <div className="hs d-flex flex-wrap gap-3">

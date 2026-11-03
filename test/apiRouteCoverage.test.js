@@ -14,7 +14,6 @@ const routeContracts = [
   ['GET', '/capacitacoes'], ['POST', '/capacitacoes/training-1/inscricoes'],
   ['DELETE', '/capacitacoes/training-1/inscricoes/user-1'],
   ['POST', '/capacitacoes/training-1/feedbacks'], ['GET', '/feedbacks'],
-  ['GET', '/checkins'], ['POST', '/checkins'], ['PUT', '/checkins'],
   ['GET', '/pastas'], ['POST', '/pastas'], ['PUT', '/pastas/folder-1'],
   ['DELETE', '/pastas/folder-1'], ['GET', '/pastas/folder-1/documentos'],
   ['POST', '/pastas/folder-1/documentos'], ['PUT', '/documentos/doc-1'],

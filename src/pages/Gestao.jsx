@@ -1,79 +1,97 @@
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { useApp } from '../context/AppContext'
-import { fm, nid, sz, un } from '../lib/utils'
+import { chip, fm } from '../lib/utils'
 import Ic from '../components/Icon'
 import ActionMenu from '../components/ActionMenu'
 import Table from '../components/Table'
 import { PageBar } from '../components/Ui'
 import alerts from '../lib/alerts'
+import useCarregar from '../lib/useCarregar'
+import { SIGILOS, excluirDocumento, excluirPasta, listarDocumentos, listarPastasComContagem, rotuloSigilo, salvarDocumento, salvarPasta } from '../services/documentos'
 
+/**
+ * Pastas e documentos (sessão 9). Documentos são links (Drive etc.).
+ * A API só devolve o que a pessoa pode ler; só quem tem documentos.gerir organiza.
+ */
 export default function Gestao() {
-  const { D, up, form, me, uploadDocument, downloadDocument } = useApp()
-  const fileInput = useRef(null)
-  const [uploading, setUploading] = useState(false)
-  const [pid, setPid] = useState(null), pa = D.g.find(x => x.id == pid), cnt = id => D.d.filter(x => x.pastaId == id).length
+  const { D, form, pode } = useApp()
+  const gere = pode('documentos.gerir')
+  const [pid, setPid] = useState(null)
+  const { dados: pastas, carregando, recarregar } = useCarregar(listarPastasComContagem, [])
+  const pa = (pastas || []).find(x => x.id == pid)
 
-  const nova = f => form(f ? 'Renomear pasta' : 'Nova pasta', [{ k: 'nome', l: 'Nome da pasta' }], f ? { nome: f.nome } : {}, o => up('g', a => f ? a.map(x => x.id == f.id ? { ...x, nome: o.nome } : x) : [...a, { id: nid(a), ...o }]))
-  const delP = async folder => {
-    const confirmed = await alerts.confirm({ title: 'Excluir pasta?', text: `A pasta e seus ${cnt(folder.id)} documento(s) serão excluídos.`, confirmText: 'Excluir pasta', danger: true })
-    if (confirmed) up('g', folders => folders.filter(item => item.id != folder.id))
-  }
-  const add = async event => {
-    const file = event.target.files?.[0]
-    event.target.value = ''
-    if (!file || !pid) return
-    setUploading(true)
+  // Salva e recarrega; em erro mostra o alerta e mantém o formulário aberto.
+  const executar = async (acao, titulo, depois = recarregar) => {
     try {
-      await uploadDocument(pid, file)
-      await alerts.toastSuccess('Documento enviado', `${file.name} foi salvo na pasta.`)
+      await acao()
+      await depois()
     } catch (error) {
-      await alerts.error('Não foi possível enviar o documento', error.message)
-    } finally {
-      setUploading(false)
+      await alerts.error(titulo, error.message)
+      throw error
     }
   }
-  const ren = x => form('Renomear documento', [{ k: 'nome', l: 'Nome' }], { nome: x.nome }, o => up('d', a => a.map(y => y.id == x.id ? { ...y, nome: o.nome } : y)))
-  const bx = async x => { try { await downloadDocument(x.url) } catch (error) { await alerts.error('Não foi possível baixar o documento', error.message) } }
-  const delD = async document => {
-    const confirmed = await alerts.confirm({ title: 'Excluir documento?', text: document.nome, confirmText: 'Excluir documento', danger: true })
-    if (confirmed) up('d', documents => documents.filter(item => item.id != document.id))
+
+  const projetos = (D.p || []).map(p => [p.id, p.nome])
+  const nova = f => form(f ? 'Editar pasta' : 'Nova pasta', [
+    { k: 'nome', l: 'Nome da pasta' },
+    { k: 'sigilo', l: 'Quem pode ver', o: SIGILOS, h: 'Gerentes e diretores veem todas as pastas.' },
+    { k: 'projetoId', l: 'Projeto', o: [['', 'Escolha o projeto'], ...projetos], s: v => v.sigilo === 'projeto', h: 'Equipe atual e quem já participou do projeto.' },
+  ], f ? { nome: f.nome, sigilo: f.sigilo, projetoId: f.projetoId } : { sigilo: 'todos', projetoId: '' },
+  v => executar(() => salvarPasta(v, f?.id), 'Não foi possível salvar a pasta'))
+
+  const delP = async folder => {
+    const ok = await alerts.confirm({ title: 'Excluir pasta?', text: `A pasta e seus ${folder.total} documento(s) serão excluídos.`, confirmText: 'Excluir pasta', danger: true })
+    if (ok) await executar(() => excluirPasta(folder.id), 'Não foi possível excluir a pasta').catch(() => {})
   }
 
   if (!pa) return (
     <>
-      <PageBar title="Gestão" sub="Documentos da empresa, organizados por pasta."><button className="btn btn-primary" onClick={() => nova()}><Ic k="plus" />Nova pasta</button></PageBar>
+      <PageBar title="Gestão" sub="Documentos da empresa, organizados por pasta.">{gere && <button className="btn btn-primary" onClick={() => nova()}><Ic k="plus" />Nova pasta</button>}</PageBar>
       <div className="row g-3">
-        {D.g.map(f => (
+        {(pastas || []).map(f => (
           <div className="col-sm-6 col-xl-4" key={f.id}>
             <div className="fc" onClick={() => setPid(f.id)}>
               <span className="fi"><Ic k="gestao" /></span>
-              <div><b>{f.nome}</b><small>{cnt(f.id)} documento{cnt(f.id) == 1 ? '' : 's'}</small></div>
-              <ActionMenu items={[['open', 'Abrir', () => setPid(f.id)], ['edit', 'Renomear', () => nova(f)], ['trash', 'Excluir', () => delP(f), 1]]} />
+              <div><b>{f.nome}</b><small>{f.total} documento{f.total == 1 ? '' : 's'} · {rotuloSigilo(f)}</small></div>
+              <ActionMenu items={[['open', 'Abrir', () => setPid(f.id)], ...(gere ? [['edit', 'Editar', () => nova(f)], ['trash', 'Excluir', () => delP(f), 1]] : [])]} />
             </div>
           </div>
         ))}
       </div>
-      {!D.g.length && <div className="card card-body">Nenhuma pasta ainda. Use “Nova pasta”.</div>}
+      {!carregando && !pastas?.length && <div className="card card-body">{gere ? 'Nenhuma pasta ainda. Use “Nova pasta”.' : 'Nenhuma pasta disponível para você.'}</div>}
     </>
   )
 
-  const L = D.d.filter(x => x.pastaId == pid)
+  return <Pasta pasta={pa} gere={gere} form={form} executar={executar} voltar={() => { setPid(null); recarregar() }} />
+}
+
+function Pasta({ pasta, gere, form, executar, voltar }) {
+  const { dados, carregando, recarregar } = useCarregar(() => listarDocumentos(pasta.id), [pasta.id])
+  const L = dados || []
+  const doc = x => form(x ? 'Editar documento' : 'Adicionar documento', [
+    { k: 'nome', l: 'Nome' },
+    { k: 'url', l: 'Link', t: 'url', h: 'Cole o link do Google Drive, Docs, Notion etc. Quem abrir precisa ter acesso no serviço de origem.' },
+  ], x ? { nome: x.nome, url: x.url } : {}, v => executar(() => salvarDocumento(pasta.id, v, x?.id), 'Não foi possível salvar o documento', recarregar))
+  const delD = async x => {
+    const ok = await alerts.confirm({ title: 'Excluir documento?', text: x.nome, confirmText: 'Excluir documento', danger: true })
+    if (ok) await executar(() => excluirDocumento(x.id), 'Não foi possível excluir o documento', recarregar).catch(() => {})
+  }
+  const abrir = x => window.open(x.url, '_blank', 'noopener,noreferrer')
+
   const cols = [
-    { k: 'nome', l: 'Documento', render: x => <span className="fn"><Ic k="file" />{x.nome}</span> },
-    { k: 'ext', l: 'Tipo', filter: 1 },
-    { k: 'tam', l: 'Tamanho', render: x => sz(x.tam) },
-    { k: 'autor', l: 'Enviado por', filter: 1 },
+    { k: 'nome', l: 'Documento', render: x => <a className="fn" href={x.url} target="_blank" rel="noopener noreferrer"><Ic k="file" />{x.nome}</a> },
+    { k: 'dominio', l: 'Onde está', filter: 1 },
+    { k: 'autor', l: 'Adicionado por', filter: 1 },
     { k: 'data', l: 'Data', render: x => fm(x.data) },
-    { l: 'Ações', render: x => <ActionMenu items={[['download', 'Baixar', () => bx(x)], ['edit', 'Renomear', () => ren(x)], ['trash', 'Excluir', () => delD(x), 1]]} /> }
+    { l: 'Ações', render: x => <ActionMenu items={[['open', 'Abrir', () => abrir(x)], ...(gere ? [['edit', 'Editar', () => doc(x)], ['trash', 'Excluir', () => delD(x), 1]] : [])]} /> },
   ]
   return (
     <div className="dw">
       <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
-        <div className="d-flex align-items-center gap-2"><button className="btn btn-g" onClick={() => setPid(null)}><Ic k="back" />Voltar</button><h1>{pa.nome}</h1></div>
-        <input ref={fileInput} type="file" hidden onChange={add} />
-        <button className="btn btn-primary" disabled={uploading} onClick={() => fileInput.current?.click()}><Ic k="upload" />{uploading ? 'Enviando…' : 'Adicionar documento'}</button>
+        <div className="d-flex align-items-center gap-2"><button className="btn btn-g" onClick={voltar}><Ic k="back" />Voltar</button><h1>{pasta.nome}</h1><span className={chip('')}>{rotuloSigilo(pasta)}</span></div>
+        {gere && <button className="btn btn-primary" onClick={() => doc()}><Ic k="plus" />Adicionar documento</button>}
       </div>
-      {L.length ? <Table cols={cols} rows={L} /> : <div className="dz"><Ic k="upload" /><b>Nenhum documento nesta pasta</b><small>Selecione um arquivo para enviá-lo ao servidor (máximo de 20 MB).</small></div>}
+      {L.length ? <Table cols={cols} rows={L} /> : !carregando && <div className="dz"><Ic k="file" /><b>Nenhum documento nesta pasta</b>{gere && <small>Use “Adicionar documento” e cole o link do arquivo.</small>}</div>}
     </div>
   )
 }
