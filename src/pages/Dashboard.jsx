@@ -1,3 +1,4 @@
+import { origemTarefa } from '../services/tarefas'
 import { useApp } from '../context/AppContext'
 import { PC, ST, TIPO, chip, d, fm, hj, un } from '../lib/utils'
 import Burn from '../components/Burn'
@@ -15,9 +16,9 @@ function Agenda({ D, me, go }) {
         {tk.length ? tk.map(t => {
           const lt = d(t.fim) < h
           return (
-            <div className="ag" key={t.id} onClick={() => go('projeto', t.projetoId)}>
+            <div className="ag" key={t.id} onClick={() => (t.avulsa ? go('tarefas') : go('projeto', t.projetoId))}>
               <span className={chip(PC[t.prioridade])}>{t.prioridade}</span>
-              <div><b>{t.titulo}</b><small>{D.p.find(p => p.id == t.projetoId)?.nome}{lt ? ' · atrasada' : ''}</small></div>
+              <div><b>{t.titulo}</b><small>{t.avulsa ? origemTarefa(t) : D.p.find(p => p.id == t.projetoId)?.nome}{lt ? ' · atrasada' : ''}</small></div>
               <span className={chip(lt ? 'er' : '')}>{fm(t.fim)}</span>
             </div>
           )

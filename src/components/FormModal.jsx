@@ -3,7 +3,7 @@ import Multi from './Multi'
 
 /**
  * Campos: k (chave), l (rótulo), t (tipo do input ou 'textarea'), o (opções de select),
- * c (opções de múltipla escolha), s (mostrar se), opt (opcional), h (dica abaixo do campo).
+ * c (opções de múltipla escolha; pode ser função dos valores), s (mostrar se), opt (opcional), h (dica abaixo do campo).
  * `save` pode ser assíncrono; se devolver false (ou falhar), o modal continua aberto.
  */
 export default function FormModal({ t, fs, init, save, close }) {
@@ -35,7 +35,7 @@ export default function FormModal({ t, fs, init, save, close }) {
             <div className="modal-body">
               <h3 className="h5 fw-bold mb-3">{t}</h3>
               {fs.filter(x => !x.s || x.s(v)).map(x => x.c
-                ? <div className="mb-3" key={x.k}><div className="form-label">{x.l}</div><Multi opts={x.c} value={v[x.k] || []} onChange={z => set(x.k, z)} /></div>
+                ? <div className="mb-3" key={x.k}><div className="form-label">{x.l}</div><Multi opts={typeof x.c === 'function' ? x.c(v) : x.c} value={v[x.k] || []} onChange={z => set(x.k, z)} /></div>
                 : <label className="form-label w-100 mb-3" key={x.k}>{x.l}{campo(x)}{x.h && <small className="d-block mt-1">{x.h}</small>}</label>)}
               <div className="d-flex justify-content-end gap-2">
                 <button type="button" className="btn btn-g" onClick={close}>Cancelar</button>

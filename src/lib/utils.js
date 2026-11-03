@@ -10,6 +10,7 @@ export const HUM = ['Difícil', 'Cansativa', 'Ok', 'Boa', 'Ótima']
 
 export const NAV = [
   ['dashboard', 'Dashboard', '/'],
+  ['tarefas', 'Tarefas', '/tarefas'],
   ['projetos', 'Projetos', '/projetos'],
   ['capacitacoes', 'Capacitações', '/capacitacoes'],
   ['checkins', 'Check-in semanal', '/checkins'],

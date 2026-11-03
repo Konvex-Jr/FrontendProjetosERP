@@ -4,6 +4,7 @@ import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Projetos from './pages/Projetos'
 import Projeto from './pages/Projeto'
+import Tarefas from './pages/Tarefas'
 import Capacitacoes from './pages/Capacitacoes'
 import Checkins from './pages/Checkins'
 import Estrategia from './pages/Estrategia'
@@ -19,6 +20,7 @@ export default function App() {
       <Route path="/login" element={<Login />} />
       <Route element={<Layout />}>
         <Route index element={<Dashboard />} />
+        <Route path="tarefas" element={<Tarefas />} />
         <Route path="projetos" element={<Projetos />} />
         <Route path="projetos/:id" element={<Projeto />} />
         <Route path="capacitacoes" element={<Capacitacoes />} />
