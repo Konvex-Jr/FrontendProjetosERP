@@ -215,20 +215,8 @@ export function AppProvider({ children }) {
     const deleted = before.filter(item => !newById.has(String(item.id)))
     const updated = after.filter(item => oldById.has(String(item.id)) && JSON.stringify(item) !== JSON.stringify(oldById.get(String(item.id))))
 
-    // Projetos e Equipe usam src/services/projetos.js (chamadas diretas).
-    if (key === 't') {
-      for (const item of deleted) await request(`/tarefas/${item.id}`, { method: 'DELETE', auth: true })
-      for (const item of created) await request('/tarefas', { method: 'POST', auth: true, body: { codigoProjeto: item.projetoId, titulo: item.titulo, dataInicio: dateTime(item.inicio), dataFim: dateTime(item.fim), prioridade: item.prioridade, descricao: item.descricao || null, codigosResponsaveis: item.responsaveis || [] } })
-      for (const item of updated) {
-        const old = oldById.get(String(item.id))
-        const comparable = item => ({ ...item, status: undefined, conclusao: undefined })
-        if (item.status !== old.status && JSON.stringify(comparable(item)) === JSON.stringify(comparable(old))) {
-          await request(`/tarefas/${item.id}/status`, { method: 'PATCH', auth: true, body: { status: item.status } })
-        } else {
-          await request(`/tarefas/${item.id}`, { method: 'PUT', auth: true, body: { titulo: item.titulo, dataInicio: dateTime(item.inicio), dataFim: dateTime(item.fim), status: item.status, prioridade: item.prioridade, descricao: item.descricao || null, codigosResponsaveis: item.responsaveis || [], codigoDependencia: item.dependeDe || null, checklist: (item.checklist || []).map(checklistItem => ({ codigo: checklistItem.id, texto: checklistItem.texto, feito: Boolean(checklistItem.feito) })) } })
-        }
-      }
-    } else if (key === 'k') {
+    // Projetos, Equipe e Tarefas usam src/services/<modulo>.js (chamadas diretas).
+    if (key === 'k') {
       for (const item of created) await request('/capacitacoes', { method: 'POST', auth: true, body: { titulo: item.titulo, data: item.data, hora: item.hora, codigoInstrutor: item.instrutorId || me, vagas: Number(item.vagas), tipo: item.tipo, sala: item.sala } })
       for (const item of updated) {
         const old = oldById.get(String(item.id))
