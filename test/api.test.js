@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { afterEach, test } from 'node:test'
-import { ApiError, apiUrl, request } from '../src/services/api.js'
+import { ApiError, SEM_CONEXAO, apiUrl, mensagemDeErro, request } from '../src/services/api.js'
 
 const originalFetch = globalThis.fetch
 
@@ -58,22 +58,33 @@ test('request raises ApiError with the API message and HTTP status', async () =>
   )
 })
 
-test('request preserves useful error text when the API returns non-JSON', async () => {
-  globalThis.fetch = async () => response(500, 'Falha no servidor')
+test('request keeps the API code and turns server errors into a clear sentence', async () => {
+  globalThis.fetch = async () => response(400, '{"message":"Prioridade inválida.","codigo":"PRIORIDADE_TAREFA_INVALIDA"}')
+  await assert.rejects(request('/tarefas', { token: 'jwt-test' }), error => error.codigo === 'PRIORIDADE_TAREFA_INVALIDA')
 
+  globalThis.fetch = async () => response(500, '{"message":"Erro interno ao acessar o banco de dados."}')
   await assert.rejects(
     request('/projetos', { token: 'jwt-test' }),
-    error => error instanceof ApiError && error.status === 500 && error.message === 'Falha no servidor',
+    error => error instanceof ApiError && error.status === 500 && error.message.startsWith('O servidor teve um problema'),
   )
 })
 
-test('request reports network failures with the configured API URL', async () => {
-  globalThis.fetch = async () => { throw new TypeError('network down') }
+test('mensagemDeErro explains answers without a message', () => {
+  assert.equal(mensagemDeErro(403, null), 'Você não tem permissão para esta ação.')
+  assert.match(mensagemDeErro(404, {}), /recarregue/)
+  assert.equal(mensagemDeErro(400, { message: 'Título obrigatório.' }), 'Título obrigatório.')
+})
 
-  await assert.rejects(
-    request('/auth/login'),
-    error => error instanceof ApiError && error.status === 0 && error.message.includes(apiUrl),
-  )
+test('request reports network failures in plain words', async () => {
+  globalThis.fetch = async () => { throw new TypeError('network down') }
+  const aviso = console.warn
+  console.warn = () => {}
+  try {
+    await assert.rejects(
+      request('/auth/login'),
+      error => error instanceof ApiError && error.status === 0 && error.message === SEM_CONEXAO,
+    )
+  } finally { console.warn = aviso }
 })
 
 test('request returns null for successful empty responses', async () => {
