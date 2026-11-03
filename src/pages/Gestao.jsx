@@ -88,7 +88,7 @@ function Pasta({ pasta, gere, form, executar, voltar }) {
   return (
     <div className="dw">
       <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
-        <div className="d-flex align-items-center gap-2"><button className="btn btn-g" onClick={voltar}><Ic k="back" />Voltar</button><h1>{pasta.nome}</h1><span className={chip('')}>{rotuloSigilo(pasta)}</span></div>
+        <div className="cab d-flex align-items-center gap-2"><button className="btn btn-g" onClick={voltar}><Ic k="back" />Voltar</button><h1>{pasta.nome}</h1><span className={chip('')}>{rotuloSigilo(pasta)}</span></div>
         {gere && <button className="btn btn-primary" onClick={() => doc()}><Ic k="plus" />Adicionar documento</button>}
       </div>
       {L.length ? <Table cols={cols} rows={L} /> : !carregando && <div className="dz"><Ic k="file" /><b>Nenhum documento nesta pasta</b>{gere && <small>Use “Adicionar documento” e cole o link do arquivo.</small>}</div>}

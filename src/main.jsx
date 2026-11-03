@@ -5,6 +5,7 @@ import 'bootstrap/dist/css/bootstrap.min.css'
 import './styles/theme.css'
 import './styles/layout.css'
 import './styles/components.css'
+import './styles/responsive.css'
 import { AppProvider } from './context/AppContext'
 import App from './App'
 

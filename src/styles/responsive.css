@@ -1,0 +1,318 @@
+/*
+ * Padrão responsivo (sessão 11a). Regras de celular e tablet ficam todas aqui.
+ * Pontos de quebra (os do Bootstrap):
+ *   até 991.98px  → menu vira barra inferior (layout.css); cronograma com nomes fixos ao rolar
+ *   até 575.98px  → barra com até 4 itens + "Mais" (gaveta com todos os itens e nomes)
+ *   até 575.98px  → celular: tabelas viram cartões, modais em tela cheia, filtros em 2 colunas,
+ *                   kanban com colunas de 85% e encaixe, cabeçalho compacto.
+ * Telas novas: usar <Table> (vira cartão sozinha), <PageBar>, filtros dentro de .fl,
+ * cabeçalho com "Voltar" em .cab, e FormModal/TaskModal (já ficam em tela cheia).
+ */
+
+/* Listas suspensas: espaço para a seta (o tema zerava o padding da direita). */
+.form-select {
+  padding-right: 36px
+}
+
+/* Botão "Mais" e gaveta do menu (só existem no layout de barra inferior). */
+#menu .mais {
+  display: none
+}
+
+.gv-fundo {
+  position: fixed;
+  inset: 0;
+  z-index: 1080;
+  background: #07142b80;
+  backdrop-filter: blur(3px);
+  animation: fin .2s
+}
+
+.gv {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1081;
+  max-height: 80dvh;
+  overflow-y: auto;
+  padding: 14px 14px calc(18px + env(safe-area-inset-bottom));
+  border-radius: 22px 22px 0 0;
+  background: var(--c);
+  color: var(--tx);
+  box-shadow: 0 -20px 50px -20px #012a3f99;
+  animation: gv-sobe .3s var(--ez)
+}
+
+.gv-t {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 6px 10px
+}
+
+.gv-i {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--tx);
+  font-weight: 600;
+  text-align: left
+}
+
+.gv-i.on {
+  background: var(--ac);
+  color: #fff
+}
+
+@keyframes gv-sobe {
+  from {
+    transform: translateY(100%)
+  }
+}
+
+@media (max-width: 991.98px) {
+
+  /* A bolinha deslizante não acompanha a barra com "Mais"; o item ativo ganha fundo próprio. */
+  #menu .pill {
+    display: none
+  }
+
+  #menu a.on,
+  #menu .mais.on {
+    background: var(--ac);
+    box-shadow: 0 6px 16px -4px #e8590c99
+  }
+
+  #menu {
+    bottom: calc(12px + env(safe-area-inset-bottom))
+  }
+
+  /* Com um modal aberto a barra some (ela ficava por cima do modal). */
+  body:has(.modal.d-block) #menu {
+    display: none
+  }
+
+  /* Cronograma: coluna de nomes menor e fixa ao rolar. */
+  .gr {
+    grid-template-columns: 140px 1fr;
+    min-width: 640px
+  }
+
+  .gl {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    background: var(--c)
+  }
+}
+
+@media (max-width: 575.98px) {
+
+  /* Barra inferior: até 4 itens + "Mais" (a gaveta lista todos com o nome). */
+  #menu.cm-mais a.ex {
+    display: none
+  }
+
+  #menu .mais {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: #fff
+  }
+
+
+  /* Cabeçalho do sistema compacto: logo menor e "Sair" só com ícone. */
+  .hdi {
+    gap: 8px
+  }
+
+  .hl {
+    height: 26px
+  }
+
+  .hr {
+    gap: 8px
+  }
+
+  .hs-sair span {
+    display: none
+  }
+
+  .hs-sair {
+    width: 38px;
+    height: 38px;
+    padding: 0
+  }
+
+  .app-main {
+    padding: 14px 12px calc(96px + env(safe-area-inset-bottom))
+  }
+
+  /* Cabeçalho de página com "Voltar": botão e situação na 1ª linha, título inteiro na 2ª. */
+  .cab {
+    flex-wrap: wrap;
+    width: 100%
+  }
+
+  .cab > :first-child {
+    order: 1
+  }
+
+  .cab > :last-child {
+    order: 2;
+    margin-left: auto
+  }
+
+  .cab h1 {
+    order: 3;
+    flex: 1 1 100%
+  }
+
+  /* Filtros em grade de 2 colunas; a busca ocupa a linha toda. */
+  .fl {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr
+  }
+
+  .fl > .form-control,
+  .fl > .form-select,
+  .fl > div {
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0
+  }
+
+  .fl > .form-control,
+  .fl > div {
+    grid-column: 1 / -1
+  }
+
+  .fl > .form-select {
+    font-size: 14px;
+    padding-left: 10px;
+    padding-right: 28px;
+    background-position: right 8px center
+  }
+
+  /* Tabelas viram cartões: cada linha é um cartão; cada célula mostra o nome da coluna. */
+  .tw {
+    max-height: none;
+    overflow: visible;
+    background: transparent;
+    border: 0;
+    box-shadow: none
+  }
+
+  .tw table.tc {
+    min-width: 0
+  }
+
+  .tc thead {
+    display: none
+  }
+
+  .tc,
+  .tc tbody {
+    display: block
+  }
+
+  .tc tr {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px 12px;
+    margin-bottom: 10px;
+    padding: 14px 16px;
+    border: 1px solid var(--ln);
+    border-radius: 16px;
+    background: var(--c);
+    box-shadow: 0 10px 24px -20px #013a5560
+  }
+
+  .tw .tc td {
+    display: block;
+    padding: 0;
+    border: 0;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    background: transparent;
+    box-shadow: none !important
+  }
+
+  .tc td::before {
+    content: attr(data-l);
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--mu)
+  }
+
+  .tc td.tc-t {
+    grid-column: 1 / -1;
+    padding-right: 40px;
+    font-weight: 700
+  }
+
+  .tc td.tc-t::before,
+  .tc td.tc-a::before,
+  .tc tr.tc-v td::before {
+    display: none
+  }
+
+  .tc td.tc-a {
+    position: absolute;
+    top: 8px;
+    right: 8px
+  }
+
+  .tc tr.tc-v {
+    display: block
+  }
+
+  /* Modais em tela cheia. */
+  .modal-dialog {
+    margin: 0;
+    max-width: none !important;
+    min-height: 100%
+  }
+
+  .modal-dialog-scrollable {
+    height: 100%
+  }
+
+  .modal-content {
+    min-height: 100dvh;
+    border-radius: 0;
+    animation: fin .2s
+  }
+
+  .modal-body {
+    padding: 20px 16px calc(20px + env(safe-area-inset-bottom))
+  }
+
+  /* Kanban: cada coluna ocupa 85% da tela e encaixa ao rolar; a próxima aparece na borda. */
+  .kb {
+    grid-template-columns: repeat(4, 85%);
+    scroll-snap-type: x mandatory;
+    margin: 0 -12px;
+    padding: 0 12px 8px;
+    scroll-padding: 0 12px
+  }
+
+  .kb > * {
+    scroll-snap-align: start
+  }
+}
