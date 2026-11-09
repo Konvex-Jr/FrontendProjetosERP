@@ -1,4 +1,5 @@
 import { request } from './api.js'
+import { adaptAnexo } from './anexos.js'
 
 /**
  * Chamadas diretas do módulo Documentos (sessão 9).
@@ -27,13 +28,15 @@ export const adaptPasta = (p) => ({
   projetoNome: p.projeto?.nome || '',
 })
 
-/** Documento é um link (Drive etc.). */
+/** Documento é um link (Drive etc.) ou, desde a sessão 12c, um arquivo guardado no sistema (`anexo`). */
 export const adaptDocumento = (d) => ({
   id: d.codigo,
   pastaId: d.pasta?.codigo || '',
   nome: d.nome,
-  url: d.arquivoUrl,
-  dominio: dominio(d.arquivoUrl),
+  url: d.arquivoUrl || '',
+  anexo: d.anexo ? adaptAnexo(d.anexo) : null,
+  // No filtro "Onde está", todos os arquivos ficam juntos em "Arquivo"; o tamanho aparece na célula.
+  dominio: d.anexo ? 'Arquivo' : dominio(d.arquivoUrl),
   data: String(d.dataEnvio || '').slice(0, 10),
   autor: d.autor?.nomeExibicao || d.autor?.nome || '—',
 })
@@ -58,7 +61,9 @@ export const corpoPasta = (v) => ({
   codigoProjeto: v.sigilo === 'projeto' ? v.projetoId || null : null,
 })
 
-export const corpoDocumento = (v) => ({ nome: (v.nome || '').trim(), arquivoUrl: normalizarLink(v.url) })
+/** Documento de arquivo só muda o nome (o link não se aplica). */
+export const corpoDocumento = (v, ehArquivo = false) =>
+  ehArquivo ? { nome: (v.nome || '').trim() } : { nome: (v.nome || '').trim(), arquivoUrl: normalizarLink(v.url) }
 
 export async function listarPastasComContagem() {
   const pastas = (await get('/pastas')).map(adaptPasta)
@@ -68,6 +73,6 @@ export async function listarPastasComContagem() {
 export const listarDocumentos = async (codigoPasta) => (await get(`/pastas/${codigoPasta}/documentos`)).map(adaptDocumento)
 export const salvarPasta = (v, codigo) => (codigo ? send('PUT', `/pastas/${codigo}`, corpoPasta(v)) : send('POST', '/pastas', corpoPasta(v)))
 export const excluirPasta = (codigo) => send('DELETE', `/pastas/${codigo}`)
-export const salvarDocumento = (codigoPasta, v, codigo) =>
-  codigo ? send('PUT', `/documentos/${codigo}`, corpoDocumento(v)) : send('POST', `/pastas/${codigoPasta}/documentos`, corpoDocumento(v))
+export const salvarDocumento = (codigoPasta, v, codigo, ehArquivo = false) =>
+  codigo ? send('PUT', `/documentos/${codigo}`, corpoDocumento(v, ehArquivo)) : send('POST', `/pastas/${codigoPasta}/documentos`, corpoDocumento(v))
 export const excluirDocumento = (codigo) => send('DELETE', `/documentos/${codigo}`)

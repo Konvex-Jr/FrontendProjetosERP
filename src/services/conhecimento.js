@@ -26,6 +26,8 @@ export const adaptConhecimento = (c) => ({
   iniciativas: (c.iniciativas || []).map(i => ({ id: i.codigo, nome: i.nome })),
   podeAlterar: Boolean(c.podeAlterar),
   atualizadoEm: c.atualizadoEm || '',
+  // Arquivos anexados (sessão 12c), no formato da API; o componente Anexos adapta.
+  anexos: c.anexos || [],
 })
 
 export const rotuloCategoria = (categorias, valor) => (categorias || []).find(c => c.valor === valor)?.rotulo || valor

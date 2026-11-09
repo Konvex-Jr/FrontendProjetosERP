@@ -145,3 +145,16 @@ export async function request(path, { method = 'GET', body, token, auth = false,
 }
 
 export const apiUrl = API_URL
+
+/**
+ * Baixa um arquivo da API (sessão 12c) com a sessão do usuário. Devolve o Blob;
+ * erro vira ApiError com a mesma mensagem das outras chamadas.
+ */
+export async function baixar(path) {
+  const response = await fetchAutenticado(path, { method: 'GET' })
+  if (!response.ok) {
+    const data = await lerCorpo(response)
+    throw new ApiError(mensagemDeErro(response.status, data), response.status, data?.codigo || '')
+  }
+  return response.blob()
+}

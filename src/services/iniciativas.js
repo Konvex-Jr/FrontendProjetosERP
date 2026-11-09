@@ -34,6 +34,8 @@ export const adaptIniciativa = (i) => ({
   tarefasConcluidas: i.tarefasConcluidas ?? 0,
   podeAlterar: Boolean(i.podeAlterar),
   atualizadoEm: i.atualizadoEm || '',
+  // Arquivos anexados (sessão 12c), no formato da API; o componente Anexos adapta.
+  anexos: i.anexos || [],
 })
 
 /** Rótulo de um valor numa das listas da API ({ valor, rotulo }). */

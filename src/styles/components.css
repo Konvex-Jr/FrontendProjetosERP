@@ -1333,3 +1333,56 @@ button.kc-tag {
     border-radius: 4px;
     font-size: 0.9em
 }
+
+/* Anexos (sessão 12c): lista de arquivos nas fichas da Base e das Iniciativas */
+.ax {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: 6px
+}
+
+.ax li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 12px;
+    padding: 8px 10px;
+    border: 1px solid var(--ln);
+    border-radius: var(--rd)
+}
+
+.ax-n {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    flex: 1 1 200px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--ac);
+    text-align: left;
+    font-weight: 600
+}
+
+.ax-n span {
+    overflow-wrap: anywhere
+}
+
+.ax-n svg {
+    width: 15px;
+    height: 15px;
+    flex: none
+}
+
+.ax li small {
+    color: var(--mu)
+}
+
+.ax-a {
+    display: inline-flex;
+    gap: 4px;
+    margin-left: auto
+}

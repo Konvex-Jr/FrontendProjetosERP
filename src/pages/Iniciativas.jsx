@@ -6,6 +6,7 @@ import Ic from '../components/Icon'
 import ActionMenu from '../components/ActionMenu'
 import Table from '../components/Table'
 import Markdown from '../components/Markdown'
+import Anexos from '../components/Anexos'
 import { PageBar } from '../components/Ui'
 import alerts from '../lib/alerts'
 import useCarregar from '../lib/useCarregar'
@@ -244,6 +245,9 @@ function Ficha({ id }) {
             : atribui ? 'Nenhuma tarefa ainda. Use “Nova tarefa” para dividir o trabalho.' : 'Nenhuma tarefa ligada ainda.'} />
           {ocultas > 0 && item.tarefas.length > 0 && <small className="d-block mt-1">Mais {ocultas} tarefa(s) com outras pessoas.</small>}
         </Secao>
+        {(item.anexos.length > 0 || item.podeAlterar) && <Secao titulo="Anexos">
+          <Anexos dono="iniciativas" codigo={item.id} lista={item.anexos} podeAlterar={item.podeAlterar} aoMudar={recarregar} />
+        </Secao>}
         <Secao titulo="Resultado">
           {item.resultado.trim() ? <Markdown texto={item.resultado} /> : <small>Ainda sem resultado registrado.</small>}
         </Secao>
