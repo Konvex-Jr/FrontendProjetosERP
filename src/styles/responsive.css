@@ -114,6 +114,10 @@
 }
 
 @media (max-width: 575.98px) {
+  /* Capacitações: a grade do mês vira agenda (sessão 13). */
+  .cal { display: none }
+  .cal-ag { display: block }
+
 
   /* Barra inferior: até 4 itens + "Mais" (a gaveta lista todos com o nome). */
   #menu.cm-mais a.ex {
