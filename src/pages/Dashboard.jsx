@@ -27,7 +27,7 @@ function Indicadores({ D, go }) {
 function Agenda({ D, me, go }) {
   const h = hj(D)
   const tk = D.t.filter(t => t.status != 'concluida' && t.responsaveis.includes(me)).sort((a, b) => a.fim > b.fim ? 1 : -1).slice(0, 6)
-  const ck = D.k.filter(c => c.inscritos.includes(me) && c.data >= D.c.hoje).sort((a, b) => a.data > b.data ? 1 : -1).slice(0, 6)
+  const ck = D.k.filter(c => c.inscrito && c.data >= D.c.hoje).sort((a, b) => a.data > b.data ? 1 : -1).slice(0, 6)
   return (
     <>
       <div className="col-md-6"><div className="card card-body h-100">
@@ -46,7 +46,7 @@ function Agenda({ D, me, go }) {
       <div className="col-md-6"><div className="card card-body h-100">
         <h2>Minhas capacitações</h2>
         {ck.length ? ck.map(c => (
-          <div className="ag" key={c.id} onClick={() => go('capacitacoes')}>
+          <div className="ag" key={c.id} onClick={() => go('capacitacoes', c.id)}>
             <span className={chip()}>{TIPO[c.tipo]}</span>
             <div><b>{c.titulo}</b><small>{c.sala} · {c.hora}</small></div>
             <span className={chip()}>{fm(c.data)}</span>
@@ -65,7 +65,7 @@ function Agenda({ D, me, go }) {
 export default function Dashboard() {
   const { D, go, me, nav, pode } = useApp()
   const mine = D.t.filter(t => (t.responsaveis || []).includes(me)), ab = mine.filter(t => t.status != 'concluida')
-  const lt = ab.filter(t => d(t.fim) < hj(D)).length, cap = D.k.filter(c => c.inscritos.includes(me) && c.data >= D.c.hoje).length
+  const lt = ab.filter(t => d(t.fim) < hj(D)).length, cap = D.k.filter(c => c.inscrito && c.data >= D.c.hoje).length
   return (
     <>
       <section className="hero d-flex flex-wrap justify-content-between align-items-center gap-4">

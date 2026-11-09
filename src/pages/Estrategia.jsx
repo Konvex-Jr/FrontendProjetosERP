@@ -21,7 +21,7 @@ export default function Estrategia() {
     return { p, r, sc: n * 10 + (left < 0 ? 100 : 0) + Math.max(0, 14 - left), pr }
   }).filter(x => x.r.length).sort((a, b) => b.sc - a.sc)
 
-  const part = ativos.map(u => ({ id: u.id, nome: u.nome, ks: D.k.filter(k => k.inscritos.includes(u.id)) })), com = part.filter(x => x.ks.length), sem = part.filter(x => !x.ks.length)
+  const part = ativos.map(u => ({ id: u.id, nome: u.nome, ks: D.k.filter(k => k.inscritos.some(i => i.id === u.id)) })), com = part.filter(x => x.ks.length), sem = part.filter(x => !x.ks.length)
   const ccols = [
     { k: 'nome', l: 'Membro' },
     { k: 'n', l: 'Capacitações', get: x => x.ks.length, render: x => x.ks.length },
