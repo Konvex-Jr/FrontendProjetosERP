@@ -39,3 +39,11 @@ test('rótulos de status', () => {
   assert.equal(rotuloStatus('trainee'), 'Trainee')
   assert.equal(rotuloStatus(undefined), '—')
 })
+
+test('juntarTecnologia não repete por maiúsculas e reaproveita a grafia da lista', async () => {
+  const { juntarTecnologia, tecnologiasDe } = await import('../src/services/pessoas.js')
+  assert.deepEqual(juntarTecnologia(['React'], 'react'), ['React'])
+  assert.deepEqual(juntarTecnologia(['React'], '  node.js ', ['Node.js']), ['React', 'Node.js'])
+  assert.deepEqual(juntarTecnologia([], '   '), [])
+  assert.deepEqual(tecnologiasDe({ habilidades: [{ nome: 'Liderança', tipo: 'habilidade' }, { nome: 'Vue', tipo: 'tecnologia' }, { nome: 'Arduino', tipo: 'tecnologia' }] }), ['Arduino', 'Vue'])
+})

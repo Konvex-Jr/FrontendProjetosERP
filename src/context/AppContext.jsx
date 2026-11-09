@@ -3,22 +3,14 @@ import { useNavigate } from 'react-router-dom'
 import { path } from '../lib/utils'
 import { request, sessao } from '../services/api'
 import alerts from '../lib/alerts'
-import {
-  adaptFeedback,
-  adaptProject,
-  adaptTask,
-  adaptTraining,
-  adaptUser,
-  readConfig,
-} from '../lib/apiMappers'
+import { adaptProject, adaptTask, adaptUser, readConfig } from '../lib/apiMappers'
+import { capacitacoes } from '../services/capacitacoes'
 
 
 const Ctx = createContext(null)
 export const useApp = () => useContext(Ctx)
-const VAZIO = { u: [], p: [], t: [], k: [], f: [] }
+const VAZIO = { u: [], p: [], t: [], k: [] }
 const SEM_ACESSO = { permissoes: [], menu: [] }
-
-const dateTime = value => new Date(`${value}T12:00:00`).toISOString()
 
 export function AppProvider({ children }) {
   const navigate = useNavigate()
@@ -35,20 +27,19 @@ export function AppProvider({ children }) {
   }
 
   const loadApiData = async () => {
-    const [users, projects, tasks, trainings, feedbacks, senioridades] = await Promise.all([
+    const [users, projects, tasks, trainings, senioridades] = await Promise.all([
       request('/usuarios', { auth: true }),
       request('/projetos', { auth: true }),
       request('/tarefas', { auth: true }),
-      request('/capacitacoes', { auth: true }),
-      request('/feedbacks', { auth: true }),
+      capacitacoes.listar(),
       request('/senioridades', { auth: true }),
     ])
     return {
       u: users.map(adaptUser),
       p: projects.map(adaptProject),
       t: tasks.map(adaptTask),
-      k: trainings.map(adaptTraining),
-      f: feedbacks.map(adaptFeedback),
+      // Capacitações já adaptadas (services/capacitacoes.js); usadas no Dashboard e na Visão Estratégica.
+      k: trainings,
       senioridades,
     }
   }
@@ -104,12 +95,12 @@ export function AppProvider({ children }) {
   }, [])
   // Ações liberadas pelo backend (GET /auth/permissoes); a API continua checando cada uma.
   const pode = permissao => acesso.permissoes.includes(permissao)
-  // Sem permissão de gestor, a pessoa vê só os próprios projetos, tarefas e feedbacks.
+  // Sem permissão de gestor, a pessoa vê só os próprios projetos e tarefas.
   const mb = !!DF && !!me && !pode('projetos.editar')
   const D = useMemo(() => {
     if (!DF) return null
     return mb
-      ? { ...DF, priv: true, p: DF.p.filter(project => project.membros.includes(me)), t: DF.t.filter(task => (task.responsaveis || []).includes(me)), f: DF.f.filter(item => item.usuarioId === me) }
+      ? { ...DF, priv: true, p: DF.p.filter(project => project.membros.includes(me)), t: DF.t.filter(task => (task.responsaveis || []).includes(me)) }
       : DF
   }, [DF, me, mb])
   const nav = acesso.menu.map(item => [item.chave, item.rotulo, item.caminho])
@@ -164,41 +155,10 @@ export function AppProvider({ children }) {
     return () => { sessao.onExpirada = null }
   }, [])
 
-  const persistCollection = async (key, before, after) => {
-    if (!sessao.ativa) throw new Error('Sua sessão expirou. Entre novamente.')
-    const oldById = new Map(before.map(item => [String(item.id), item]))
-    const newById = new Map(after.map(item => [String(item.id), item]))
-    const created = after.filter(item => !oldById.has(String(item.id)))
-    const deleted = before.filter(item => !newById.has(String(item.id)))
-    const updated = after.filter(item => oldById.has(String(item.id)) && JSON.stringify(item) !== JSON.stringify(oldById.get(String(item.id))))
-
-    // Projetos, Equipe, Tarefas e Documentos usam src/services/<modulo>.js (chamadas diretas).
-    if (key === 'k') {
-      for (const item of created) await request('/capacitacoes', { method: 'POST', auth: true, body: { titulo: item.titulo, data: item.data, hora: item.hora, codigoInstrutor: item.instrutorId || me, vagas: Number(item.vagas), tipo: item.tipo, sala: item.sala } })
-      for (const item of updated) {
-        const old = oldById.get(String(item.id))
-        const wasIn = (old.inscritos || []).some(code => String(code) === String(me))
-        const isIn = (item.inscritos || []).some(code => String(code) === String(me))
-        if (wasIn !== isIn) {
-          await request(`/capacitacoes/${item.id}/inscricoes${isIn ? '' : `/${me}`}`, { method: isIn ? 'POST' : 'DELETE', auth: true, ...(isIn ? { body: { codigoUsuario: me } } : {}) })
-        }
-      }
-    } else if (key === 'f') {
-      for (const item of created) await request(`/capacitacoes/${item.capId}/feedbacks`, { method: 'POST', auth: true, body: { codigoUsuario: item.usuarioId, nota: Number(item.nota), bom: item.bom || null, melhorar: item.melhorar || null, data: dateTime(item.data) } })
-    }
-    const refreshed = await loadApiData()
-    const next = { ...refreshed, c: readConfig(refreshed.senioridades, false) }
-    setD(next)
-  }
-
-  const up = (key, fn) => {
-    const before = DF?.[key] || []
-    const after = fn(before)
-    setD(current => ({ ...current, [key]: after }))
-    persistCollection(key, before, after).catch(async error => {
-      alerts.error('Não foi possível salvar', error.message)
-      try { await refresh() } catch { sair() }
-    })
+  // A tela de Capacitações chama depois de inscrever, cancelar ou editar, para o Dashboard ficar em dia.
+  const recarregarCapacitacoes = async () => {
+    const k = await capacitacoes.listar()
+    setD(current => current ? { ...current, k } : current)
   }
 
   const form = (title, fields, initial, save, opcoes = {}) => setMd({ t: title, fs: fields, init: initial, save, ...opcoes })
@@ -206,5 +166,5 @@ export function AppProvider({ children }) {
 
   if (!sessionReady || !DF) return <main className="container py-5">Carregando…</main>
 
-  return <Ctx.Provider value={{ D, DF, up, form, go, me, mb, nav, entrar, sair, md, setMd, loading, refresh, pode }}>{children}</Ctx.Provider>
+  return <Ctx.Provider value={{ D, DF, form, go, me, mb, nav, entrar, sair, md, setMd, loading, refresh, pode, recarregarCapacitacoes }}>{children}</Ctx.Provider>
 }

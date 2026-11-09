@@ -72,32 +72,6 @@ export function adaptTask(task) {
   }
 }
 
-export function adaptTraining(training) {
-  return {
-    id: training.codigo,
-    titulo: training.titulo,
-    data: dateOnly(training.data),
-    hora: training.hora,
-    instrutor: training.instrutor?.nome || training.instrutor || '—',
-    instrutorId: userCode(training.instrutor),
-    vagas: training.vagas,
-    tipo: training.tipo,
-    sala: training.sala,
-    inscritos: (training.inscritos || []).map(userCode),
-  }
-}
-
-export function adaptFeedback(feedback) {
-  return {
-    id: feedback.codigo,
-    capId: userCode(feedback.capacitacao),
-    usuarioId: userCode(feedback.usuario),
-    nota: feedback.nota,
-    data: dateOnly(feedback.data),
-    bom: feedback.bom || '',
-    melhorar: feedback.melhorar || '',
-  }
-}
 
 export function readConfig(registros = [], usarPadrao = registros.length === 0) {
   const senioridades = registros.length

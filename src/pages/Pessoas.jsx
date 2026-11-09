@@ -8,7 +8,7 @@ import ActionMenu from '../components/ActionMenu'
 import { PageBar } from '../components/Ui'
 import alerts from '../lib/alerts'
 import useCarregar from '../lib/useCarregar'
-import { configuracoes, pessoas, rotuloStatus, STATUS_PESSOA } from '../services/pessoas'
+import { configuracoes, pessoas, rotuloStatus, STATUS_PESSOA, tecnologiasDe } from '../services/pessoas'
 
 const COR_STATUS = { ativo: 'ok', trainee: '', alumni: 'wa', inativo: 'er' }
 const PERFIS = [['membro', 'Membro'], ['gerente', 'Gerente'], ['diretor', 'Diretor']]
@@ -106,6 +106,8 @@ export default function Pessoas() {
     { k: 'sn', l: 'Senioridade', filter: 1, get: p => p.senioridade?.nome || '—' },
     { k: 'pf', l: 'Perfil', filter: 1, get: p => PERFIS.find(([k]) => k === p.perfil)?.[1] || p.perfil },
     { k: 'st', l: 'Status', filter: 1, get: p => rotuloStatus(p.status), render: p => <span className={chip(COR_STATUS[p.status])}>{rotuloStatus(p.status)}</span> },
+    // Tecnologias entram na busca: digitar "React" acha quem domina (sessão 13).
+    { k: 'tec', l: 'Tecnologias', get: p => tecnologiasDe(p).join(', ') || '—' },
     { k: 'en', l: 'Entrada', get: p => p.dataEntrada || '', render: p => fd(p.dataEntrada) },
     {
       l: 'Ações',

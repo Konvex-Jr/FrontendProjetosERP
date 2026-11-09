@@ -1,10 +1,8 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import {
-  adaptFeedback,
   adaptProject,
   adaptTask,
-  adaptTraining,
   adaptUser,
   readConfig,
   normalizeSenioridades,
@@ -55,23 +53,6 @@ test('adaptProject and adaptTask normalize nested resource references and dates'
   assert.deepEqual(task.checklist, [{ id: 'item-1', texto: 'Cobrir 422', feito: true }])
 })
 
-test('adaptTraining and adaptFeedback map API relations', () => {
-  const training = adaptTraining({
-    codigo: 'training-1', titulo: 'Segurança', data: '2026-10-10', hora: '09:00',
-    instrutor: { codigo: 'user-1', nome: 'Ana' }, inscritos: [{ codigo: 'user-2' }],
-    vagas: 10, tipo: 'computacao', sala: 'Lab 1',
-  })
-  const feedback = adaptFeedback({
-    codigo: 'feedback-1', capacitacao: { codigo: 'training-1' }, usuario: { codigo: 'user-2' },
-    nota: 5, data: '2026-10-10', bom: null, melhorar: 'Mais exemplos',
-  })
-
-  assert.equal(training.instrutor, 'Ana')
-  assert.equal(training.instrutorId, 'user-1')
-  assert.deepEqual(training.inscritos, ['user-2'])
-  assert.equal(feedback.capId, 'training-1')
-  assert.equal(feedback.bom, '')
-})
 
 test('readConfig maps server seniority values without losing the hourly rate', () => {
   const config = readConfig(senioridades)

@@ -25,6 +25,7 @@ export default function App() {
         <Route path="projetos" element={<Projetos />} />
         <Route path="projetos/:id" element={<Projeto />} />
         <Route path="capacitacoes" element={<Capacitacoes />} />
+        <Route path="capacitacoes/:id" element={<Capacitacoes />} />
         <Route path="conhecimento" element={<Conhecimento />} />
         <Route path="conhecimento/:id" element={<Conhecimento />} />
         <Route path="iniciativas" element={<Iniciativas />} />
