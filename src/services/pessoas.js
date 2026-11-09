@@ -27,6 +27,23 @@ export const pessoas = {
   redefinirSenha: (codigo, novaSenha) => send('PUT', `/usuarios/${codigo}/senha`, { novaSenha }),
 }
 
+/** Tecnologias da pessoa (habilidades do tipo "tecnologia"), em ordem alfabética. */
+export const tecnologiasDe = u => (u?.habilidades || []).filter(h => h.tipo === 'tecnologia').map(h => h.nome).sort((a, b) => a.localeCompare(b))
+
+/** Junta um nome novo à lista sem repetir (sem diferenciar maiúsculas); usa a grafia de `sugestoes` se já existir. */
+export function juntarTecnologia(lista, nome, sugestoes = []) {
+  const limpo = String(nome || '').trim().replace(/\s+/g, ' ')
+  if (!limpo || limpo.length > 60) return lista
+  const igual = x => x.toLowerCase() === limpo.toLowerCase()
+  if (lista.some(igual)) return lista
+  return [...lista, sugestoes.find(igual) || limpo]
+}
+
+export const tecnologias = {
+  sugestoes: async () => (await get('/habilidades?tipo=tecnologia')).map(h => h.nome),
+  salvarMinhas: nomes => send('PUT', '/auth/perfil', { tecnologias: nomes }),
+}
+
 export const minhaConta = {
   editarPerfil: dados => send('PUT', '/auth/perfil', vazioComoNull(dados)),
   trocarSenha: (senhaAtual, novaSenha) => send('PUT', '/auth/senha', { senhaAtual, novaSenha }),
