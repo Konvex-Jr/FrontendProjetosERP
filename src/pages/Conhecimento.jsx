@@ -6,6 +6,7 @@ import Ic from '../components/Icon'
 import ActionMenu from '../components/ActionMenu'
 import Table from '../components/Table'
 import Markdown from '../components/Markdown'
+import Anexos from '../components/Anexos'
 import { PageBar } from '../components/Ui'
 import alerts from '../lib/alerts'
 import useCarregar from '../lib/useCarregar'
@@ -190,6 +191,10 @@ function Ficha({ id }) {
         {!!item.links.length && <div className="kc-s"><h3 className="h6 fw-bold">Links</h3><ul className="kc-l">
           {item.links.map(l => <li key={l}><a href={l} target="_blank" rel="noopener noreferrer"><Ic k="link" />{l}</a></li>)}
         </ul></div>}
+        {(item.anexos.length > 0 || item.podeAlterar) && <div className="kc-s">
+          <h3 className="h6 fw-bold">Anexos</h3>
+          <Anexos dono="conhecimento" codigo={item.id} lista={item.anexos} podeAlterar={item.podeAlterar} aoMudar={recarregar} />
+        </div>}
         <div className="kc-s">
           <h3 className="h6 fw-bold">Conteúdo</h3>
           {item.conteudo.trim() ? <Markdown texto={item.conteudo} /> : <small>Sem conteúdo completo. {item.podeAlterar && 'Use “Editar” para acrescentar.'}</small>}
