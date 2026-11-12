@@ -17,11 +17,11 @@ test('os sete indicadores contam projetos, pessoas, capacitações e tarefas', (
     u: [{ status: 'ativo' }, { status: 'ativo' }, { status: 'trainee' }, { status: 'alumni' }],
     k: [{ data: '2026-11-04' }, { data: '2026-12-03' }, { data: '2026-12-10' }, { data: '2026-10-01' }],
     t: [
-      { status: 'pendente', fim: '2026-11-03' },   // atrasada
-      { status: 'andamento', fim: '2026-11-04' },  // semana (vence hoje)
-      { status: 'pendente', fim: '2026-11-08' },   // semana (domingo)
-      { status: 'pendente', fim: '2026-11-09' },   // próxima semana
-      { status: 'concluida', fim: '2026-11-01' },  // concluída não conta
+      { status: 'pendente', fim: '2026-11-03' }, // atrasada
+      { status: 'andamento', fim: '2026-11-04' }, // semana (vence hoje)
+      { status: 'pendente', fim: '2026-11-08' }, // semana (domingo)
+      { status: 'pendente', fim: '2026-11-09' }, // próxima semana
+      { status: 'concluida', fim: '2026-11-01' }, // concluída não conta
     ],
   }
   const n = Object.fromEntries(indicadores(D, hoje).map(i => [i.chave, i.numero]))

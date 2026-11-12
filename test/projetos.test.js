@@ -7,10 +7,19 @@ const capturar = async fn => {
   const original = globalThis.fetch
   const chamadas = []
   globalThis.fetch = async (url, init) => {
-    chamadas.push({ url: String(url).replace(/^https?:\/\/[^/]+/, ''), method: init.method, body: init.body ? JSON.parse(init.body) : undefined, token: init.headers['access-token'] })
+    chamadas.push({
+      url: String(url).replace(/^https?:\/\/[^/]+/, ''),
+      method: init.method,
+      body: init.body ? JSON.parse(init.body) : undefined,
+      token: init.headers['access-token'],
+    })
     return { ok: true, status: 200, text: async () => '{}' }
   }
-  try { await fn() } finally { globalThis.fetch = original }
+  try {
+    await fn()
+  } finally {
+    globalThis.fetch = original
+  }
   return chamadas
 }
 
@@ -27,10 +36,18 @@ test('projetos e equipe chamam as rotas certas com a sessão', async () => {
   })
   sessao.limpar()
 
-  assert.deepEqual(chamadas.map(c => [c.method, c.url]), [
-    ['GET', '/projetos?codigoUsuario=u1'], ['GET', '/projetos'], ['PUT', '/projetos/p1'], ['PATCH', '/projetos/p1/status'],
-    ['POST', '/projetos/p1/membros'], ['PUT', '/projetos/p1/membros/pa1'], ['POST', '/projetos/p1/membros/pa1/encerrar'],
-  ])
+  assert.deepEqual(
+    chamadas.map(c => [c.method, c.url]),
+    [
+      ['GET', '/projetos?codigoUsuario=u1'],
+      ['GET', '/projetos'],
+      ['PUT', '/projetos/p1'],
+      ['PATCH', '/projetos/p1/status'],
+      ['POST', '/projetos/p1/membros'],
+      ['PUT', '/projetos/p1/membros/pa1'],
+      ['POST', '/projetos/p1/membros/pa1/encerrar'],
+    ],
+  )
   assert.ok(chamadas.every(c => c.token === 'tk'))
   // Projeto não manda mais codigosMembros; equipe vai pela aba Equipe.
   assert.deepEqual(chamadas[2].body, { nome: 'Site', codigoArea: null })

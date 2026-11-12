@@ -1,0 +1,12 @@
+dist/
+node_modules/
+coverage/
+public/
+*.md
+*.json
+*.yml
+*.yaml
+*.html
+*.css
+nginx.conf
+package-lock.json

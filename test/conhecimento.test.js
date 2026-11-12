@@ -1,12 +1,30 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { adaptConhecimento, consulta, corpoConhecimento, inicioDoPeriodo, lerLinks, lerTags, rotuloCategoria, valoresConhecimento } from '../src/services/conhecimento.js'
+import {
+  adaptConhecimento,
+  consulta,
+  corpoConhecimento,
+  inicioDoPeriodo,
+  lerLinks,
+  lerTags,
+  rotuloCategoria,
+  valoresConhecimento,
+} from '../src/services/conhecimento.js'
 import { blocos, trechos } from '../src/lib/markdown.js'
 
 const api = {
-  codigo: 'k1', titulo: 'Pesquisa', categoria: 'pesquisa', resumo: 'R', conteudo: '## A', fonte: null,
-  links: ['https://a.com'], tags: ['mercado'], data: '2026-10-20T00:00:00.000Z',
-  autor: { codigo: 'u1', nome: 'Ana' }, projetos: [{ codigo: 'p1', nome: 'Site' }], podeAlterar: true,
+  codigo: 'k1',
+  titulo: 'Pesquisa',
+  categoria: 'pesquisa',
+  resumo: 'R',
+  conteudo: '## A',
+  fonte: null,
+  links: ['https://a.com'],
+  tags: ['mercado'],
+  data: '2026-10-20T00:00:00.000Z',
+  autor: { codigo: 'u1', nome: 'Ana' },
+  projetos: [{ codigo: 'p1', nome: 'Site' }],
+  podeAlterar: true,
 }
 
 test('adaptConhecimento traz autor, projetos, data curta e podeAlterar', () => {
@@ -22,8 +40,10 @@ test('adaptConhecimento traz autor, projetos, data curta e podeAlterar', () => {
 
 test('consulta manda só os filtros preenchidos, com os nomes da API', () => {
   assert.equal(consulta({}), '')
-  assert.equal(consulta({ busca: '  ifood ', categoria: 'case', tag: '', autor: 'u1', projeto: 'p1', de: '2026-01-01' }),
-    '?busca=ifood&categoria=case&codigoAutor=u1&codigoProjeto=p1&de=2026-01-01')
+  assert.equal(
+    consulta({ busca: '  ifood ', categoria: 'case', tag: '', autor: 'u1', projeto: 'p1', de: '2026-01-01' }),
+    '?busca=ifood&categoria=case&codigoAutor=u1&codigoProjeto=p1&de=2026-01-01',
+  )
 })
 
 test('inicioDoPeriodo calcula a data inicial do filtro', () => {
@@ -39,7 +59,17 @@ test('formulário: tags sem repetição e links um por linha com https', () => {
   assert.deepEqual(lerTags('Mercado, #delivery, mercado,, '), ['mercado', 'delivery'])
   assert.deepEqual(lerLinks('drive.google.com/x\n\nhttps://a.com'), ['https://drive.google.com/x', 'https://a.com'])
   const corpo = corpoConhecimento({ titulo: ' T ', categoria: 'case', resumo: ' R ', tags: 'a', links: '', fonte: ' ', projetos: ['p1'] })
-  assert.deepEqual(corpo, { titulo: 'T', categoria: 'case', resumo: 'R', conteudo: '', fonte: null, links: [], tags: ['a'], data: null, codigosProjetos: ['p1'] })
+  assert.deepEqual(corpo, {
+    titulo: 'T',
+    categoria: 'case',
+    resumo: 'R',
+    conteudo: '',
+    fonte: null,
+    links: [],
+    tags: ['a'],
+    data: null,
+    codigosProjetos: ['p1'],
+  })
   const v = valoresConhecimento(adaptConhecimento(api))
   assert.equal(v.links, 'https://a.com')
   assert.deepEqual(v.projetos, ['p1'])
@@ -50,7 +80,10 @@ test('formulário: tags sem repetição e links um por linha com https', () => {
 
 test('markdown: títulos, listas, citação e parágrafos', () => {
   const b = blocos('# Título\n\nlinha 1\nlinha 2\n- a\n- b\n1. um\n2. dois\n> citação')
-  assert.deepEqual(b.map(x => x.t), ['h', 'p', 'ul', 'ol', 'q'])
+  assert.deepEqual(
+    b.map(x => x.t),
+    ['h', 'p', 'ul', 'ol', 'q'],
+  )
   assert.equal(b[1].texto, 'linha 1\nlinha 2')
   assert.deepEqual(b[2].itens, ['a', 'b'])
   assert.deepEqual(blocos(''), [])
@@ -58,14 +91,25 @@ test('markdown: títulos, listas, citação e parágrafos', () => {
 
 test('markdown: negrito, itálico, código e só links http(s)', () => {
   assert.deepEqual(trechos('a **b** *c* `d` [e](https://x.com)'), [
-    { t: 'txt', texto: 'a ' }, { t: 'b', texto: 'b' }, { t: 'txt', texto: ' ' }, { t: 'i', texto: 'c' },
-    { t: 'txt', texto: ' ' }, { t: 'code', texto: 'd' }, { t: 'txt', texto: ' ' }, { t: 'a', texto: 'e', url: 'https://x.com' },
+    { t: 'txt', texto: 'a ' },
+    { t: 'b', texto: 'b' },
+    { t: 'txt', texto: ' ' },
+    { t: 'i', texto: 'c' },
+    { t: 'txt', texto: ' ' },
+    { t: 'code', texto: 'd' },
+    { t: 'txt', texto: ' ' },
+    { t: 'a', texto: 'e', url: 'https://x.com' },
   ])
-  assert.deepEqual(trechos('[x](javascript:alert(1))').map(x => x.t), ['txt', 'txt'])
+  assert.deepEqual(
+    trechos('[x](javascript:alert(1))').map(x => x.t),
+    ['txt', 'txt'],
+  )
   assert.deepEqual(trechos('2 * 3 * 4'), [{ t: 'txt', texto: '2 * 3 * 4' }])
 })
 
 test('adaptConhecimento traz as iniciativas que usam o item (12b)', () => {
-  assert.deepEqual(adaptConhecimento({ ...api, iniciativas: [{ codigo: 'i1', nome: 'Chatbot' }] }).iniciativas, [{ id: 'i1', nome: 'Chatbot' }])
+  assert.deepEqual(adaptConhecimento({ ...api, iniciativas: [{ codigo: 'i1', nome: 'Chatbot' }] }).iniciativas, [
+    { id: 'i1', nome: 'Chatbot' },
+  ])
   assert.deepEqual(adaptConhecimento(api).iniciativas, [])
 })

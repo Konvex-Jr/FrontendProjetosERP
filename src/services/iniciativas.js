@@ -10,7 +10,7 @@ const send = (method, path, body) => request(path, { method, auth: true, body })
 
 const ref = r => ({ id: r.codigo, nome: r.nome })
 
-export const adaptIniciativa = (i) => ({
+export const adaptIniciativa = i => ({
   id: i.codigo,
   titulo: i.titulo,
   descricao: i.descricao || '',
@@ -27,8 +27,12 @@ export const adaptIniciativa = (i) => ({
   projetos: (i.projetos || []).map(ref),
   conhecimentos: (i.conhecimentos || []).map(ref),
   tarefas: (i.tarefas || []).map(t => ({
-    id: t.codigo, titulo: t.titulo, status: t.status, prioridade: t.prioridade,
-    fim: String(t.dataFim || '').slice(0, 10), responsaveis: (t.responsaveis || []).map(r => r.nome),
+    id: t.codigo,
+    titulo: t.titulo,
+    status: t.status,
+    prioridade: t.prioridade,
+    fim: String(t.dataFim || '').slice(0, 10),
+    responsaveis: (t.responsaveis || []).map(r => r.nome),
   })),
   totalTarefas: i.totalTarefas ?? (i.tarefas || []).length,
   tarefasConcluidas: i.tarefasConcluidas ?? 0,
@@ -49,21 +53,39 @@ export const COR_STATUS = { ideia: '', andamento: 'p3', pausada: 'wa', concluida
 /** Filtros da tela → query string da API (só os preenchidos). */
 export function consulta(f = {}) {
   const q = new URLSearchParams()
-  const mapa = { busca: f.busca?.trim(), status: f.status, tipo: f.tipo, frente: f.frente, codigoResponsavel: f.responsavel, codigoProjeto: f.projeto, codigoConhecimento: f.conhecimento }
+  const mapa = {
+    busca: f.busca?.trim(),
+    status: f.status,
+    tipo: f.tipo,
+    frente: f.frente,
+    codigoResponsavel: f.responsavel,
+    codigoProjeto: f.projeto,
+    codigoConhecimento: f.conhecimento,
+  }
   Object.entries(mapa).forEach(([k, v]) => v && q.set(k, v))
   const texto = q.toString()
   return texto ? `?${texto}` : ''
 }
 
-export const valoresIniciativa = (item, inicial = {}) => item
-  ? {
-      titulo: item.titulo, tipo: item.tipo, frente: item.frente, status: item.status, descricao: item.descricao,
-      responsavel: item.responsavelId, inicio: item.inicio, fim: item.fim, resultado: item.resultado,
-      aprendizados: item.aprendizados, projetos: item.projetos.map(p => p.id), conhecimentos: item.conhecimentos.map(c => c.id),
-    }
-  : { tipo: 'produto', frente: 'lab', status: 'ideia', projetos: [], conhecimentos: [], ...inicial }
+export const valoresIniciativa = (item, inicial = {}) =>
+  item
+    ? {
+        titulo: item.titulo,
+        tipo: item.tipo,
+        frente: item.frente,
+        status: item.status,
+        descricao: item.descricao,
+        responsavel: item.responsavelId,
+        inicio: item.inicio,
+        fim: item.fim,
+        resultado: item.resultado,
+        aprendizados: item.aprendizados,
+        projetos: item.projetos.map(p => p.id),
+        conhecimentos: item.conhecimentos.map(c => c.id),
+      }
+    : { tipo: 'produto', frente: 'lab', status: 'ideia', projetos: [], conhecimentos: [], ...inicial }
 
-export const corpoIniciativa = (v) => ({
+export const corpoIniciativa = v => ({
   titulo: (v.titulo || '').trim(),
   tipo: v.tipo,
   frente: v.frente,
@@ -83,8 +105,9 @@ export const progressoTarefas = i => (i.totalTarefas ? `${i.tarefasConcluidas} d
 
 export const iniciativas = {
   opcoes: () => get('/iniciativas/opcoes'),
-  listar: async (filtros) => (await get(`/iniciativas${consulta(filtros)}`)).map(adaptIniciativa),
-  buscar: async (codigo) => adaptIniciativa(await get(`/iniciativas/${codigo}`)),
-  salvar: (v, codigo) => codigo ? send('PUT', `/iniciativas/${codigo}`, corpoIniciativa(v)) : send('POST', '/iniciativas', corpoIniciativa(v)),
-  excluir: (codigo) => send('DELETE', `/iniciativas/${codigo}`),
+  listar: async filtros => (await get(`/iniciativas${consulta(filtros)}`)).map(adaptIniciativa),
+  buscar: async codigo => adaptIniciativa(await get(`/iniciativas/${codigo}`)),
+  salvar: (v, codigo) =>
+    codigo ? send('PUT', `/iniciativas/${codigo}`, corpoIniciativa(v)) : send('POST', '/iniciativas', corpoIniciativa(v)),
+  excluir: codigo => send('DELETE', `/iniciativas/${codigo}`),
 }

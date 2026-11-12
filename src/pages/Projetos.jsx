@@ -36,9 +36,17 @@ export function camposProjeto({ lista, areas, novo }) {
 export function valoresProjeto(p) {
   if (!p) return { prioridade: 'media', codigoResponsavel: '', codigoArea: '' }
   return {
-    nome: p.nome, referencia: p.referencia || '', clienteNome: p.clienteNome || '', descricao: p.descricao, objetivo: p.objetivo || '',
-    dataInicio: dia(p.dataInicio), dataFim: dia(p.dataFim), status: p.status, prioridade: p.prioridade || 'media',
-    codigoResponsavel: p.responsavel?.codigo || '', codigoArea: p.area?.codigo || '',
+    nome: p.nome,
+    referencia: p.referencia || '',
+    clienteNome: p.clienteNome || '',
+    descricao: p.descricao,
+    objetivo: p.objetivo || '',
+    dataInicio: dia(p.dataInicio),
+    dataFim: dia(p.dataFim),
+    status: p.status,
+    prioridade: p.prioridade || 'media',
+    codigoResponsavel: p.responsavel?.codigo || '',
+    codigoArea: p.area?.codigo || '',
   }
 }
 
@@ -47,7 +55,8 @@ export const StatusProjeto = ({ s }) => <span className={chip(COR_STATUS_PROJETO
 /** RF-020 e RF-021: lista de projetos. Equipe e tarefas ficam dentro de cada projeto. */
 export default function Projetos() {
   const { D, me, mb, form, go, pode, refresh } = useApp()
-  const [pv, setPv] = useState('grid'), [grupo, setGrupo] = useState(() => consumir('projetos') || '')
+  const [pv, setPv] = useState('grid'),
+    [grupo, setGrupo] = useState(() => consumir('projetos') || '')
   const gestor = pode('projetos.editar')
   const { dados, carregando, recarregar } = useCarregar(async () => {
     const [lista, gente, areas] = await Promise.all([
@@ -74,24 +83,43 @@ export default function Projetos() {
     }
   }
 
-  const editar = p => form(p ? 'Editar projeto' : 'Novo projeto', camposProjeto({ lista: gente, areas, novo: !p }), valoresProjeto(p),
-    async v => {
+  const editar = p =>
+    form(p ? 'Editar projeto' : 'Novo projeto', camposProjeto({ lista: gente, areas, novo: !p }), valoresProjeto(p), async v => {
       const r = await executar(() => (p ? projetos.editar(p.codigo, v) : projetos.criar(v)), p ? 'Projeto atualizado' : 'Projeto criado')
       if (r && !p) go('projeto', r.codigo)
       return r === false ? false : undefined
     })
-  const mudarStatus = p => form('Mudar status', [{ k: 'status', l: 'Status', o: STATUS_PROJETO, h: 'Em andamento, Atenção e Bloqueado contam na alocação das pessoas.' }], { status: p.status },
-    v => executar(() => projetos.alterarStatus(p.codigo, v.status), 'Status atualizado').then(r => (r === false ? false : undefined)))
+  const mudarStatus = p =>
+    form(
+      'Mudar status',
+      [{ k: 'status', l: 'Status', o: STATUS_PROJETO, h: 'Em andamento, Atenção e Bloqueado contam na alocação das pessoas.' }],
+      { status: p.status },
+      v => executar(() => projetos.alterarStatus(p.codigo, v.status), 'Status atualizado').then(r => (r === false ? false : undefined)),
+    )
   const excluir = async p => {
-    const ok = await alerts.confirm({ title: 'Excluir projeto?', text: 'Remove o projeto e as tarefas dele. Para guardar o histórico, prefira o status Arquivado.', confirmText: 'Excluir projeto', danger: true })
+    const ok = await alerts.confirm({
+      title: 'Excluir projeto?',
+      text: 'Remove o projeto e as tarefas dele. Para guardar o histórico, prefira o status Arquivado.',
+      confirmText: 'Excluir projeto',
+      danger: true,
+    })
     if (ok) await executar(() => projetos.excluir(p.codigo), 'Projeto excluído')
   }
 
-  const Ac = ({ p }) => <ActionMenu items={[
-    ['open', 'Abrir', () => go('projeto', p.codigo)],
-    ...(gestor ? [['edit', 'Editar', () => editar(p)], ['check', 'Mudar status', () => mudarStatus(p)]] : []),
-    ...(pode('projetos.excluir') ? [['trash', 'Excluir', () => excluir(p), 1]] : []),
-  ]} />
+  const Ac = ({ p }) => (
+    <ActionMenu
+      items={[
+        ['open', 'Abrir', () => go('projeto', p.codigo)],
+        ...(gestor
+          ? [
+              ['edit', 'Editar', () => editar(p)],
+              ['check', 'Mudar status', () => mudarStatus(p)],
+            ]
+          : []),
+        ...(pode('projetos.excluir') ? [['trash', 'Excluir', () => excluir(p), 1]] : []),
+      ]}
+    />
+  )
   const pg = p => prog(D, { id: p.codigo })
   const periodo = p => fm(dia(p.dataInicio)) + ' a ' + fm(dia(p.dataFim))
   const cols = [
@@ -104,14 +132,26 @@ export default function Projetos() {
     { l: 'Ações', render: p => <Ac p={p} /> },
   ]
   const linhas = lista.filter(p => !grupo || GRUPOS_PROJETO[grupo].status.includes(p.status)).map(p => ({ ...p, id: p.codigo }))
-  const vazio = grupo ? 'Nenhum projeto neste grupo. Escolha “Todos” no filtro.'
-    : gestor ? 'Nenhum projeto cadastrado. Use “Novo projeto”.'
+  const vazio = grupo
+    ? 'Nenhum projeto neste grupo. Escolha “Todos” no filtro.'
+    : gestor
+      ? 'Nenhum projeto cadastrado. Use “Novo projeto”.'
       : 'Você ainda não participa de nenhum projeto. Quando a gestão incluir você numa equipe, ele aparece aqui.'
   const filtroGrupo = (
     <div className="fl d-flex flex-wrap gap-2 mb-3">
-      <select className="form-select w-auto" style={{ maxWidth: 260 }} aria-label="Grupo de projetos" value={grupo} onChange={e => setGrupo(e.target.value)}>
+      <select
+        className="form-select w-auto"
+        style={{ maxWidth: 260 }}
+        aria-label="Grupo de projetos"
+        value={grupo}
+        onChange={e => setGrupo(e.target.value)}
+      >
         <option value="">Situação: todos</option>
-        {Object.entries(GRUPOS_PROJETO).map(([k, g]) => <option key={k} value={k}>{g.rotulo}</option>)}
+        {Object.entries(GRUPOS_PROJETO).map(([k, g]) => (
+          <option key={k} value={k}>
+            {g.rotulo}
+          </option>
+        ))}
       </select>
     </div>
   )
@@ -119,27 +159,51 @@ export default function Projetos() {
   return (
     <>
       <PageBar title="Projetos" sub={mb ? 'Projetos de que você participa ou participou.' : undefined}>
-        <button className={'btn btn-g' + (pv == 'grid' ? ' on' : '')} onClick={() => setPv('grid')}>Grid</button>
-        <button className={'btn btn-g' + (pv == 'lista' ? ' on' : '')} onClick={() => setPv('lista')}>Linhas</button>
-        {gestor && <button className="btn btn-primary" onClick={() => editar()}><Ic k="plus" />Novo projeto</button>}
+        <button className={'btn btn-g' + (pv == 'grid' ? ' on' : '')} onClick={() => setPv('grid')}>
+          Grid
+        </button>
+        <button className={'btn btn-g' + (pv == 'lista' ? ' on' : '')} onClick={() => setPv('lista')}>
+          Linhas
+        </button>
+        {gestor && (
+          <button className="btn btn-primary" onClick={() => editar()}>
+            <Ic k="plus" />
+            Novo projeto
+          </button>
+        )}
       </PageBar>
       {filtroGrupo}
-      {pv == 'grid'
-        ? <div className="row g-3">
-          {!linhas.length && <div className="col-12"><div className="card card-body">{vazio}</div></div>}
+      {pv == 'grid' ? (
+        <div className="row g-3">
+          {!linhas.length && (
+            <div className="col-12">
+              <div className="card card-body">{vazio}</div>
+            </div>
+          )}
           {linhas.map(p => (
             <div className="col-md-6 col-xl-4" key={p.id}>
               <div className="card card-body pj hoverable h-100" onClick={() => go('projeto', p.codigo)}>
-                <div className="d-flex justify-content-between align-items-center"><StatusProjeto s={p.status} /><Av D={D} ids={membrosAtivos(p)} /></div>
+                <div className="d-flex justify-content-between align-items-center">
+                  <StatusProjeto s={p.status} />
+                  <Av D={D} ids={membrosAtivos(p)} />
+                </div>
                 <h2 className="mt-3">{p.nome}</h2>
                 <p className="text-mu m-0">{p.descricao}</p>
                 <Prog v={pg(p)} />
-                <small>{pg(p)}% · {periodo(p)}{p.clienteNome ? ' · ' + p.clienteNome : ''}</small>
-                <span className="cm" onClick={e => e.stopPropagation()}><Ac p={p} /></span>
+                <small>
+                  {pg(p)}% · {periodo(p)}
+                  {p.clienteNome ? ' · ' + p.clienteNome : ''}
+                </small>
+                <span className="cm" onClick={e => e.stopPropagation()}>
+                  <Ac p={p} />
+                </span>
               </div>
-            </div>))}
+            </div>
+          ))}
         </div>
-        : <Table cols={cols} rows={linhas} vazio={vazio} />}
+      ) : (
+        <Table cols={cols} rows={linhas} vazio={vazio} />
+      )}
     </>
   )
 }

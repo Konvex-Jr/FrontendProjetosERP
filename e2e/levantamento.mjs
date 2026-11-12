@@ -31,7 +31,9 @@ const TELAS = [
 
 function carregarPlaywright() {
   const require = createRequire(import.meta.url)
-  try { return require('playwright') } catch {
+  try {
+    return require('playwright')
+  } catch {
     const global = execSync('npm root -g').toString().trim()
     return require(`${global}/playwright`)
   }
@@ -39,7 +41,9 @@ function carregarPlaywright() {
 
 async function menuDe(email, senha) {
   const login = await fetch(`${API}/auth/login`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, senha }),
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, senha }),
   }).then(r => r.json())
   if (!login.token) throw new Error(`Login falhou para ${email}: ${JSON.stringify(login)}`)
   const p = await fetch(`${API}/auth/permissoes`, { headers: { 'access-token': login.token } }).then(r => r.json())
@@ -58,7 +62,9 @@ for (const [papel, email, senha] of CONTAS) {
     const ctx = await browser.newContext(opcoes)
     const page = await ctx.newPage()
     const erros = []
-    page.on('console', m => { if (m.type() === 'error') erros.push(m.text()) })
+    page.on('console', m => {
+      if (m.type() === 'error') erros.push(m.text())
+    })
     page.on('pageerror', e => erros.push(e.message))
 
     await page.goto(`${APP}/#/login`)

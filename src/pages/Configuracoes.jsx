@@ -8,8 +8,15 @@ import alerts from '../lib/alerts'
 import useCarregar from '../lib/useCarregar'
 import { configuracoes } from '../services/pessoas'
 
-const ABAS = [['areas', 'Áreas'], ['cargos', 'Cargos'], ['senioridades', 'Senioridades']]
-const SIM_NAO = [['true', 'Ativo'], ['false', 'Inativo']]
+const ABAS = [
+  ['areas', 'Áreas'],
+  ['cargos', 'Cargos'],
+  ['senioridades', 'Senioridades'],
+]
+const SIM_NAO = [
+  ['true', 'Ativo'],
+  ['false', 'Inativo'],
+]
 
 /** ADR-007: listas configuráveis (áreas, cargos, senioridades). Só diretores editam. */
 export default function Configuracoes() {
@@ -37,39 +44,56 @@ export default function Configuracoes() {
     }
   }
 
-  const editarArea = a => form(
-    a ? 'Editar área' : 'Nova área',
-    [
-      { k: 'nome', l: 'Nome' },
-      { k: 'codigoAreaPai', l: 'Área superior', o: [['', 'Nenhuma'], ...areas.filter(x => x.codigo !== a?.codigo).map(x => [x.codigo, x.nome])], opt: true },
-      { k: 'ativa', l: 'Situação', o: SIM_NAO, h: 'Áreas inativas somem das opções, mas o histórico das pessoas continua.' },
-    ],
-    { nome: a?.nome || '', codigoAreaPai: a?.codigoAreaPai || '', ativa: String(a?.ativa ?? true) },
-    v => salvar(() => configuracoes.salvarArea(a?.codigo, { nome: v.nome, codigoAreaPai: v.codigoAreaPai || null, ativa: v.ativa === 'true' }), 'Área salva'),
-  )
+  const editarArea = a =>
+    form(
+      a ? 'Editar área' : 'Nova área',
+      [
+        { k: 'nome', l: 'Nome' },
+        {
+          k: 'codigoAreaPai',
+          l: 'Área superior',
+          o: [['', 'Nenhuma'], ...areas.filter(x => x.codigo !== a?.codigo).map(x => [x.codigo, x.nome])],
+          opt: true,
+        },
+        { k: 'ativa', l: 'Situação', o: SIM_NAO, h: 'Áreas inativas somem das opções, mas o histórico das pessoas continua.' },
+      ],
+      { nome: a?.nome || '', codigoAreaPai: a?.codigoAreaPai || '', ativa: String(a?.ativa ?? true) },
+      v =>
+        salvar(
+          () => configuracoes.salvarArea(a?.codigo, { nome: v.nome, codigoAreaPai: v.codigoAreaPai || null, ativa: v.ativa === 'true' }),
+          'Área salva',
+        ),
+    )
 
-  const editarCargo = c => form(
-    c ? 'Editar cargo' : 'Novo cargo',
-    [
-      { k: 'nome', l: 'Nome' },
-      { k: 'ativo', l: 'Situação', o: SIM_NAO },
-    ],
-    { nome: c?.nome || '', ativo: String(c?.ativo ?? true) },
-    v => salvar(() => configuracoes.salvarCargo(c?.codigo, { nome: v.nome, ativo: v.ativo === 'true' }), 'Cargo salvo'),
-  )
+  const editarCargo = c =>
+    form(
+      c ? 'Editar cargo' : 'Novo cargo',
+      [
+        { k: 'nome', l: 'Nome' },
+        { k: 'ativo', l: 'Situação', o: SIM_NAO },
+      ],
+      { nome: c?.nome || '', ativo: String(c?.ativo ?? true) },
+      v => salvar(() => configuracoes.salvarCargo(c?.codigo, { nome: v.nome, ativo: v.ativo === 'true' }), 'Cargo salvo'),
+    )
 
-  const editarSenioridade = s => form(
-    s ? 'Editar senioridade' : 'Nova senioridade',
-    [
-      { k: 'nome', l: 'Nome' },
-      { k: 'ordem', l: 'Ordem na escada', t: 'number', h: '1 para o nível inicial; números maiores para níveis acima.' },
-    ],
-    { nome: s?.nome || '', ordem: s?.ordem ?? senioridades.length + 1 },
-    v => salvar(() => configuracoes.salvarSenioridade(s?.codigo, { nome: v.nome, ordem: Number(v.ordem) }), 'Senioridade salva'),
-  )
+  const editarSenioridade = s =>
+    form(
+      s ? 'Editar senioridade' : 'Nova senioridade',
+      [
+        { k: 'nome', l: 'Nome' },
+        { k: 'ordem', l: 'Ordem na escada', t: 'number', h: '1 para o nível inicial; números maiores para níveis acima.' },
+      ],
+      { nome: s?.nome || '', ordem: s?.ordem ?? senioridades.length + 1 },
+      v => salvar(() => configuracoes.salvarSenioridade(s?.codigo, { nome: v.nome, ordem: Number(v.ordem) }), 'Senioridade salva'),
+    )
 
   const situacao = ativo => <span className={chip(ativo ? 'ok' : 'er')}>{ativo ? 'Ativo' : 'Inativo'}</span>
-  const editarBotao = fn => <button className="btn btn-g btn-sm" onClick={fn}><Ic k="edit" />Editar</button>
+  const editarBotao = fn => (
+    <button className="btn btn-g btn-sm" onClick={fn}>
+      <Ic k="edit" />
+      Editar
+    </button>
+  )
 
   const telas = {
     areas: {
@@ -105,11 +129,24 @@ export default function Configuracoes() {
 
   return (
     <>
-      <PageBar title="Configurações" sub="Listas usadas no cadastro de pessoas. Valor-hora das senioridades fica para quando as taxas forem definidas.">
-        <button className="btn btn-primary" onClick={atual.novo}><Ic k="plus" />Novo item</button>
+      <PageBar
+        title="Configurações"
+        sub="Listas usadas no cadastro de pessoas. Valor-hora das senioridades fica para quando as taxas forem definidas."
+      >
+        <button className="btn btn-primary" onClick={atual.novo}>
+          <Ic k="plus" />
+          Novo item
+        </button>
       </PageBar>
-      <div className="mb-3"><Seg items={ABAS} value={aba} onChange={setAba} /></div>
-      <Table key={aba} cols={atual.colunas} rows={atual.linhas.map(x => ({ ...x, id: x.codigo }))} vazio="Nenhum item nesta lista. Use “Novo item”." />
+      <div className="mb-3">
+        <Seg items={ABAS} value={aba} onChange={setAba} />
+      </div>
+      <Table
+        key={aba}
+        cols={atual.colunas}
+        rows={atual.linhas.map(x => ({ ...x, id: x.codigo }))}
+        vazio="Nenhum item nesta lista. Use “Novo item”."
+      />
     </>
   )
 }

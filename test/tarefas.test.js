@@ -1,22 +1,46 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { corpoNovaTarefa, corpoTarefa, origemTarefa, papelNaTarefa, papelNasTarefas, soMudouStatus, tarefas } from '../src/services/tarefas.js'
+import {
+  corpoNovaTarefa,
+  corpoTarefa,
+  origemTarefa,
+  papelNaTarefa,
+  papelNasTarefas,
+  soMudouStatus,
+  tarefas,
+} from '../src/services/tarefas.js'
 import { sessao } from '../src/services/api.js'
 
 const capturar = async fn => {
   const original = globalThis.fetch
   const chamadas = []
   globalThis.fetch = async (url, init) => {
-    chamadas.push({ url: String(url).replace(/^https?:\/\/[^/]+/, ''), method: init.method, body: init.body ? JSON.parse(init.body) : undefined })
+    chamadas.push({
+      url: String(url).replace(/^https?:\/\/[^/]+/, ''),
+      method: init.method,
+      body: init.body ? JSON.parse(init.body) : undefined,
+    })
     return { ok: true, status: 200, text: async () => '{}' }
   }
-  try { await fn() } finally { globalThis.fetch = original }
+  try {
+    await fn()
+  } finally {
+    globalThis.fetch = original
+  }
   return chamadas
 }
 
 const tarefa = {
-  id: 't1', projetoId: 'p1', titulo: ' Requisitos ', descricao: '', inicio: '2026-11-03', fim: '2026-11-07',
-  status: 'pendente', prioridade: 'P2', responsaveis: ['u1'], dependeDe: undefined,
+  id: 't1',
+  projetoId: 'p1',
+  titulo: ' Requisitos ',
+  descricao: '',
+  inicio: '2026-11-03',
+  fim: '2026-11-07',
+  status: 'pendente',
+  prioridade: 'P2',
+  responsaveis: ['u1'],
+  dependeDe: undefined,
   checklist: [{ id: 'c1', texto: 'Levantar', feito: 1 }],
 }
 
@@ -48,13 +72,16 @@ test('salvar usa PATCH quando só o status muda e PUT no resto', async () => {
   })
   sessao.limpar()
 
-  assert.deepEqual(chamadas.map(c => [c.method, c.url]), [
-    ['GET', '/tarefas?codigoProjeto=p1'],
-    ['POST', '/tarefas'],
-    ['PATCH', '/tarefas/t1/status'],
-    ['PUT', '/tarefas/t1'],
-    ['DELETE', '/tarefas/t1'],
-  ])
+  assert.deepEqual(
+    chamadas.map(c => [c.method, c.url]),
+    [
+      ['GET', '/tarefas?codigoProjeto=p1'],
+      ['POST', '/tarefas'],
+      ['PATCH', '/tarefas/t1/status'],
+      ['PUT', '/tarefas/t1'],
+      ['DELETE', '/tarefas/t1'],
+    ],
+  )
   assert.deepEqual(chamadas[2].body, { status: 'concluida' })
 })
 
@@ -67,7 +94,8 @@ test('papel nas tarefas: gestão e líder organizam; participante só as suas; d
       { usuario: { codigo: 'saiu' }, dataSaida: '2026-10-01' },
     ],
   }
-  const sua = { responsaveis: ['par'] }, outra = { responsaveis: ['lid'] }
+  const sua = { responsaveis: ['par'] },
+    outra = { responsaveis: ['lid'] }
   const gestao = papelNasTarefas({ me: 'g', gestao: true, projeto })
   assert.equal(gestao.organiza, true)
   const lider = papelNasTarefas({ me: 'lid', gestao: false, projeto })
@@ -86,7 +114,13 @@ test('papel nas tarefas: gestão e líder organizam; participante só as suas; d
 })
 
 test('tarefa avulsa (8c): corpo com categoria e regras de quem organiza', () => {
-  const nova = corpoNovaTarefa(null, { titulo: 'Pesquisa', categoria: 'inovacao', inicio: '2026-11-03', fim: '2026-11-07', responsaveis: ['u2'] })
+  const nova = corpoNovaTarefa(null, {
+    titulo: 'Pesquisa',
+    categoria: 'inovacao',
+    inicio: '2026-11-03',
+    fim: '2026-11-07',
+    responsaveis: ['u2'],
+  })
   assert.equal(nova.codigoProjeto, undefined)
   assert.equal(nova.categoria, 'inovacao')
   assert.deepEqual(nova.codigosResponsaveis, ['u2'])

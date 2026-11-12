@@ -24,7 +24,10 @@ const achar = regex => [...html.matchAll(regex)].map(m => m[1].replace(/^\.?\//,
 
 const js = achar(/<script[^>]+type="module"[^>]+src="([^"]+)"/g)
 const css = achar(/<link[^>]+rel="stylesheet"[^>]+href="([^"]+)"/g)
-if (!js.length) { console.error('Não achei o JS de entrada no dist/index.html.'); process.exit(1) }
+if (!js.length) {
+  console.error('Não achei o JS de entrada no dist/index.html.')
+  process.exit(1)
+}
 
 const medidas = [
   ['HTML (index.html)', gzip('index.html'), LIMITES.html],

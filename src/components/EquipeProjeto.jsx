@@ -15,9 +15,14 @@ export function avisarAlocacao(resultado, nome) {
   alerts.info('Alocação acima de 100%', `${nome} soma ${a.total}% em projetos ativos. ${lista}`)
 }
 
-const Total = ({ v }) => v > LIMITE_ALOCACAO
-  ? <span className={chip('er')} title="Soma em projetos ativos acima de 100%">{v}% · acima de 100%</span>
-  : <span className={chip(v === LIMITE_ALOCACAO ? 'wa' : '')}>{v}%</span>
+const Total = ({ v }) =>
+  v > LIMITE_ALOCACAO ? (
+    <span className={chip('er')} title="Soma em projetos ativos acima de 100%">
+      {v}% · acima de 100%
+    </span>
+  ) : (
+    <span className={chip(v === LIMITE_ALOCACAO ? 'wa' : '')}>{v}%</span>
+  )
 
 /**
  * Aba Equipe (RF-022, PR-06): função, responsabilidades, alocação e histórico.
@@ -45,41 +50,75 @@ export default function EquipeProjeto({ projeto, todos, gente, gestor, aoSalvar 
   const camposComuns = [
     { k: 'funcao', l: 'Função no projeto', opt: true, h: 'Ex.: Gerente de projeto, Desenvolvedor, Consultor.' },
     { k: 'responsabilidades', l: 'Responsabilidades', t: 'textarea', opt: true },
-    { k: 'alocacao', l: 'Alocação (%)', t: 'number', h: 'Quanto da dedicação da pessoa vai para este projeto, de 0 a 100. A soma acima de 100% gera alerta.' },
+    {
+      k: 'alocacao',
+      l: 'Alocação (%)',
+      t: 'number',
+      h: 'Quanto da dedicação da pessoa vai para este projeto, de 0 a 100. A soma acima de 100% gera alerta.',
+    },
   ]
 
   const adicionar = () => {
     const dentro = new Set(ativas.map(p => p.usuario.codigo))
-    const opcoes = gente.filter(u => u.naEj && !dentro.has(u.codigo))
+    const opcoes = gente
+      .filter(u => u.naEj && !dentro.has(u.codigo))
       .sort((a, b) => a.nome.localeCompare(b.nome))
       .map(u => [u.codigo, `${u.nome} · ${totais[u.codigo] || 0}% alocado${u.status === 'trainee' ? ' · Trainee' : ''}`])
     if (!opcoes.length) return alerts.info('Ninguém disponível', 'Todas as pessoas Ativas e Trainees já estão na equipe.')
-    form('Adicionar à equipe', [
-      { k: 'codigoUsuario', l: 'Pessoa', o: opcoes },
-      ...camposComuns,
-      { k: 'dataEntrada', l: 'Entrada no projeto', t: 'date', opt: true, h: 'Vazio = hoje.' },
-    ], { codigoUsuario: opcoes[0][0], alocacao: 0, dataEntrada: '' },
-    v => salvar(() => equipe.adicionar(projeto.codigo, v), 'Pessoa adicionada', gente.find(u => u.codigo === v.codigoUsuario)?.nome))
+    form(
+      'Adicionar à equipe',
+      [
+        { k: 'codigoUsuario', l: 'Pessoa', o: opcoes },
+        ...camposComuns,
+        { k: 'dataEntrada', l: 'Entrada no projeto', t: 'date', opt: true, h: 'Vazio = hoje.' },
+      ],
+      { codigoUsuario: opcoes[0][0], alocacao: 0, dataEntrada: '' },
+      v => salvar(() => equipe.adicionar(projeto.codigo, v), 'Pessoa adicionada', gente.find(u => u.codigo === v.codigoUsuario)?.nome),
+    )
   }
 
-  const editar = p => form(`Editar participação de ${p.usuario.nome}`, camposComuns,
-    { funcao: p.funcao || '', responsabilidades: p.responsabilidades || '', alocacao: p.alocacao },
-    v => salvar(() => equipe.editar(projeto.codigo, p.codigo, v), 'Participação atualizada', p.usuario.nome))
+  const editar = p =>
+    form(
+      `Editar participação de ${p.usuario.nome}`,
+      camposComuns,
+      { funcao: p.funcao || '', responsabilidades: p.responsabilidades || '', alocacao: p.alocacao },
+      v => salvar(() => equipe.editar(projeto.codigo, p.codigo, v), 'Participação atualizada', p.usuario.nome),
+    )
 
-  const encerrar = p => form(`Tirar ${p.usuario.nome} da equipe`, [
-    { k: 'dataSaida', l: 'Saída do projeto', t: 'date', opt: true, h: 'Vazio = hoje. A participação continua no histórico do projeto.' },
-  ], { dataSaida: '' }, v => salvar(() => equipe.encerrar(projeto.codigo, p.codigo, v.dataSaida), 'Participação encerrada', p.usuario.nome))
+  const encerrar = p =>
+    form(
+      `Tirar ${p.usuario.nome} da equipe`,
+      [
+        {
+          k: 'dataSaida',
+          l: 'Saída do projeto',
+          t: 'date',
+          opt: true,
+          h: 'Vazio = hoje. A participação continua no histórico do projeto.',
+        },
+      ],
+      { dataSaida: '' },
+      v => salvar(() => equipe.encerrar(projeto.codigo, p.codigo, v.dataSaida), 'Participação encerrada', p.usuario.nome),
+    )
 
   // Líder (sessão 8b): organiza as tarefas do projeto. Só a gestão escolhe.
   const codigoLider = projeto.lider?.codigo
   const ehLider = p => p.usuario.codigo === codigoLider
-  const definirLider = p => salvar(() => projetos.definirLider(projeto.codigo, ehLider(p) ? null : p.usuario.codigo),
-    ehLider(p) ? 'Projeto ficou sem líder' : `${p.usuario.nome} agora é líder`)
+  const definirLider = p =>
+    salvar(
+      () => projetos.definirLider(projeto.codigo, ehLider(p) ? null : p.usuario.codigo),
+      ehLider(p) ? 'Projeto ficou sem líder' : `${p.usuario.nome} agora é líder`,
+    )
 
   const pessoa = p => (
     <button className="btn btn-link p-0 text-start" onClick={() => go('perfil', p.usuario.codigo)}>
-      {p.usuario.nome}{p.usuario.status && p.usuario.status !== 'ativo' ? <small className="ms-1">({rotuloStatus(p.usuario.status)})</small> : null}
-      {!p.dataSaida && ehLider(p) && <span className={chip('ok') + ' ms-1'} title="Organiza as tarefas do projeto">Líder</span>}
+      {p.usuario.nome}
+      {p.usuario.status && p.usuario.status !== 'ativo' ? <small className="ms-1">({rotuloStatus(p.usuario.status)})</small> : null}
+      {!p.dataSaida && ehLider(p) && (
+        <span className={chip('ok') + ' ms-1'} title="Organiza as tarefas do projeto">
+          Líder
+        </span>
+      )}
     </button>
   )
 
@@ -90,7 +129,22 @@ export default function EquipeProjeto({ projeto, todos, gente, gestor, aoSalvar 
     { k: 'alocacao', l: 'Neste projeto', render: p => p.alocacao + '%' },
     { k: 'total', l: 'Total da pessoa', get: p => totais[p.usuario.codigo] || 0, render: p => <Total v={totais[p.usuario.codigo] || 0} /> },
     { k: 'entrada', l: 'Entrada', get: p => String(p.dataEntrada), render: p => fd(p.dataEntrada) },
-    ...(gestor ? [{ l: 'Ações', render: p => <ActionMenu items={[['edit', 'Editar', () => editar(p)], ['star', ehLider(p) ? 'Tirar liderança' : 'Tornar líder', () => definirLider(p)], ['undo', 'Tirar da equipe', () => encerrar(p), 1]]} /> }] : []),
+    ...(gestor
+      ? [
+          {
+            l: 'Ações',
+            render: p => (
+              <ActionMenu
+                items={[
+                  ['edit', 'Editar', () => editar(p)],
+                  ['star', ehLider(p) ? 'Tirar liderança' : 'Tornar líder', () => definirLider(p)],
+                  ['undo', 'Tirar da equipe', () => encerrar(p), 1],
+                ]}
+              />
+            ),
+          },
+        ]
+      : []),
   ]
   const colsHistorico = [
     { k: 'nome', l: 'Pessoa', get: p => p.usuario.nome, render: pessoa },
@@ -108,14 +162,26 @@ export default function EquipeProjeto({ projeto, todos, gente, gestor, aoSalvar 
           {gestor && !codigoLider && ativas.length > 0 && ' Sem líder: use o menu de ações para escolher quem organiza as tarefas.'}
           {!contaNaAlocacao && ` Projeto ${rotuloStatusProjeto(projeto.status)}: não conta na alocação.`}
         </small>
-        {gestor && <button className="btn btn-primary" onClick={adicionar}><Ic k="plus" />Adicionar pessoa</button>}
+        {gestor && (
+          <button className="btn btn-primary" onClick={adicionar}>
+            <Ic k="plus" />
+            Adicionar pessoa
+          </button>
+        )}
       </div>
       {excedidos.length > 0 && (
         <div className="card card-body mb-3">
-          <span><span className={chip('er')}>Alerta</span> {excedidos.map(p => p.usuario.nome).join(', ')} {excedidos.length === 1 ? 'está' : 'estão'} com mais de 100% de alocação somando os projetos ativos.</span>
+          <span>
+            <span className={chip('er')}>Alerta</span> {excedidos.map(p => p.usuario.nome).join(', ')}{' '}
+            {excedidos.length === 1 ? 'está' : 'estão'} com mais de 100% de alocação somando os projetos ativos.
+          </span>
         </div>
       )}
-      <Table cols={colsAtivas} rows={ativas} vazio={gestor ? "Ninguém na equipe ainda. Use “Adicionar pessoa”." : "Ninguém na equipe atual."} />
+      <Table
+        cols={colsAtivas}
+        rows={ativas}
+        vazio={gestor ? 'Ninguém na equipe ainda. Use “Adicionar pessoa”.' : 'Ninguém na equipe atual.'}
+      />
       {encerradas.length > 0 && (
         <>
           <h3 className="h6 fw-bold mt-4">Histórico da equipe</h3>
