@@ -15,7 +15,7 @@ svg.i {
     justify-content: center;
     gap: 7px;
     font-weight: 600;
-    border-radius: 12px;
+    border-radius: 6px;
     padding: 9px 16px;
     transition: background-color .25s, color .25s, border-color .25s, transform .18s var(--ez), box-shadow .25s
 }
@@ -302,7 +302,7 @@ svg.i {
 
 .form-control,
 .form-select {
-    border-radius: 10px;
+    border-radius: 6px;
     padding: 10px 12px;
     background-color: var(--c);
     color: var(--tx);
@@ -337,7 +337,7 @@ svg.i {
     gap: 6px;
     align-items: center;
     border: 1px solid var(--ln);
-    border-radius: 10px;
+    border-radius: 6px;
     padding: 5px 8px;
     background: var(--c);
     cursor: text
@@ -368,7 +368,7 @@ svg.i {
     margin-top: 4px;
     background: var(--c);
     border: 1px solid var(--ln);
-    border-radius: 10px;
+    border-radius: 6px;
     max-height: 190px;
     overflow: auto;
     z-index: 5;
@@ -574,7 +574,7 @@ svg.i {
     padding: 10px 12px;
     margin-bottom: 8px;
     background: var(--c);
-    border-radius: 10px;
+    border-radius: 6px;
     box-shadow: 0 1px 0 #013a5522;
     cursor: grab;
     animation: pin .5s var(--ez) backwards;
@@ -839,7 +839,7 @@ svg.i {
     gap: 2px;
     padding: 12px 14px;
     margin-bottom: 10px;
-    border-radius: 12px;
+    border-radius: 6px;
     background: var(--th);
     border-left: 4px solid var(--er);
     cursor: pointer;
@@ -942,7 +942,7 @@ button.st1:hover,
     display: block;
     font-size: 30px;
     line-height: 1.15;
-    color: var(--ac)
+    color: var(--act)
 }
 
 .cc {
@@ -1082,7 +1082,7 @@ button.st1:hover,
     place-items: center;
     width: 50px;
     height: 50px;
-    border-radius: 14px;
+    border-radius: 6px;
     background: var(--col);
     color: var(--t)
 }
@@ -1169,7 +1169,7 @@ button.st1:hover,
     text-align: left;
     border: 1px solid var(--ln);
     background: transparent;
-    border-radius: 14px;
+    border-radius: 6px;
     padding: 12px 14px;
     cursor: pointer;
     color: inherit
@@ -1218,7 +1218,7 @@ button.st1:hover,
 }
 
 .kc-t:hover b {
-    color: var(--ac)
+    color: var(--act)
 }
 
 .kc-t small {
@@ -1362,7 +1362,7 @@ button.kc-tag {
     padding: 0;
     border: 0;
     background: none;
-    color: var(--ac);
+    color: var(--act);
     text-align: left;
     font-weight: 600
 }
@@ -1405,7 +1405,7 @@ button.kc-tag {
 .cal-d {
     min-height: 92px;
     border: 1px solid var(--ln);
-    border-radius: 10px;
+    border-radius: 6px;
     padding: 4px;
     display: flex;
     flex-direction: column;
