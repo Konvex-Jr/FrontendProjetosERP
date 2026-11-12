@@ -6,7 +6,6 @@ import alerts from '../lib/alerts'
 import { adaptProject, adaptTask, adaptUser, readConfig } from '../lib/apiMappers'
 import { capacitacoes } from '../services/capacitacoes'
 
-
 const Ctx = createContext(null)
 export const useApp = () => useContext(Ctx)
 const VAZIO = { u: [], p: [], t: [], k: [] }
@@ -100,7 +99,12 @@ export function AppProvider({ children }) {
   const D = useMemo(() => {
     if (!DF) return null
     return mb
-      ? { ...DF, priv: true, p: DF.p.filter(project => project.membros.includes(me)), t: DF.t.filter(task => (task.responsaveis || []).includes(me)) }
+      ? {
+          ...DF,
+          priv: true,
+          p: DF.p.filter(project => project.membros.includes(me)),
+          t: DF.t.filter(task => (task.responsaveis || []).includes(me)),
+        }
       : DF
   }, [DF, me, mb])
   const nav = acesso.menu.map(item => [item.chave, item.rotulo, item.caminho])
@@ -109,7 +113,7 @@ export function AppProvider({ children }) {
     setMe(null)
     setMd(null)
     setAcesso(SEM_ACESSO)
-    setD(current => current ? { ...current, ...VAZIO } : current)
+    setD(current => (current ? { ...current, ...VAZIO } : current))
   }
 
   const entrar = async (email, senha) => {
@@ -152,19 +156,28 @@ export function AppProvider({ children }) {
       navigate('/login')
       alerts.error('Sessão expirada', 'Entre novamente para continuar.')
     }
-    return () => { sessao.onExpirada = null }
+    return () => {
+      sessao.onExpirada = null
+    }
   }, [])
 
   // A tela de Capacitações chama depois de inscrever, cancelar ou editar, para o Dashboard ficar em dia.
   const recarregarCapacitacoes = async () => {
     const k = await capacitacoes.listar()
-    setD(current => current ? { ...current, k } : current)
+    setD(current => (current ? { ...current, k } : current))
   }
 
   const form = (title, fields, initial, save, opcoes = {}) => setMd({ t: title, fs: fields, init: initial, save, ...opcoes })
-  const go = (name, pid) => { navigate(path(name, pid)); window.scrollTo(0, 0) }
+  const go = (name, pid) => {
+    navigate(path(name, pid))
+    window.scrollTo(0, 0)
+  }
 
   if (!sessionReady || !DF) return <main className="container py-5">Carregando…</main>
 
-  return <Ctx.Provider value={{ D, DF, form, go, me, mb, nav, entrar, sair, md, setMd, loading, refresh, pode, recarregarCapacitacoes }}>{children}</Ctx.Provider>
+  return (
+    <Ctx.Provider value={{ D, DF, form, go, me, mb, nav, entrar, sair, md, setMd, loading, refresh, pode, recarregarCapacitacoes }}>
+      {children}
+    </Ctx.Provider>
+  )
 }

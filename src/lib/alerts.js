@@ -1,9 +1,13 @@
 // O SweetAlert2 (JS + CSS) só é baixado no primeiro alerta, fora do pacote de entrada.
 let swal = null
-const carregar = () => swal ??= Promise.all([
-  import('sweetalert2'),
-  import('sweetalert2/dist/sweetalert2.min.css'),
-]).then(([modulo]) => modulo.default, erro => { swal = null; throw erro })
+const carregar = () =>
+  (swal ??= Promise.all([import('sweetalert2'), import('sweetalert2/dist/sweetalert2.min.css')]).then(
+    ([modulo]) => modulo.default,
+    erro => {
+      swal = null
+      throw erro
+    },
+  ))
 
 const baseOptions = {
   buttonsStyling: false,
@@ -19,9 +23,16 @@ const show = async options => (await carregar()).fire({ ...baseOptions, ...optio
 
 const alerts = {
   success: (title, text = '') => show({ icon: 'success', title, text, confirmButtonText: 'Continuar' }),
-  error: (title = 'Não foi possível concluir', text = 'Tente novamente.') => show({ icon: 'error', title, text, confirmButtonText: 'Entendi' }),
+  error: (title = 'Não foi possível concluir', text = 'Tente novamente.') =>
+    show({ icon: 'error', title, text, confirmButtonText: 'Entendi' }),
   info: (title, text = '') => show({ icon: 'info', title, text, confirmButtonText: 'Entendi' }),
-  confirm: async ({ title = 'Confirmar ação?', text = 'Esta operação não poderá ser desfeita.', confirmText = 'Confirmar', cancelText = 'Cancelar', danger = false } = {}) => {
+  confirm: async ({
+    title = 'Confirmar ação?',
+    text = 'Esta operação não poderá ser desfeita.',
+    confirmText = 'Confirmar',
+    cancelText = 'Cancelar',
+    danger = false,
+  } = {}) => {
     const result = await show({
       icon: danger ? 'warning' : 'question',
       title,
@@ -34,8 +45,11 @@ const alerts = {
     })
     return result.isConfirmed
   },
-  toastSuccess: (title, text = '') => show({ toast: true, position: 'top-end', icon: 'success', title, text, showConfirmButton: false, timer: 2400, timerProgressBar: true }),
-  close: () => { swal?.then(Swal => Swal.close()) },
+  toastSuccess: (title, text = '') =>
+    show({ toast: true, position: 'top-end', icon: 'success', title, text, showConfirmButton: false, timer: 2400, timerProgressBar: true }),
+  close: () => {
+    swal?.then(Swal => Swal.close())
+  },
 }
 
 export default alerts

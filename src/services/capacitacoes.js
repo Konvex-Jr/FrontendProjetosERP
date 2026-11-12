@@ -12,11 +12,13 @@ export const SITUACAO = { aberta: ['Inscrições abertas', 'ok'], lotada: ['Vaga
 
 /** Horas em texto: 1 → "1 h", 1.5 → "1h30". */
 export const horas = h => {
-  const n = Number(h) || 0, inteiras = Math.floor(n), min = Math.round((n - inteiras) * 60)
+  const n = Number(h) || 0,
+    inteiras = Math.floor(n),
+    min = Math.round((n - inteiras) * 60)
   return min ? `${inteiras}h${String(min).padStart(2, '0')}` : `${inteiras} h`
 }
 
-export const adaptCapacitacao = (c) => ({
+export const adaptCapacitacao = c => ({
   id: c.codigo,
   titulo: c.titulo,
   descricao: c.descricao || '',
@@ -48,23 +50,45 @@ export const adaptCapacitacao = (c) => ({
   anexos: c.anexos || [],
 })
 
-export const valoresCapacitacao = (c) => c
-  ? { titulo: c.titulo, descricao: c.descricao, data: c.data, hora: c.hora, duracaoHoras: String(c.duracao).replace('.', ','), codigoInstrutor: c.instrutorId, vagas: c.vagas, tipo: c.tipo, sala: c.sala }
-  : { titulo: '', descricao: '', data: '', hora: '18:30', duracaoHoras: '1', codigoInstrutor: '', vagas: 20, tipo: 'computacao', sala: '' }
+export const valoresCapacitacao = c =>
+  c
+    ? {
+        titulo: c.titulo,
+        descricao: c.descricao,
+        data: c.data,
+        hora: c.hora,
+        duracaoHoras: String(c.duracao).replace('.', ','),
+        codigoInstrutor: c.instrutorId,
+        vagas: c.vagas,
+        tipo: c.tipo,
+        sala: c.sala,
+      }
+    : {
+        titulo: '',
+        descricao: '',
+        data: '',
+        hora: '18:30',
+        duracaoHoras: '1',
+        codigoInstrutor: '',
+        vagas: 20,
+        tipo: 'computacao',
+        sala: '',
+      }
 
-const corpo = (v) => ({ ...v, duracaoHoras: String(v.duracaoHoras ?? '').replace(',', '.'), vagas: Number(v.vagas) })
+const corpo = v => ({ ...v, duracaoHoras: String(v.duracaoHoras ?? '').replace(',', '.'), vagas: Number(v.vagas) })
 
-const uma = async (p) => adaptCapacitacao(await p)
+const uma = async p => adaptCapacitacao(await p)
 
 export const capacitacoes = {
   opcoes: () => get('/capacitacoes/opcoes'),
   listar: async () => (await get('/capacitacoes')).map(adaptCapacitacao),
-  buscar: (codigo) => uma(get(`/capacitacoes/${codigo}`)),
-  salvar: (codigo, valores) => uma(codigo ? send('PUT', `/capacitacoes/${codigo}`, corpo(valores)) : send('POST', '/capacitacoes', corpo(valores))),
-  excluir: (codigo) => send('DELETE', `/capacitacoes/${codigo}`),
+  buscar: codigo => uma(get(`/capacitacoes/${codigo}`)),
+  salvar: (codigo, valores) =>
+    uma(codigo ? send('PUT', `/capacitacoes/${codigo}`, corpo(valores)) : send('POST', '/capacitacoes', corpo(valores))),
+  excluir: codigo => send('DELETE', `/capacitacoes/${codigo}`),
   inscrever: (codigo, codigoUsuario) => uma(send('POST', `/capacitacoes/${codigo}/inscricoes`, codigoUsuario ? { codigoUsuario } : {})),
   cancelar: (codigo, codigoUsuario) => uma(send('DELETE', `/capacitacoes/${codigo}/inscricoes/${codigoUsuario}`)),
   marcarPresencas: (codigo, presentes) => uma(send('PUT', `/capacitacoes/${codigo}/presencas`, { presentes })),
   avaliar: (codigo, avaliacao) => uma(send('PUT', `/capacitacoes/${codigo}/avaliacao`, avaliacao)),
-  avaliacoes: (codigo) => get(`/capacitacoes/${codigo}/avaliacoes`),
+  avaliacoes: codigo => get(`/capacitacoes/${codigo}/avaliacoes`),
 }

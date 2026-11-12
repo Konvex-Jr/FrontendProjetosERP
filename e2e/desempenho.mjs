@@ -22,9 +22,16 @@ const NOMES = { performance: 'Desempenho', accessibility: 'Acessibilidade', 'bes
 const DIST = new URL('../dist/', import.meta.url).pathname
 
 const TIPOS = {
-  '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.woff2': 'font/woff2',
-  '.webp': 'image/webp', '.png': 'image/png', '.ico': 'image/x-icon', '.webmanifest': 'application/manifest+json',
-  '.txt': 'text/plain; charset=utf-8', '.svg': 'image/svg+xml',
+  '.html': 'text/html; charset=utf-8',
+  '.js': 'text/javascript',
+  '.css': 'text/css',
+  '.woff2': 'font/woff2',
+  '.webp': 'image/webp',
+  '.png': 'image/png',
+  '.ico': 'image/x-icon',
+  '.webmanifest': 'application/manifest+json',
+  '.txt': 'text/plain; charset=utf-8',
+  '.svg': 'image/svg+xml',
 }
 const COMPRIMIR = new Set(['.html', '.js', '.css', '.webmanifest', '.txt', '.svg'])
 
@@ -44,12 +51,17 @@ function servir() {
     let caminho = normalize(decodeURIComponent(new URL(req.url, 'http://x').pathname))
     if (caminho.endsWith('/')) caminho += 'index.html'
     const arquivo = join(DIST, caminho)
-    if (!arquivo.startsWith(DIST) || !existsSync(arquivo)) { res.writeHead(404).end(); return }
+    if (!arquivo.startsWith(DIST) || !existsSync(arquivo)) {
+      res.writeHead(404).end()
+      return
+    }
     const ext = extname(arquivo)
     let corpo = readFileSync(arquivo)
     const cabecalhos = { 'Content-Type': TIPOS[ext] || 'application/octet-stream', 'Cache-Control': cache(caminho) }
     if (COMPRIMIR.has(ext) && /\bgzip\b/.test(req.headers['accept-encoding'] || '')) {
-      corpo = gzipSync(corpo); cabecalhos['Content-Encoding'] = 'gzip'; cabecalhos.Vary = 'Accept-Encoding'
+      corpo = gzipSync(corpo)
+      cabecalhos['Content-Encoding'] = 'gzip'
+      cabecalhos.Vary = 'Accept-Encoding'
     }
     res.writeHead(200, cabecalhos).end(corpo)
   })
@@ -63,14 +75,27 @@ const saida = join(mkdtempSync(join(tmpdir(), 'lighthouse-')), 'relatorio.json')
 
 console.log(`Lighthouse 12 em ${url}\n`)
 // spawn assíncrono: um execFileSync travaria o event loop e o servidor acima não responderia.
-const codigo = await new Promise(ok => spawn('npx', [
-  '-y', 'lighthouse@12', url,
-  `--only-categories=${Object.keys(MINIMOS).join(',')}`,
-  '--output=json', `--output-path=${saida}`, '--quiet',
-  '--chrome-flags=--headless=new --no-sandbox',
-], { stdio: 'inherit' }).on('close', ok))
+const codigo = await new Promise(ok =>
+  spawn(
+    'npx',
+    [
+      '-y',
+      'lighthouse@12',
+      url,
+      `--only-categories=${Object.keys(MINIMOS).join(',')}`,
+      '--output=json',
+      `--output-path=${saida}`,
+      '--quiet',
+      '--chrome-flags=--headless=new --no-sandbox',
+    ],
+    { stdio: 'inherit' },
+  ).on('close', ok),
+)
 servidor?.close()
-if (codigo !== 0) { console.error(`O Lighthouse terminou com código ${codigo}.`); process.exit(1) }
+if (codigo !== 0) {
+  console.error(`O Lighthouse terminou com código ${codigo}.`)
+  process.exit(1)
+}
 
 const { categories } = JSON.parse(readFileSync(saida, 'utf8'))
 let abaixo = false

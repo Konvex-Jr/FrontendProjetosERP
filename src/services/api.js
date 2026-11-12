@@ -33,16 +33,34 @@ export function mensagemDeErro(status, data) {
 const ACCESS_KEY = 'konvex_access_token'
 const REFRESH_KEY = 'konvex_refresh_token'
 const storage = () => (typeof sessionStorage === 'undefined' ? null : sessionStorage)
-const ler = key => { try { return storage()?.getItem(key) || '' } catch { return '' } }
-const gravar = (key, value) => { try { value ? storage()?.setItem(key, value) : storage()?.removeItem(key) } catch { /* sem storage */ } }
+const ler = key => {
+  try {
+    return storage()?.getItem(key) || ''
+  } catch {
+    return ''
+  }
+}
+const gravar = (key, value) => {
+  try {
+    value ? storage()?.setItem(key, value) : storage()?.removeItem(key)
+  } catch {
+    /* sem storage */
+  }
+}
 
 let memoria = { token: ler(ACCESS_KEY), refreshToken: ler(REFRESH_KEY) }
 let renovando = null
 
 export const sessao = {
-  get token() { return memoria.token },
-  get refreshToken() { return memoria.refreshToken },
-  get ativa() { return Boolean(memoria.token || memoria.refreshToken) },
+  get token() {
+    return memoria.token
+  },
+  get refreshToken() {
+    return memoria.refreshToken
+  },
+  get ativa() {
+    return Boolean(memoria.token || memoria.refreshToken)
+  },
   salvar({ token, refreshToken }) {
     memoria = { token: token || '', refreshToken: refreshToken || memoria.refreshToken }
     gravar(ACCESS_KEY, memoria.token)
@@ -70,7 +88,11 @@ async function chamar(path, init) {
 async function lerCorpo(response) {
   const text = await response.text()
   if (!text) return null
-  try { return JSON.parse(text) } catch { return { message: text } }
+  try {
+    return JSON.parse(text)
+  } catch {
+    return { message: text }
+  }
 }
 
 /** Renova o token de acesso. Chamadas simultâneas compartilham a mesma renovação. */
@@ -91,7 +113,9 @@ export function renovarSessao() {
       } catch {
         return false
       }
-    })().finally(() => { renovando = null })
+    })().finally(() => {
+      renovando = null
+    })
   }
   return renovando
 }

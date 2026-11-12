@@ -76,22 +76,22 @@ test('mensagemDeErro explains answers without a message', () => {
 })
 
 test('request reports network failures in plain words', async () => {
-  globalThis.fetch = async () => { throw new TypeError('network down') }
+  globalThis.fetch = async () => {
+    throw new TypeError('network down')
+  }
   const aviso = console.warn
   console.warn = () => {}
   try {
-    await assert.rejects(
-      request('/auth/login'),
-      error => error instanceof ApiError && error.status === 0 && error.message === SEM_CONEXAO,
-    )
-  } finally { console.warn = aviso }
+    await assert.rejects(request('/auth/login'), error => error instanceof ApiError && error.status === 0 && error.message === SEM_CONEXAO)
+  } finally {
+    console.warn = aviso
+  }
 })
 
 test('request returns null for successful empty responses', async () => {
   globalThis.fetch = async () => response(204)
   assert.equal(await request('/usuarios/123', { method: 'DELETE', token: 'jwt-test' }), null)
 })
-
 
 test('request sends binary files without JSON serialization', async () => {
   const originalFetch = globalThis.fetch
@@ -103,12 +103,19 @@ test('request sends binary files without JSON serialization', async () => {
   }
   try {
     const { request } = await import('../src/services/api.js')
-    const result = await request('/pastas/folder/documents/upload', { method: 'POST', token: 'token', body: file, headers: { 'X-File-Name': 'arquivo.pdf' } })
+    const result = await request('/pastas/folder/documents/upload', {
+      method: 'POST',
+      token: 'token',
+      body: file,
+      headers: { 'X-File-Name': 'arquivo.pdf' },
+    })
     assert.deepEqual(result, { ok: true })
     assert.equal(captured.body, file)
     assert.equal(captured.headers['Content-Type'], 'application/pdf')
     assert.equal(captured.headers['access-token'], 'token')
-  } finally { globalThis.fetch = originalFetch }
+  } finally {
+    globalThis.fetch = originalFetch
+  }
 })
 
 test('request com auth renova o token após 401 e repete a chamada', async () => {
@@ -122,11 +129,20 @@ test('request com auth renova o token após 401 e repete a chamada', async () =>
   }
   try {
     assert.deepEqual(await request('/projetos', { auth: true }), [1])
-    assert.deepEqual(chamadas.map(c => [c.url.replace(apiUrl, ''), c.token]), [['/projetos', 'vencido'], ['/auth/refresh', undefined], ['/projetos', 'novo']])
+    assert.deepEqual(
+      chamadas.map(c => [c.url.replace(apiUrl, ''), c.token]),
+      [
+        ['/projetos', 'vencido'],
+        ['/auth/refresh', undefined],
+        ['/projetos', 'novo'],
+      ],
+    )
     assert.equal(chamadas[1].body, JSON.stringify({ refreshToken: 'refresh-1' }))
     assert.equal(sessao.token, 'novo')
     assert.equal(sessao.refreshToken, 'refresh-2')
-  } finally { sessao.limpar() }
+  } finally {
+    sessao.limpar()
+  }
 })
 
 test('chamadas simultâneas compartilham uma única renovação', async () => {
@@ -134,24 +150,34 @@ test('chamadas simultâneas compartilham uma única renovação', async () => {
   sessao.salvar({ token: 'vencido', refreshToken: 'refresh-1' })
   let renovacoes = 0
   globalThis.fetch = async (url, options) => {
-    if (String(url).endsWith('/auth/refresh')) { renovacoes += 1; return response(200, '{"token":"novo","refreshToken":"refresh-2"}') }
+    if (String(url).endsWith('/auth/refresh')) {
+      renovacoes += 1
+      return response(200, '{"token":"novo","refreshToken":"refresh-2"}')
+    }
     return options.headers['access-token'] === 'novo' ? response(200, '{}') : response(401)
   }
   try {
     await Promise.all([request('/projetos', { auth: true }), request('/tarefas', { auth: true }), request('/usuarios', { auth: true })])
     assert.equal(renovacoes, 1)
-  } finally { sessao.limpar() }
+  } finally {
+    sessao.limpar()
+  }
 })
 
 test('se a renovação falha, limpa a sessão e avisa o app', async () => {
   const { request, sessao } = await import('../src/services/api.js')
   sessao.salvar({ token: 'vencido', refreshToken: 'revogado' })
   let avisado = false
-  sessao.onExpirada = () => { avisado = true }
+  sessao.onExpirada = () => {
+    avisado = true
+  }
   globalThis.fetch = async () => response(401, '{"message":"Sessão inválida."}')
   try {
     await assert.rejects(request('/projetos', { auth: true }), error => error instanceof ApiError && error.status === 401)
     assert.equal(avisado, true)
     assert.equal(sessao.ativa, false)
-  } finally { sessao.onExpirada = null; sessao.limpar() }
+  } finally {
+    sessao.onExpirada = null
+    sessao.limpar()
+  }
 })

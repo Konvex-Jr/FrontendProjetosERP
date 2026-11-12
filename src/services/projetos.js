@@ -19,7 +19,11 @@ export const STATUS_PROJETO = [
   ['arquivado', 'Arquivado'],
 ]
 export const COR_STATUS_PROJETO = { em_execucao: '', atencao: 'wa', bloqueado: 'er', concluido: 'ok', arquivado: '' }
-export const PRIORIDADE_PROJETO = [['alta', 'Alta'], ['media', 'Média'], ['baixa', 'Baixa']]
+export const PRIORIDADE_PROJETO = [
+  ['alta', 'Alta'],
+  ['media', 'Média'],
+  ['baixa', 'Baixa'],
+]
 
 /** Projetos que contam para a alocação (QA-35): Em andamento, Atenção e Bloqueado. */
 export const STATUS_ATIVOS = ['em_execucao', 'atencao', 'bloqueado']
@@ -74,6 +78,8 @@ export const projetos = {
 /** Aba Equipe. Cada chamada devolve { projeto, alocacao } com o alerta da pessoa (RN-04). */
 export const equipe = {
   adicionar: (codigoProjeto, dados) => send('POST', `/projetos/${codigoProjeto}/membros`, corpoParticipacao(dados)),
-  editar: (codigoProjeto, codigoParticipacao, dados) => send('PUT', `/projetos/${codigoProjeto}/membros/${codigoParticipacao}`, corpoParticipacao(dados)),
-  encerrar: (codigoProjeto, codigoParticipacao, dataSaida) => send('POST', `/projetos/${codigoProjeto}/membros/${codigoParticipacao}/encerrar`, dataSaida ? { dataSaida } : {}),
+  editar: (codigoProjeto, codigoParticipacao, dados) =>
+    send('PUT', `/projetos/${codigoProjeto}/membros/${codigoParticipacao}`, corpoParticipacao(dados)),
+  encerrar: (codigoProjeto, codigoParticipacao, dataSaida) =>
+    send('POST', `/projetos/${codigoProjeto}/membros/${codigoParticipacao}/encerrar`, dataSaida ? { dataSaida } : {}),
 }

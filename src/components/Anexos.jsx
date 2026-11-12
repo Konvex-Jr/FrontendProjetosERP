@@ -28,7 +28,8 @@ export function BotaoAnexar({ enviar, rotulo = 'Anexar arquivo', className = 'bt
     <>
       <input ref={entrada} type="file" accept={ACEITA} hidden onChange={escolher} />
       <button type="button" className={className} disabled={enviando} onClick={() => entrada.current?.click()}>
-        <Ic k="upload" />{enviando ? 'Enviando…' : rotulo}
+        <Ic k="upload" />
+        {enviando ? 'Enviando…' : rotulo}
       </button>
     </>
   )
@@ -61,22 +62,48 @@ export default function Anexos({ dono, codigo, lista, podeAlterar, aoMudar }) {
   }
   return (
     <>
-      {itens.length ? <ul className="ax">
-        {itens.map(a => (
-          <li key={a.id}>
-            <button type="button" className="ax-n" onClick={() => baixarAnexo(a)} title="Baixar"><Ic k="file" /><span>{a.nome}</span></button>
-            <small>{a.tamanho} · {a.enviadoPor} · {fd(a.data)}</small>
-            <span className="ax-a">
-              <button type="button" className="btn btn-g btn-sm" onClick={() => baixarAnexo(a)} aria-label="Baixar" data-tip="Baixar"><Ic k="download" /></button>
-              {podeAlterar && <button type="button" className="btn btn-g btn-sm" onClick={() => excluir(a)} aria-label="Excluir" data-tip="Excluir"><Ic k="trash" /></button>}
-            </span>
-          </li>
-        ))}
-      </ul> : <small className="d-block mb-2">{podeAlterar ? 'Nenhum arquivo ainda. Use “Anexar arquivo” para guardar PDFs, planilhas, apresentações ou imagens.' : 'Nenhum arquivo anexado.'}</small>}
-      {podeAlterar && <div className="d-flex flex-wrap align-items-center gap-2 mt-2">
-        <BotaoAnexar enviar={async arquivo => { await api.enviar(dono, codigo, arquivo); aoMudar?.() }} />
-        <small>{DICA}</small>
-      </div>}
+      {itens.length ? (
+        <ul className="ax">
+          {itens.map(a => (
+            <li key={a.id}>
+              <button type="button" className="ax-n" onClick={() => baixarAnexo(a)} title="Baixar">
+                <Ic k="file" />
+                <span>{a.nome}</span>
+              </button>
+              <small>
+                {a.tamanho} · {a.enviadoPor} · {fd(a.data)}
+              </small>
+              <span className="ax-a">
+                <button type="button" className="btn btn-g btn-sm" onClick={() => baixarAnexo(a)} aria-label="Baixar" data-tip="Baixar">
+                  <Ic k="download" />
+                </button>
+                {podeAlterar && (
+                  <button type="button" className="btn btn-g btn-sm" onClick={() => excluir(a)} aria-label="Excluir" data-tip="Excluir">
+                    <Ic k="trash" />
+                  </button>
+                )}
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <small className="d-block mb-2">
+          {podeAlterar
+            ? 'Nenhum arquivo ainda. Use “Anexar arquivo” para guardar PDFs, planilhas, apresentações ou imagens.'
+            : 'Nenhum arquivo anexado.'}
+        </small>
+      )}
+      {podeAlterar && (
+        <div className="d-flex flex-wrap align-items-center gap-2 mt-2">
+          <BotaoAnexar
+            enviar={async arquivo => {
+              await api.enviar(dono, codigo, arquivo)
+              aoMudar?.()
+            }}
+          />
+          <small>{DICA}</small>
+        </div>
+      )}
     </>
   )
 }

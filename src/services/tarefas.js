@@ -21,12 +21,15 @@ const base = t => ({
 })
 
 /** Categorias das tarefas avulsas (sessão 8c); mesma lista da API. */
-export const CATEGORIAS = [['inovacao', 'Inovação'], ['capacitacao', 'Capacitação'], ['execucao', 'Execução']]
+export const CATEGORIAS = [
+  ['inovacao', 'Inovação'],
+  ['capacitacao', 'Capacitação'],
+  ['execucao', 'Execução'],
+]
 export const rotuloCategoria = c => CATEGORIAS.find(x => x[0] === c)?.[1] || c || ''
 /** De onde a tarefa é: nome do projeto ou categoria da avulsa. */
-export const origemTarefa = t => (t.avulsa
-  ? rotuloCategoria(t.categoria) + (t.iniciativaNome ? ' · ' + t.iniciativaNome : '')
-  : t.projetoNome || 'Projeto')
+export const origemTarefa = t =>
+  t.avulsa ? rotuloCategoria(t.categoria) + (t.iniciativaNome ? ' · ' + t.iniciativaNome : '') : t.projetoNome || 'Projeto'
 
 /** Iniciativa ligada (sessão 12b): só tarefa avulsa de Inovação; nas outras vai null (desliga). */
 export const iniciativaDa = t => (t.categoria === 'inovacao' ? t.iniciativaId || null : null)

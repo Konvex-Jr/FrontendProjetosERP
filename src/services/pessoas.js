@@ -23,16 +23,23 @@ export const pessoas = {
   perfil: codigo => get(`/usuarios/${codigo}/perfil`),
   criar: dados => send('POST', '/usuarios', vazioComoNull(dados)),
   editar: (codigo, dados) => send('PUT', `/usuarios/${codigo}`, vazioComoNull(dados)),
-  alterarStatus: (codigo, status, dataSaida) => send('PATCH', `/usuarios/${codigo}/status`, { status, ...(dataSaida ? { dataSaida } : {}) }),
+  alterarStatus: (codigo, status, dataSaida) =>
+    send('PATCH', `/usuarios/${codigo}/status`, { status, ...(dataSaida ? { dataSaida } : {}) }),
   redefinirSenha: (codigo, novaSenha) => send('PUT', `/usuarios/${codigo}/senha`, { novaSenha }),
 }
 
 /** Tecnologias da pessoa (habilidades do tipo "tecnologia"), em ordem alfabética. */
-export const tecnologiasDe = u => (u?.habilidades || []).filter(h => h.tipo === 'tecnologia').map(h => h.nome).sort((a, b) => a.localeCompare(b))
+export const tecnologiasDe = u =>
+  (u?.habilidades || [])
+    .filter(h => h.tipo === 'tecnologia')
+    .map(h => h.nome)
+    .sort((a, b) => a.localeCompare(b))
 
 /** Junta um nome novo à lista sem repetir (sem diferenciar maiúsculas); usa a grafia de `sugestoes` se já existir. */
 export function juntarTecnologia(lista, nome, sugestoes = []) {
-  const limpo = String(nome || '').trim().replace(/\s+/g, ' ')
+  const limpo = String(nome || '')
+    .trim()
+    .replace(/\s+/g, ' ')
   if (!limpo || limpo.length > 60) return lista
   const igual = x => x.toLowerCase() === limpo.toLowerCase()
   if (lista.some(igual)) return lista

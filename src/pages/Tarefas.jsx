@@ -15,8 +15,15 @@ import { STATUS_ATIVOS, projetos } from '../services/projetos'
 import { CATEGORIAS, acoesTarefa, origemTarefa, papelNaTarefa, tarefas } from '../services/tarefas'
 import { iniciativas } from '../services/iniciativas'
 
-const VISOES = [['kanban', 'Kanban'], ['lista', 'Lista']]
-const PRAZOS = [['', 'Prazo: todos'], ['atrasadas', 'Atrasadas'], ['semana', 'Vencem esta semana']]
+const VISOES = [
+  ['kanban', 'Kanban'],
+  ['lista', 'Lista'],
+]
+const PRAZOS = [
+  ['', 'Prazo: todos'],
+  ['atrasadas', 'Atrasadas'],
+  ['semana', 'Vencem esta semana'],
+]
 
 /** Filtro de prazo (só na tela): atrasadas = abertas com prazo antes de hoje; semana = abertas que vencem de hoje até domingo. */
 export function noPrazo(t, prazo, hoje) {
@@ -44,9 +51,11 @@ export function filtroApi({ pessoa, origem, status }) {
  */
 export default function Tarefas() {
   const { D, form, me, pode, refresh } = useApp()
-  const gestao = pode('tarefas.gerirTodas'), atribui = pode('tarefas.atribuir')
+  const gestao = pode('tarefas.gerirTodas'),
+    atribui = pode('tarefas.atribuir')
   const [filtro, setFiltro] = useState(() => ({ pessoa: me, origem: '', status: '', prazo: '', ...consumir('tarefas') }))
-  const [visao, setVisao] = useState('kanban'), [tk, setTk] = useState(null)
+  const [visao, setVisao] = useState('kanban'),
+    [tk, setTk] = useState(null)
   const set = (k, v) => setFiltro(f => ({ ...f, [k]: v }))
 
   const { dados, carregando, recarregar } = useCarregar(async () => {
@@ -88,46 +97,90 @@ export default function Tarefas() {
     const p = porCodigo.get(tipo.slice(5))
     return gestao || p?.lider?.codigo === me
   }
-  const genteDe = tipo => tipo?.startsWith('proj:')
-    ? D.u.filter(u => equipeAtual(porCodigo.get(tipo.slice(5))).includes(u.id))
-    : D.u.filter(u => u.ativo !== false)
+  const genteDe = tipo =>
+    tipo?.startsWith('proj:')
+      ? D.u.filter(u => equipeAtual(porCodigo.get(tipo.slice(5))).includes(u.id))
+      : D.u.filter(u => u.ativo !== false)
 
   const { m } = semanas(D)
   const nova = i => {
     const inicial = tipos.find(([k]) => k === filtro.origem)?.[0] || tipos[0]?.[0]
-    return form('Nova tarefa', [
-      { k: 'tipo', l: 'Tipo', o: tipos, h: atribui ? 'Tarefa avulsa (Inovação, Capacitação ou Execução) ou de um projeto.' : 'Você cria tarefas nos projetos de que participa.' },
-      { k: 'titulo', l: 'Título' },
-      { k: 'prioridade', l: 'Prioridade', o: ['P1', 'P2', 'P3', 'P4'].map(x => [x, x]) },
-      { k: 'iniciativaId', l: 'Iniciativa', o: opcoesIniciativa, s: v => v.tipo === 'cat:inovacao', h: 'Opcional: liga a tarefa a uma iniciativa de inovação.' },
-      { k: 'responsaveis', l: 'Responsáveis', c: v => genteDe(v.tipo), s: v => organizaEm(v.tipo) },
-      { k: 'inicio', l: 'Início', t: 'date' },
-      { k: 'fim', l: 'Fim', t: 'date' },
-    ], {
-      tipo: inicial, prioridade: 'P3', responsaveis: filtro.pessoa && filtro.pessoa !== me && atribui ? [filtro.pessoa] : [],
-      ...(typeof i == 'number' && i < 3 ? { inicio: D.c.hoje, fim: iso(m + (7 * i + 4) * DAY) } : {}),
-    }, o => {
-      const projeto = o.tipo?.startsWith('proj:') ? o.tipo.slice(5) : null
-      const dados = { ...o, categoria: projeto ? undefined : o.tipo?.slice(4), responsaveis: organizaEm(o.tipo) ? o.responsaveis : [me] }
-      return salvarTarefa(() => tarefas.criar(projeto, dados), 'Tarefa criada')
-    })
+    return form(
+      'Nova tarefa',
+      [
+        {
+          k: 'tipo',
+          l: 'Tipo',
+          o: tipos,
+          h: atribui
+            ? 'Tarefa avulsa (Inovação, Capacitação ou Execução) ou de um projeto.'
+            : 'Você cria tarefas nos projetos de que participa.',
+        },
+        { k: 'titulo', l: 'Título' },
+        { k: 'prioridade', l: 'Prioridade', o: ['P1', 'P2', 'P3', 'P4'].map(x => [x, x]) },
+        {
+          k: 'iniciativaId',
+          l: 'Iniciativa',
+          o: opcoesIniciativa,
+          s: v => v.tipo === 'cat:inovacao',
+          h: 'Opcional: liga a tarefa a uma iniciativa de inovação.',
+        },
+        { k: 'responsaveis', l: 'Responsáveis', c: v => genteDe(v.tipo), s: v => organizaEm(v.tipo) },
+        { k: 'inicio', l: 'Início', t: 'date' },
+        { k: 'fim', l: 'Fim', t: 'date' },
+      ],
+      {
+        tipo: inicial,
+        prioridade: 'P3',
+        responsaveis: filtro.pessoa && filtro.pessoa !== me && atribui ? [filtro.pessoa] : [],
+        ...(typeof i == 'number' && i < 3 ? { inicio: D.c.hoje, fim: iso(m + (7 * i + 4) * DAY) } : {}),
+      },
+      o => {
+        const projeto = o.tipo?.startsWith('proj:') ? o.tipo.slice(5) : null
+        const dados = { ...o, categoria: projeto ? undefined : o.tipo?.slice(4), responsaveis: organizaEm(o.tipo) ? o.responsaveis : [me] }
+        return salvarTarefa(() => tarefas.criar(projeto, dados), 'Tarefa criada')
+      },
+    )
   }
   const podeCriar = tipos.length > 0
 
-  const pessoas = [['', 'Pessoa: todas'], [me, 'Minhas tarefas'], ...D.u.filter(u => u.id !== me && u.ativo !== false).map(u => [u.id, u.nome])]
+  const pessoas = [
+    ['', 'Pessoa: todas'],
+    [me, 'Minhas tarefas'],
+    ...D.u.filter(u => u.id !== me && u.ativo !== false).map(u => [u.id, u.nome]),
+  ]
   const origens = [
-    ['', 'Origem: todas'], ['avulsas', 'Só avulsas'],
+    ['', 'Origem: todas'],
+    ['avulsas', 'Só avulsas'],
     ...CATEGORIAS.map(([k, l]) => ['cat:' + k, l]),
     ...(dados?.projetos || []).map(p => ['proj:' + p.codigo, 'Projeto: ' + p.nome]),
   ]
   const sel = (rotulo, k, opcoes) => (
-    <select className="form-select w-auto" style={{ maxWidth: 260 }} aria-label={rotulo} value={filtro[k]} onChange={e => set(k, e.target.value)}>
-      {opcoes.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+    <select
+      className="form-select w-auto"
+      style={{ maxWidth: 260 }}
+      aria-label={rotulo}
+      value={filtro[k]}
+      onChange={e => set(k, e.target.value)}
+    >
+      {opcoes.map(([v, l]) => (
+        <option key={v} value={v}>
+          {l}
+        </option>
+      ))}
     </select>
   )
 
   const colunas = [
-    { k: 'titulo', l: 'Tarefa', render: t => <button className="btn btn-link p-0 text-start" onClick={() => setTk(t.id)}>{t.titulo}</button> },
+    {
+      k: 'titulo',
+      l: 'Tarefa',
+      render: t => (
+        <button className="btn btn-link p-0 text-start" onClick={() => setTk(t.id)}>
+          {t.titulo}
+        </button>
+      ),
+    },
     { k: 'origem', l: 'Projeto / categoria', fl: 'Origem', get: origemTarefa, filter: true },
     { k: 'resp', l: 'Responsáveis', get: t => nm(D, t.responsaveis) },
     { k: 'fim', l: 'Prazo', render: t => fm(t.fim) },
@@ -141,27 +194,61 @@ export default function Tarefas() {
     <>
       <PageBar title="Tarefas" sub={carregando && !dados ? 'Carregando…' : `${T.length} ${T.length == 1 ? 'tarefa' : 'tarefas'}`}>
         <Seg items={VISOES} value={visao} onChange={setVisao} />
-        {podeCriar && <button className="btn btn-primary" onClick={() => nova()}><Ic k="plus" />Nova tarefa</button>}
+        {podeCriar && (
+          <button className="btn btn-primary" onClick={() => nova()}>
+            <Ic k="plus" />
+            Nova tarefa
+          </button>
+        )}
       </PageBar>
       <div className="fl d-flex flex-wrap gap-2 mb-3">
-        {gestao ? sel('Pessoa', 'pessoa', pessoas) : <Seg items={[[me, 'Minhas tarefas'], ['', 'Tudo o que vejo']]} value={filtro.pessoa} onChange={v => set('pessoa', v)} />}
+        {gestao ? (
+          sel('Pessoa', 'pessoa', pessoas)
+        ) : (
+          <Seg
+            items={[
+              [me, 'Minhas tarefas'],
+              ['', 'Tudo o que vejo'],
+            ]}
+            value={filtro.pessoa}
+            onChange={v => set('pessoa', v)}
+          />
+        )}
         {sel('Projeto ou categoria', 'origem', origens)}
         {sel('Situação', 'status', [['', 'Situação: todas'], ...Object.entries(ST)])}
         {sel('Prazo', 'prazo', PRAZOS)}
       </div>
       {!carregando && !T.length && (
-        <div className="card card-body mb-3"><small>{filtro.status || filtro.origem || filtro.prazo || filtro.pessoa != me
-          ? 'Nenhuma tarefa com estes filtros. Mude os filtros acima.'
-          : 'Você não tem tarefas.' + (podeCriar ? ' Use “Nova tarefa” para criar uma.' : ' Quando alguém atribuir uma a você, ela aparece aqui.')}</small></div>
+        <div className="card card-body mb-3">
+          <small>
+            {filtro.status || filtro.origem || filtro.prazo || filtro.pessoa != me
+              ? 'Nenhuma tarefa com estes filtros. Mude os filtros acima.'
+              : 'Você não tem tarefas.' +
+                (podeCriar ? ' Use “Nova tarefa” para criar uma.' : ' Quando alguém atribuir uma a você, ela aparece aqui.')}
+          </small>
+        </div>
       )}
-      {visao == 'kanban'
-        ? <KanbanTarefas D={D} T={T} papelDe={papelDe} acoes={acoes} abrir={setTk} adicionar={podeCriar ? nova : null} origem />
-        : <div className="card card-body"><Table cols={colunas} rows={T} vazio="Nenhuma tarefa para mostrar." /></div>}
+      {visao == 'kanban' ? (
+        <KanbanTarefas D={D} T={T} papelDe={papelDe} acoes={acoes} abrir={setTk} adicionar={podeCriar ? nova : null} origem />
+      ) : (
+        <div className="card card-body">
+          <Table cols={colunas} rows={T} vazio="Nenhuma tarefa para mostrar." />
+        </div>
+      )}
       {aberta && (
-        <TaskModal D={D} papel={papelDe(aberta)} me={me} t={aberta} T={T} iniciativas={opcoesIniciativa}
+        <TaskModal
+          D={D}
+          papel={papelDe(aberta)}
+          me={me}
+          t={aberta}
+          T={T}
+          iniciativas={opcoesIniciativa}
           p={projetoAberto ? { id: projetoAberto.codigo, nome: projetoAberto.nome, membros: equipeAtual(projetoAberto) } : null}
           salvar={(antes, depois) => acoes.salvar(antes, depois, 'Tarefa salva')}
-          close={() => setTk(null)} del={acoes.del} tog={acoes.tog} />
+          close={() => setTk(null)}
+          del={acoes.del}
+          tog={acoes.tog}
+        />
       )}
     </>
   )

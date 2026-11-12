@@ -22,6 +22,8 @@ export default function useCarregar(carregar, deps = []) {
     // eslint-disable-next-line react-hooks/exhaustive-deps, react-hooks/use-memo
   }, deps)
 
-  useEffect(() => { recarregar() }, [recarregar])
+  useEffect(() => {
+    recarregar()
+  }, [recarregar])
   return { dados, carregando, recarregar }
 }

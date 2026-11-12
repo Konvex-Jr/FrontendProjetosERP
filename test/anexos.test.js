@@ -30,7 +30,13 @@ test('mostra o tamanho de forma legível', () => {
 })
 
 test('adapta anexo, documento de arquivo e anexos da Base e das Iniciativas', () => {
-  const bruto = { codigo: 'a1', nome: 'Ata.pdf', tamanhoBytes: 2048, enviadoPor: { codigo: 'u', nome: 'Ana' }, enviadoEm: '2026-11-09T15:00:00.000Z' }
+  const bruto = {
+    codigo: 'a1',
+    nome: 'Ata.pdf',
+    tamanhoBytes: 2048,
+    enviadoPor: { codigo: 'u', nome: 'Ana' },
+    enviadoEm: '2026-11-09T15:00:00.000Z',
+  }
   assert.deepEqual(adaptAnexo(bruto), { id: 'a1', nome: 'Ata.pdf', tamanho: '2 KB', enviadoPor: 'Ana', data: '2026-11-09' })
   const doc = adaptDocumento({ codigo: 'd1', nome: 'Ata', arquivoUrl: null, anexo: bruto, dataEnvio: '2026-11-09' })
   assert.equal(doc.url, '')

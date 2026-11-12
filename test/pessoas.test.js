@@ -7,10 +7,19 @@ const capturar = async fn => {
   const original = globalThis.fetch
   const chamadas = []
   globalThis.fetch = async (url, init) => {
-    chamadas.push({ url: String(url), method: init.method, body: init.body ? JSON.parse(init.body) : undefined, token: init.headers['access-token'] })
+    chamadas.push({
+      url: String(url),
+      method: init.method,
+      body: init.body ? JSON.parse(init.body) : undefined,
+      token: init.headers['access-token'],
+    })
     return { ok: true, status: 200, text: async () => '{}' }
   }
-  try { await fn() } finally { globalThis.fetch = original }
+  try {
+    await fn()
+  } finally {
+    globalThis.fetch = original
+  }
   return chamadas
 }
 
@@ -25,9 +34,16 @@ test('pessoas e configurações usam a sessão e a rota certa', async () => {
   })
   sessao.limpar()
 
-  assert.deepEqual(chamadas.map(c => [c.method, c.url.replace(/^https?:\/\/[^/]+/, '')]), [
-    ['PUT', '/usuarios/p1'], ['PATCH', '/usuarios/p1/status'], ['PUT', '/auth/perfil'], ['POST', '/areas'], ['PUT', '/cargos/c1'],
-  ])
+  assert.deepEqual(
+    chamadas.map(c => [c.method, c.url.replace(/^https?:\/\/[^/]+/, '')]),
+    [
+      ['PUT', '/usuarios/p1'],
+      ['PATCH', '/usuarios/p1/status'],
+      ['PUT', '/auth/perfil'],
+      ['POST', '/areas'],
+      ['PUT', '/cargos/c1'],
+    ],
+  )
   assert.ok(chamadas.every(c => c.token === 'tk'))
   // Campo vazio vira null (a API limpa o valor); data de saída vazia não é enviada.
   assert.deepEqual(chamadas[0].body, { nome: 'Ana', codigoArea: null, codigoCargo: 'c1' })
@@ -45,5 +61,14 @@ test('juntarTecnologia não repete por maiúsculas e reaproveita a grafia da lis
   assert.deepEqual(juntarTecnologia(['React'], 'react'), ['React'])
   assert.deepEqual(juntarTecnologia(['React'], '  node.js ', ['Node.js']), ['React', 'Node.js'])
   assert.deepEqual(juntarTecnologia([], '   '), [])
-  assert.deepEqual(tecnologiasDe({ habilidades: [{ nome: 'Liderança', tipo: 'habilidade' }, { nome: 'Vue', tipo: 'tecnologia' }, { nome: 'Arduino', tipo: 'tecnologia' }] }), ['Arduino', 'Vue'])
+  assert.deepEqual(
+    tecnologiasDe({
+      habilidades: [
+        { nome: 'Liderança', tipo: 'habilidade' },
+        { nome: 'Vue', tipo: 'tecnologia' },
+        { nome: 'Arduino', tipo: 'tecnologia' },
+      ],
+    }),
+    ['Arduino', 'Vue'],
+  )
 })

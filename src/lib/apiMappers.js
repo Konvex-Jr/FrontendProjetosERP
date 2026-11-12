@@ -1,12 +1,13 @@
 import { iso } from './utils.js'
 
-export const slug = value => String(value || '')
-  .normalize('NFD')
-  .replace(/[\u0300-\u036f]/g, '')
-  .toLowerCase()
-  .replace(/[^a-z0-9]+/g, '_')
+export const slug = value =>
+  String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
 
-export const dateOnly = value => value ? String(value).slice(0, 10) : ''
+export const dateOnly = value => (value ? String(value).slice(0, 10) : '')
 
 export function userCode(value) {
   if (!value || typeof value !== 'object') return value
@@ -14,9 +15,7 @@ export function userCode(value) {
 }
 
 export function adaptUser(user) {
-  const senioridadeRef = user.senioridade && typeof user.senioridade === 'object'
-    ? user.senioridade
-    : null
+  const senioridadeRef = user.senioridade && typeof user.senioridade === 'object' ? user.senioridade : null
   const senioridadeValue = senioridadeRef?.codigo || senioridadeRef?.nome || user.senioridade
 
   return {
@@ -53,7 +52,7 @@ export function adaptTask(task) {
     categoria: task.categoria || undefined,
     iniciativaId: task.iniciativa?.codigo || undefined,
     iniciativaNome: task.iniciativa?.nome || undefined,
-    criadaPor: task.criadaPor ? (task.criadaPor.nomeExibicao || task.criadaPor.nome) : undefined,
+    criadaPor: task.criadaPor ? task.criadaPor.nomeExibicao || task.criadaPor.nome : undefined,
     titulo: task.titulo,
     descricao: task.descricao || '',
     inicio: dateOnly(task.dataInicio),
@@ -61,7 +60,7 @@ export function adaptTask(task) {
     status: task.status,
     prioridade: task.prioridade,
     conclusao: task.dataConclusao ? dateOnly(task.dataConclusao) : undefined,
-    concluidaPor: task.concluidaPor ? (task.concluidaPor.nomeExibicao || task.concluidaPor.nome) : undefined,
+    concluidaPor: task.concluidaPor ? task.concluidaPor.nomeExibicao || task.concluidaPor.nome : undefined,
     dependeDe: userCode(task.dependeDe) || undefined,
     responsaveis: (task.responsaveis || []).map(userCode),
     checklist: (task.checklist || []).map(item => ({
@@ -72,15 +71,16 @@ export function adaptTask(task) {
   }
 }
 
-
 export function readConfig(registros = [], usarPadrao = registros.length === 0) {
   const senioridades = registros.length
     ? registros
-    : (usarPadrao ? [
-        { codigo: 'junior', nome: 'Júnior', valorHora: 45 },
-        { codigo: 'pleno', nome: 'Pleno', valorHora: 75 },
-        { codigo: 'senior', nome: 'Sênior', valorHora: 120 },
-      ] : [])
+    : usarPadrao
+      ? [
+          { codigo: 'junior', nome: 'Júnior', valorHora: 45 },
+          { codigo: 'pleno', nome: 'Pleno', valorHora: 75 },
+          { codigo: 'senior', nome: 'Sênior', valorHora: 120 },
+        ]
+      : []
 
   return {
     hoje: iso(new Date()),
@@ -96,10 +96,8 @@ export function normalizeSenioridades(registros = []) {
   const lista = Array.isArray(registros)
     ? registros
     : Object.entries(registros || {}).map(([codigo, valor]) =>
-      typeof valor === 'object' && valor !== null
-        ? { codigo: valor.codigo || codigo, ...valor }
-        : { codigo, nome: valor, valorHora: 0 }
-    )
+        typeof valor === 'object' && valor !== null ? { codigo: valor.codigo || codigo, ...valor } : { codigo, nome: valor, valorHora: 0 },
+      )
 
   return lista
     .map(item => ({
