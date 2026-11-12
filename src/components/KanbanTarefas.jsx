@@ -12,10 +12,12 @@ export const COLUNAS = ['Essa semana', 'Semana que vem', 'Daqui a duas semanas',
 export function semanas(D) {
   const h = hj(D),
     m = +h - ((h.getDay() + 6) % 7) * DAY
+  // Atrasadas caem em "Essa semana"; prazos depois de duas semanas, em "Daqui a duas semanas".
   const col = t => (t.status == 'concluida' ? 3 : Math.min(2, Math.max(0, Math.floor((+d(t.fim) - m) / (7 * DAY)))))
   return { h, m, col }
 }
 
+// Ordem dentro da coluna: prioridade (P1 primeiro) e depois prazo.
 const ordem = (a, b) => (a.prioridade > b.prioridade ? 1 : a.prioridade < b.prioridade ? -1 : a.fim > b.fim ? 1 : -1)
 
 /**
@@ -37,6 +39,7 @@ export default function KanbanTarefas({ D, T, papelDe, acoes, abrir, adicionar, 
       if ((i == 3 && !was) || (i < 3 && was)) acoes.tog(x)
       return
     }
+    // Soltar numa semana muda o prazo para a sexta dessa semana (e puxa o início, se ele ficaria depois do prazo).
     let o
     if (i == 3) o = was ? x : { ...x, status: 'concluida' }
     else {
@@ -83,6 +86,7 @@ export default function KanbanTarefas({ D, T, papelDe, acoes, abrir, adicionar, 
                   draggable={papel.organiza || papel.podeStatus(t)}
                   className="tk"
                   onClick={() => abrir(t.id)}
+                  // A tarefa arrastada fica na ref `dg`: o dataTransfer só leva texto.
                   onDragStart={e => {
                     dg.current = t
                     e.dataTransfer.effectAllowed = 'move'

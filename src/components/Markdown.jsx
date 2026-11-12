@@ -27,6 +27,7 @@ export default function Markdown({ texto }) {
     <div className="md">
       {blocos(texto).map((b, i) => {
         if (b.t === 'h') {
+          // # vira h3: h1 e h2 já são usados pela página em volta.
           const H = `h${b.n + 2}`
           return (
             <H key={i}>

@@ -35,6 +35,7 @@ function Indicadores({ D, go }) {
   )
 }
 
+/** Próximas tarefas abertas da pessoa e capacitações em que ela se inscreveu (até 6 de cada). */
 function Agenda({ D, me, go }) {
   const h = hj(D)
   const tk = D.t
@@ -110,6 +111,11 @@ function Agenda({ D, me, go }) {
   )
 }
 
+/**
+ * Tela inicial: resumo das tarefas da pessoa, burndown, agenda e atalhos do menu.
+ * Os indicadores da Konvex só aparecem para quem tem projetos.verTodos (gestão).
+ * Usa os dados do contexto (D), que para membro já vêm só com o que é dele.
+ */
 export default function Dashboard() {
   const { D, go, me, nav, pode } = useApp()
   const mine = D.t.filter(t => (t.responsaveis || []).includes(me)),

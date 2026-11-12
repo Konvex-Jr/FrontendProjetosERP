@@ -61,10 +61,12 @@ export function blocos(fonte) {
   return saida
 }
 
+// Só links http(s): barra `javascript:` e outros esquemas no href.
 const LINK_SEGURO = /^https?:\/\//i
 
 /** Divide uma linha em trechos: { t: 'txt'|'b'|'i'|'code', texto } | { t: 'a', texto, url }. */
 export function trechos(texto) {
+  // A ordem das alternativas importa: ** vem antes de * para negrito não ser lido como itálico.
   const padrao = /(\*\*([^*]+)\*\*)|(`([^`]+)`)|(\[([^\]]+)\]\(([^)\s]+)\))|(\*([^*\s][^*]*)\*)|(_([^_\s][^_]*)_)/g
   const saida = []
   let fim = 0,

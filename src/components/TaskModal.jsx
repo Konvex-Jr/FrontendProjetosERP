@@ -106,6 +106,12 @@ const crescer = el => {
   }
 }
 
+/**
+ * Detalhes de uma tarefa (de projeto ou avulsa). Edita uma cópia (`draft`) e só envia ao salvar:
+ * `salvar(antes, depois)` escolhe PATCH (só status) ou PUT (ver services/tarefas).
+ * `papel` vem de papelNaTarefa/papelNasTarefas: sem `organiza`, os campos ficam travados.
+ * `T` = tarefas carregadas na tela (para as dependências); `p` = projeto no formato do contexto.
+ */
 export default function TaskModal({ D, salvar, t, p, T, close, del, tog, papel, iniciativas }) {
   const [draft, setDraft] = useState({ ...t }),
     [nv, setNv] = useState('')
@@ -113,6 +119,7 @@ export default function TaskModal({ D, salvar, t, p, T, close, del, tog, papel, 
     dn = cl.filter(x => x.feito).length
   const patch = o => setDraft(current => ({ ...current, ...o })),
     setCl = f => patch({ checklist: f(cl) })
+  // A data de conclusão aqui é só para a tela; ela não vai no corpo, a API grava a data real.
   const st = value => patch({ status: value, conclusao: value == 'concluida' ? D.c.hoje : undefined })
   const save = async () => {
     if ((await salvar(t, draft)) !== false) close()
@@ -129,6 +136,7 @@ export default function TaskModal({ D, salvar, t, p, T, close, del, tog, papel, 
       close()
     }
   }
+  // Cadeia de dependências a partir de `id`; serve para não oferecer uma opção que criaria ciclo (A depende de B, B de A).
   const chain = id => {
     const o = []
     let x = T.find(y => y.id == id)

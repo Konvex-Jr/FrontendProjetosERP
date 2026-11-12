@@ -5,6 +5,7 @@ import { fm, ini, un, chip } from '../lib/utils'
 import Ic from './Icon'
 import FormModal from './FormModal'
 
+/** Barra do topo: data de hoje, troca de tema, pessoa logada (abre o perfil) e Sair. */
 function Header() {
   const { D, me, sair } = useApp(),
     navigate = useNavigate()
@@ -12,6 +13,7 @@ function Header() {
   const tema = () => {
     const n = !dk,
       r = document.documentElement
+    // data-theme liga as nossas cores e data-bs-theme as do Bootstrap. A classe `tt` anima as cores só durante a troca.
     r.classList.add('tt')
     r.dataset.theme = n ? 'dark' : 'light'
     r.dataset.bsTheme = n ? 'dark' : 'light'
@@ -69,6 +71,7 @@ function Header() {
 // No celular (até 991 px) a barra inferior mostra só os primeiros itens; o resto fica na gaveta "Mais".
 const ITENS_BARRA = 4
 
+/** Menu lateral (no celular, barra inferior com gaveta "Mais"). Os itens vêm da API (`nav`). */
 function SideNav() {
   const { nav, go } = useApp(),
     { pathname } = useLocation()
@@ -81,6 +84,7 @@ function SideNav() {
   }
   return (
     <>
+      {/* --i posiciona a pílula animada no item ativo (layout.css). */}
       <nav id="menu" aria-label="Menu principal" className={comMais ? 'cm-mais' : ''} style={{ '--i': Math.max(0, ativo) }}>
         <i className="pill" />
         <img
@@ -148,6 +152,10 @@ function SideNav() {
   )
 }
 
+/**
+ * Moldura de todas as telas logadas: cabeçalho, menu, a página da rota (Outlet) e o FormModal
+ * global aberto por `form()` do contexto. Também é a guarda das rotas: sem login vai para /login.
+ */
 export default function Layout() {
   const { me, nav, md, setMd } = useApp(),
     { pathname } = useLocation()
@@ -160,6 +168,7 @@ export default function Layout() {
       <Header />
       <SideNav />
       <main className="app-main">
+        {/* Fallback enquanto o arquivo da página baixa (carregarPagina); a key por rota repete a animação de entrada. */}
         <Suspense fallback={<div className="pagina-carregando" aria-busy="true" />}>
           <div key={pathname} className="page-in">
             <Outlet />

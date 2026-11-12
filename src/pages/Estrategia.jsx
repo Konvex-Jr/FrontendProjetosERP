@@ -7,6 +7,10 @@ import { PageBar, Prog } from '../components/Ui'
 
 const TB = { late: ['Atrasadas', 'er'], and: ['Em andamento', 'an'], done: ['Concluídas', 'ok'] }
 
+/**
+ * Visão Estratégica (gestão): projetos em execução que pedem atenção, tarefas por situação
+ * e participação das pessoas em capacitações. Usa os dados do contexto (D).
+ */
 export default function Estrategia() {
   const { D, go } = useApp()
   const T = D.t,
@@ -27,6 +31,7 @@ export default function Estrategia() {
       if (n) r.push(n + (n == 1 ? ' tarefa atrasada' : ' tarefas atrasadas'))
       if (left < 0) r.push('Prazo vencido há ' + -left + (left == -1 ? ' dia' : ' dias'))
       else if (left <= 14 && pr < 70) r.push('Prazo em ' + left + (left == 1 ? ' dia' : ' dias') + ' com ' + pr + '% concluído')
+      // Pontuação para ordenar o risco: 10 por tarefa atrasada, 100 se o prazo venceu e +1 por dia abaixo de 14 até o fim.
       return { p, r, sc: n * 10 + (left < 0 ? 100 : 0) + Math.max(0, 14 - left), pr }
     })
     .filter(x => x.r.length)

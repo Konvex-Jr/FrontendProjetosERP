@@ -1,6 +1,9 @@
 import Ic from './Icon'
 import { ini } from '../lib/utils'
 
+/** Peças pequenas de interface usadas em várias telas. */
+
+/** Avatares (iniciais) das pessoas de `ids`, com o nome no title. */
 export const Av = ({ D, ids }) => (
   <span>
     {ids.map(i => {
@@ -14,6 +17,7 @@ export const Av = ({ D, ids }) => (
   </span>
 )
 
+/** Nota de 1 a 5. Com `set` vira seletor (radiogroup); sem ele, só mostra. */
 export const Stars = ({ n, set }) => (
   <span className="stars" role={set ? 'radiogroup' : 'img'} aria-label={'Nota ' + n + ' de 5'}>
     {[1, 2, 3, 4, 5].map(i =>
@@ -38,6 +42,7 @@ export const Stars = ({ n, set }) => (
   </span>
 )
 
+/** Barra de progresso: `v` em %, ou `parts` = [[largura %, classe, opacidade], ...] para barra empilhada. */
 export function Prog({ v, cls = '', parts }) {
   return (
     <div className="progress">
@@ -50,6 +55,7 @@ export function Prog({ v, cls = '', parts }) {
   )
 }
 
+/** Título da tela, subtítulo e, à direita, os botões (`children`), que quebram linha no celular. */
 export const PageBar = ({ title, sub, children }) => (
   <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
     <div>
@@ -60,6 +66,7 @@ export const PageBar = ({ title, sub, children }) => (
   </div>
 )
 
+/** Botões de alternância (abas, visões): `items` = [[chave, rótulo]]; o ativo ganha a classe `on`. */
 export const Seg = ({ items, value, onChange }) => (
   <div className="d-flex flex-wrap gap-2">
     {items.map(([k, l]) => (

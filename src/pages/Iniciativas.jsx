@@ -125,6 +125,7 @@ function novaTarefa({ D, form, item, aoSalvar }) {
   )
 }
 
+/** /iniciativas mostra a lista; /iniciativas/:id, a ficha. */
 export default function Iniciativas() {
   const { id } = useParams()
   return id ? <Ficha id={id} /> : <Lista />
@@ -144,6 +145,7 @@ function Lista() {
   }, [texto])
 
   const ativos = Object.values(f).some(Boolean)
+  // Duas cargas: `todas` (sem filtro) monta as opções dos selects; `filtradas` vem da API só quando há filtro.
   const todas = useCarregar(() => iniciativas.listar(), [])
   const chave = JSON.stringify(f)
   const filtradas = useCarregar(() => (ativos ? iniciativas.listar(f) : Promise.resolve(null)), [chave])

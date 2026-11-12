@@ -4,6 +4,11 @@ import { brl, chip } from '../lib/utils'
 import Multi from '../components/Multi'
 import { PageBar } from '../components/Ui'
 
+/**
+ * Simulador de preço de projeto: horas × valor/hora da senioridade de cada pessoa, mais margem e impostos.
+ * Só calcula na tela; nada é salvo. Os valores/hora vêm de Configurações > Senioridades e podem ser
+ * ajustados aqui só para a simulação.
+ */
 export default function Precificacao() {
   const { D } = useApp()
 
@@ -20,6 +25,7 @@ export default function Precificacao() {
 
   const valorHora = usuario => Number(valoresHora?.[usuario.senioridade]) || 0
 
+  // Impostos "por dentro": tirando os impostos do preço final, sobra custo + margem. O limite de 99% evita dividir por zero.
   const fatorPreco = (1 + margem / 100) / (1 - Math.min(impostos, 99) / 100)
 
   const equipe = selecionados.map(id => membros.find(u => u.id === id)).filter(Boolean)

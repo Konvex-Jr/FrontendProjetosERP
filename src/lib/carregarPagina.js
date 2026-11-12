@@ -26,13 +26,16 @@ export default function carregarPagina(importar) {
   return lazy(() =>
     importar().then(
       modulo => {
+        // Deu certo: libera um novo recarregamento automático na próxima publicação.
         gravar(null)
         return modulo
       },
       erro => {
+        // Já recarregou uma vez e continua falhando: é erro de verdade (ex.: sem internet); deixa aparecer.
         if (ler()) throw erro
         gravar('1')
         window.location.reload()
+        // Promessa que nunca termina: a página vai recarregar, e o Suspense segue mostrando o carregamento.
         return new Promise(() => {})
       },
     ),
