@@ -5,7 +5,7 @@
  */
 
 body {
-  font-family: Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-family: 'Inter Variable', Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
   letter-spacing: 0;
   font-variant-numeric: normal;
   background-image: radial-gradient(circle, var(--dot) 1px, transparent 1.5px);
@@ -198,13 +198,18 @@ table, .hs b, .tnum, time { font-variant-numeric: tabular-nums }
   display: grid;
   place-items: center;
   padding: 48px;
-  background: var(--c);
+  background: var(--bg);
   color: var(--tx);
 }
-.lgv-mold form { display: grid; gap: 16px; width: 100%; max-width: 380px }
-.lgv-mold .lgo { height: 28px; width: auto; justify-self: start }
-.lgv-mold .lgo.esc, :root[data-theme=dark] .lgv-mold .lgo.cla { display: none }
-:root[data-theme=dark] .lgv-mold .lgo.esc { display: block }
+/* No computador o formulário fica num cartão sobre o fundo. */
+.lgv-mold form {
+  display: grid; gap: 16px; width: 100%; max-width: 460px;
+  padding: 40px;
+  background: var(--c);
+  border: 1px solid var(--ln);
+  border-radius: 16px;
+  box-shadow: 0 1px 2px #0e23400a, 0 16px 40px -12px #0e23401f;
+}
 .lgv-mold h2 { font-size: 30px; line-height: 36px; font-weight: 800; margin: 0 }
 .lgv-mold small { color: var(--mu); font-size: 14px }
 .lgv-mold label { font-size: 13px; font-weight: 600; display: grid; gap: 6px; margin: 0 }
@@ -212,11 +217,16 @@ table, .hs b, .tnum, time { font-variant-numeric: tabular-nums }
 .lgv-mold .btn { min-height: 44px }
 .lgv-mold .lgv-foot { font-size: 13px; color: var(--mu); text-align: center }
 
-/* Celular e tablet: só o formulário, sobre a superfície. */
+/* Celular e tablet: faixa da marca no topo e o formulário numa folha arredondada por cima dela. */
 @media (max-width: 991.98px) {
-  .lgv { grid-template-columns: minmax(0, 1fr) }
-  .lgv-hx { display: none }
-  .lgv-mold { padding: 32px 20px; min-height: 100vh }
+  .lgv { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto 1fr; min-height: 100dvh; background: #071426 }
+  .lgv-hx { gap: 0; padding: 28px 20px 52px }
+  .lgv-tx, .lgv-glass { display: none }
+  .lgv-mold { position: relative; z-index: 1; place-items: start center; padding: 32px 20px 40px; margin-top: -24px; border-radius: 24px 24px 0 0; background: var(--c) }
+  /* No celular a própria folha branca é o fundo do formulário: o cartão some. */
+  .lgv-mold form { max-width: 380px; padding: 0; background: none; border: 0; border-radius: 0; box-shadow: none }
+  /* 16 px no campo: abaixo disso o Safari do iPhone dá zoom ao focar. */
+  .lgv-mold .form-control { font-size: 16px }
 }
 
 /* ---------- Logo no modo escuro: sempre toda branca ---------- */

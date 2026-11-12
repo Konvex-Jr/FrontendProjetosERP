@@ -67,6 +67,7 @@ small,
 
 .hl {
   height: 34px;
+  width: auto;
   cursor: pointer;
   transition: transform .3s var(--ez)
 }
@@ -452,4 +453,9 @@ html.tt *::after {
     animation: none !important;
     scroll-behavior: auto !important
   }
+}
+
+/* Espaço reservado enquanto o arquivo da página carrega: evita o rodapé pular. */
+.pagina-carregando {
+  min-height: 60vh
 }
