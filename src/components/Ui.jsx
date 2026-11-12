@@ -1,5 +1,5 @@
 import Ic from './Icon'
-import { ini, un } from '../lib/utils'
+import { ini } from '../lib/utils'
 
 export const Av = ({ D, ids }) => (
   <span>{ids.map(i => { const u = D.u.find(x => x.id == i); return <span key={i} className="av" title={u?.nome}>{ini(u?.nome || '?')}</span> })}</span>

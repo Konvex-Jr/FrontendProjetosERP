@@ -96,7 +96,7 @@ export default function Projeto() {
 
   const dia = s => (s ? String(s).slice(0, 10) : '')
   const info = [
-    ['Status', <StatusProjeto s={projeto.status} />],
+    ['Status', <StatusProjeto key="status" s={projeto.status} />],
     ['Referência', projeto.referencia || '—'],
     ['Cliente', projeto.clienteNome || '—'],
     ['Período', fm(dia(projeto.dataInicio)) + ' a ' + fm(dia(projeto.dataFim))],
@@ -104,7 +104,7 @@ export default function Projeto() {
     ['Responsável', projeto.responsavel?.nome || '—'],
     ['Líder', projeto.lider?.nome || '—'],
     ['Área', projeto.area?.nome || '—'],
-    ['Equipe', <Av D={D} ids={p.membros} />],
+    ['Equipe', <Av key="equipe" D={D} ids={p.membros} />],
   ]
   const geral = () => (
     <div className="card card-body">

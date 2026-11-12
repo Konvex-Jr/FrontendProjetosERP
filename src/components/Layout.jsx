@@ -11,7 +11,7 @@ function Header() {
   const tema = () => {
     const n = !dk, r = document.documentElement
     r.classList.add('tt'); r.dataset.theme = n ? 'dark' : 'light'; r.dataset.bsTheme = n ? 'dark' : 'light'
-    try { localStorage.setItem('tema', n ? 'dark' : 'light') } catch (e) { }
+    try { localStorage.setItem('tema', n ? 'dark' : 'light') } catch (e) { /* sem storage: o tema só não fica salvo */ }
     setDk(n); setTimeout(() => r.classList.remove('tt'), 600)
   }
   return (

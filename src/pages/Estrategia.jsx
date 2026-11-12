@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useApp } from '../context/AppContext'
-import { DAY, PC, TIPO, chip, d, fm, hj, nm, prog } from '../lib/utils'
+import { DAY, PC, chip, d, fm, hj, nm, prog } from '../lib/utils'
 import Burn from '../components/Burn'
 import Table from '../components/Table'
 import { PageBar, Prog } from '../components/Ui'

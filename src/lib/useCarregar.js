@@ -18,6 +18,8 @@ export default function useCarregar(carregar, deps = []) {
     } finally {
       setCarregando(false)
     }
+    // As dependências vêm de quem chama (como no useEffect); o lint não consegue conferir uma lista dinâmica.
+    // eslint-disable-next-line react-hooks/exhaustive-deps, react-hooks/use-memo
   }, deps)
 
   useEffect(() => { recarregar() }, [recarregar])

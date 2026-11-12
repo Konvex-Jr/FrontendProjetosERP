@@ -25,7 +25,7 @@ let ultimosFiltros = {}
 
 const MARKDOWN = 'Aceita Markdown simples: ## título, - lista, **negrito**, *itálico* e [texto](https://...).'
 const VAZIO_OPCOES = { status: [], tipos: [], frentes: [], podeCriar: false }
-const usarOpcoes = () => useCarregar(iniciativas.opcoes, []).dados || VAZIO_OPCOES
+const useOpcoes = () => useCarregar(iniciativas.opcoes, []).dados || VAZIO_OPCOES
 const opcoes = (lista) => [...new Map(lista.map(x => [x.id, x.nome])).entries()].sort((a, b) => a[1].localeCompare(b[1]))
 const periodo = i => (i.inicio || i.fim ? `${fd(i.inicio)} a ${fd(i.fim)}` : '—')
 
@@ -108,7 +108,7 @@ export default function Iniciativas() {
 
 function Lista() {
   const { D, form, go } = useApp()
-  const op = usarOpcoes()
+  const op = useOpcoes()
   const [f, setF] = useState(() => ({ ...ultimosFiltros }))
   const [texto, setTexto] = useState(f.busca || '')
   useEffect(() => { ultimosFiltros = f }, [f])
@@ -188,7 +188,7 @@ const Secao = ({ titulo, children }) => <div className="kc-s"><h3 className="h6 
 
 function Ficha({ id }) {
   const { D, form, go, pode } = useApp()
-  const op = usarOpcoes()
+  const op = useOpcoes()
   const { dados: item, carregando, recarregar } = useCarregar(() => iniciativas.buscar(id), [id])
   const voltar = <button className="btn btn-g" onClick={() => go('iniciativas')}><Ic k="back" />Voltar</button>
   if (!item) return <PageBar title="Iniciativas" sub={carregando ? 'Carregando…' : 'Iniciativa não encontrada. Ela pode ter sido excluída.'}>{voltar}</PageBar>

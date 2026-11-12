@@ -62,7 +62,7 @@ async function excluirItem(item, depois) {
   }
 }
 
-const usarCategorias = () => useCarregar(conhecimento.categorias, []).dados || []
+const useCategorias = () => useCarregar(conhecimento.categorias, []).dados || []
 const opcoes = (lista) => [...new Map(lista.map(x => [x.id, x.nome])).entries()].sort((a, b) => a[1].localeCompare(b[1]))
 
 export default function Conhecimento() {
@@ -72,7 +72,7 @@ export default function Conhecimento() {
 
 function Lista() {
   const { D, form, go } = useApp()
-  const categorias = usarCategorias()
+  const categorias = useCategorias()
   const [f, setF] = useState(() => ({ ...ultimosFiltros, ...(consumir('conhecimento') || {}) }))
   const [texto, setTexto] = useState(f.busca || '')
   useEffect(() => { ultimosFiltros = f }, [f])
@@ -152,7 +152,7 @@ function Lista() {
 
 function Ficha({ id }) {
   const { D, form, go } = useApp()
-  const categorias = usarCategorias()
+  const categorias = useCategorias()
   const { dados: item, carregando, recarregar } = useCarregar(() => conhecimento.buscar(id), [id])
   const voltar = <button className="btn btn-g" onClick={() => go('conhecimento')}><Ic k="back" />Voltar</button>
   if (!item) return <PageBar title="Base de Inteligência" sub={carregando ? 'Carregando…' : 'Item não encontrado. Ele pode ter sido excluído.'}>{voltar}</PageBar>
@@ -207,7 +207,7 @@ function Ficha({ id }) {
 /** Aba "Base" da ficha do projeto: itens ligados a ele (RF-080, QA-21). */
 export function ItensDoProjeto({ projeto }) {
   const { D, form, go } = useApp()
-  const categorias = usarCategorias()
+  const categorias = useCategorias()
   const { dados, carregando, recarregar } = useCarregar(() => conhecimento.listar({ projeto: projeto.codigo }), [projeto.codigo])
   const L = dados || []
   // O próprio projeto entra nas opções mesmo se não estiver em D.p.
