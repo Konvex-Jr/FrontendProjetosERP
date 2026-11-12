@@ -19,23 +19,21 @@ export default function Login() {
       <section className="lgv-hx">
         <img className="lgv-logo" src={BASE + 'logo-branca.webp'} width={192} height={28} alt="Konvex Jr" />
         <div className="lgv-tx">
-          <span className="lgv-pill">Sistema interno · Konvex Jr</span>
+          <span className="lgv-pill">Sistema interno</span>
           <h1>A Konvex em <em>movimento</em>.</h1>
           <p>Projetos, tarefas, pessoas e capacitações num só lugar.</p>
         </div>
         <div className="lgv-glass" aria-hidden="true">
           <small>Acesso</small>
-          <b>Membros da Konvex Jr</b>
-          <span>Entre com o e-mail da empresa.</span>
+          <b>Só para membros</b>
+          <span>Use o e-mail e a senha da empresa</span>
         </div>
       </section>
       <main className="lgv-mold">
         <form onSubmit={send}>
-          <img className="lgo cla" src={BASE + 'logo.webp'} width={192} height={28} alt="Konvex Jr" />
-          <img className="lgo esc" src={BASE + 'logo-branca.webp'} width={192} height={28} alt="Konvex Jr" />
           <div>
             <h2>Bem-vindo de volta</h2>
-            <small>Entre com sua conta da Konvex.</small>
+            <small>Entre com seu e-mail e senha.</small>
           </div>
           <label>E-mail
             <input className="form-control" type="email" required autoComplete="username" value={em} onChange={event => setEm(event.target.value)} placeholder="nome@konvexjr.com.br" />

@@ -202,9 +202,6 @@ table, .hs b, .tnum, time { font-variant-numeric: tabular-nums }
   color: var(--tx);
 }
 .lgv-mold form { display: grid; gap: 16px; width: 100%; max-width: 380px }
-.lgv-mold .lgo { height: 28px; width: auto; justify-self: start }
-.lgv-mold .lgo.esc, :root[data-theme=dark] .lgv-mold .lgo.cla { display: none }
-:root[data-theme=dark] .lgv-mold .lgo.esc { display: block }
 .lgv-mold h2 { font-size: 30px; line-height: 36px; font-weight: 800; margin: 0 }
 .lgv-mold small { color: var(--mu); font-size: 14px }
 .lgv-mold label { font-size: 13px; font-weight: 600; display: grid; gap: 6px; margin: 0 }
@@ -218,7 +215,6 @@ table, .hs b, .tnum, time { font-variant-numeric: tabular-nums }
   .lgv-hx { gap: 0; padding: 28px 20px 52px }
   .lgv-tx, .lgv-glass { display: none }
   .lgv-mold { position: relative; z-index: 1; place-items: start center; padding: 32px 20px 40px; margin-top: -24px; border-radius: 24px 24px 0 0 }
-  .lgv-mold .lgo, :root[data-theme=dark] .lgv-mold .lgo.esc { display: none }
   /* 16 px no campo: abaixo disso o Safari do iPhone dá zoom ao focar. */
   .lgv-mold .form-control { font-size: 16px }
 }
