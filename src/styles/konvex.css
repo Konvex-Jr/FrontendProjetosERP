@@ -151,8 +151,9 @@ table, .hs b, .tnum, time { font-variant-numeric: tabular-nums }
   position: relative;
   min-height: 100vh;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 440px);
-  gap: 64px;
+  grid-template-columns: minmax(0, 560px) minmax(0, 440px);
+  justify-content: center;
+  gap: clamp(48px, 8vw, 120px);
   align-items: center;
   padding: 56px max(24px, 6vw);
   color: #fff;
