@@ -45,9 +45,10 @@ function SideNav() {
     <>
       <nav id="menu" aria-label="Menu principal" className={comMais ? 'cm-mais' : ''} style={{ '--i': Math.max(0, ativo) }}>
         <i className="pill" />
+        <img className="ml" src={import.meta.env.BASE_URL + 'assets/logo-branca.png'} alt="Konvex Jr – ir para a Visão Geral" onClick={() => ir(nav[0]?.[0])} />
         {nav.map(([k, l], i) => (
           <a key={k} role="button" tabIndex={0} className={(i === ativo ? 'on' : '') + (comMais && i >= ITENS_BARRA ? ' ex' : '')} aria-current={i === ativo ? 'page' : undefined} aria-label={l} data-l={l} onClick={() => ir(k)} onKeyDown={e => e.key == 'Enter' && ir(k)}>
-            <Ic k={k} />
+            <Ic k={k} /><span className="nl">{l}</span>
           </a>
         ))}
         {comMais && (

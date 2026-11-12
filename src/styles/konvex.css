@@ -1,0 +1,219 @@
+/*
+ * Camada visual "Halo" (sistema) + "Vidro" (login), do design system da Konvex.
+ * Carregada por último: sobrescreve só o visual. Responsivo de celular continua em responsive.css.
+ * Regras do sistema: cantos de 4 a 6 px, bordas finas no lugar de sombras, laranja só como acento.
+ */
+
+body {
+  font-family: Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  letter-spacing: 0;
+  font-variant-numeric: normal;
+  background-image: radial-gradient(circle, var(--dot) 1px, transparent 1.5px);
+  background-size: 18px 18px;
+}
+
+h1, h2, h3 { letter-spacing: -.01em }
+h2 { font-size: 18px; font-weight: 700 }
+
+/* Números alinhados só onde há colunas (o tnum do Inter também afasta o hífen). */
+table, .hs b, .tnum, time { font-variant-numeric: tabular-nums }
+
+:focus-visible { outline: 2px solid var(--foco); outline-offset: 2px }
+
+/* ---------- Superfícies: borda fina, sem sombra ---------- */
+.card, .tw, .cc, .fc, .modal-content, .dropdown-menu {
+  border-radius: 6px;
+  border: 1px solid var(--ln);
+  box-shadow: none;
+  background-color: var(--c);
+}
+:root[data-theme=dark] .card,
+:root[data-theme=dark] .tw,
+:root[data-theme=dark] .cc,
+:root[data-theme=dark] .fc { background-image: none; box-shadow: none }
+.hoverable:hover { transform: none; box-shadow: none; border-color: var(--mu) }
+:root[data-theme=dark] .hoverable:hover { border-color: var(--mu) }
+
+/* ---------- Botões ---------- */
+.btn { border-radius: 6px; min-height: 40px; font-size: 14px }
+.btn-sm { min-height: 32px }
+.btn:active:not(:disabled) { transform: none }
+.btn-primary {
+  --bs-btn-color: var(--on);
+  --bs-btn-hover-color: var(--on);
+  --bs-btn-active-color: var(--on);
+  --bs-btn-disabled-color: var(--on);
+}
+.btn-primary:hover { box-shadow: none }
+.btn-dk {
+  --bs-btn-bg: var(--t); --bs-btn-border-color: var(--t); --bs-btn-color: #fff;
+  --bs-btn-hover-bg: var(--td); --bs-btn-hover-border-color: var(--td); --bs-btn-hover-color: #fff;
+  --bs-btn-active-bg: #1f4066; --bs-btn-active-border-color: #1f4066; --bs-btn-active-color: #fff;
+}
+:root[data-theme=dark] .btn-dk {
+  --bs-btn-bg: #e6ecf3; --bs-btn-border-color: #e6ecf3; --bs-btn-color: #0e2340;
+  --bs-btn-hover-bg: #fff; --bs-btn-hover-border-color: #fff; --bs-btn-hover-color: #0e2340;
+}
+:root[data-theme=dark] .btn-g.on { color: var(--on) }
+
+/* ---------- Campos ---------- */
+.form-control, .form-select { border-radius: 6px; border-color: #8a94a3; min-height: 40px; font-size: 14px }
+:root[data-theme=dark] .form-control,
+:root[data-theme=dark] .form-select { border-color: #5f7896 }
+.form-control:focus, .form-select:focus { border-color: var(--tx); box-shadow: 0 0 0 2px var(--c), 0 0 0 4px var(--foco) }
+.form-control::placeholder { color: var(--mu); opacity: .8 }
+
+/* ---------- Cabeçalho da Visão Geral: título + indicadores em linha ---------- */
+.hero { background: none; color: var(--tx); padding: 0; border-radius: 0; overflow: visible }
+.hero::after { display: none }
+.hero h1 { font-size: 30px; line-height: 36px }
+.hero p { color: var(--mu); margin-top: 4px }
+.hero .btn-ol { --bs-btn-bg: var(--c); --bs-btn-color: var(--tx); --bs-btn-border-color: var(--ln); background: var(--c); color: var(--tx); border-color: var(--ln) }
+.hero .btn-ol:hover { background: var(--bg); color: var(--tx) }
+.hs { gap: 0 !important; background: var(--c); border: 1px solid var(--ln); border-radius: 6px }
+.hs>div { background: none; border: 0; border-left: 1px solid var(--ln); border-radius: 0; backdrop-filter: none; padding: 14px 20px }
+.hs>div:first-child { border-left: 0 }
+.hs b { font-size: 22px; line-height: 26px; font-weight: 800; color: var(--num) }
+.hs span { font-size: 12px; color: var(--mu) }
+
+/* ---------- Gaveta do celular ---------- */
+.gv { border-radius: 12px 12px 0 0 }
+.gv-i { border-radius: 6px }
+.gv-i.on { color: var(--on) }
+
+/* ---------- Layout Halo (desktop): sidebar marinho de 240 px + barra superior ---------- */
+#menu .ml, #menu .nl { display: none }
+
+@media (min-width: 992px) {
+  #menu {
+    top: 0; bottom: 0; left: 0;
+    transform: none;
+    width: 240px;
+    padding: 20px 12px;
+    border-radius: 0;
+    gap: 2px;
+    align-items: stretch;
+    background: #0e2340;
+    box-shadow: none;
+    overflow-y: auto;
+  }
+  :root[data-theme=dark] #menu { box-shadow: none; border-right: 1px solid var(--ln) }
+  #menu .pill { display: none }
+  #menu .ml { display: block; height: 26px; width: auto; align-self: flex-start; margin: 4px 10px 22px; cursor: pointer }
+  #menu .nl { display: inline }
+  #menu a {
+    width: auto; height: 40px;
+    justify-content: flex-start; gap: 12px;
+    padding: 0 12px;
+    border-radius: 6px;
+    color: #c9d4e3;
+    font-size: 14px; font-weight: 500;
+  }
+  #menu a .i { width: 18px; height: 18px; opacity: .8 }
+  #menu a::after { display: none }
+  #menu a:not(.on):hover { background: #173458; color: #fff }
+  #menu a.on { background: #173458; color: #fff; font-weight: 600; box-shadow: inset 3px 0 0 var(--ac) }
+  #menu a.on .i { opacity: 1; color: var(--ac) }
+
+  .hd {
+    margin-left: 240px;
+    height: 60px;
+    background: var(--c);
+    color: var(--tx);
+    border-bottom: 1px solid var(--ln);
+    box-shadow: none;
+  }
+  .hdi { max-width: none; padding: 0 32px }
+  .hd .hl { display: none }
+  .hu small { color: var(--mu) }
+  .hd .badge { background: var(--bg); color: var(--mu); border: 1px solid var(--ln) }
+  .hd .btn-g { color: var(--tx); border-color: var(--ln) }
+  .hd .btn-g:hover { background: var(--bg) }
+  .hd .av { border-color: var(--c); color: var(--on) }
+  .tg { background: var(--bg); color: var(--tx); border: 1px solid var(--ln) }
+  .tg:hover { background: var(--th); transform: none }
+
+  .app-main { margin-left: 240px; max-width: none; padding: 32px 40px 72px }
+}
+
+@media (min-width: 1600px) {
+  .app-main { padding-left: max(40px, calc((100vw - 240px - 1320px) / 2)); padding-right: max(40px, calc((100vw - 240px - 1320px) / 2)) }
+}
+
+@media (max-width: 991.98px) {
+  #menu { background: #0e2340; border-radius: 12px }
+  #menu a.on, #menu .mais.on { color: var(--on); box-shadow: none }
+  .hd { background: #0e2340; box-shadow: none }
+}
+
+/* ---------- Login "Vidro" ---------- */
+.lgv {
+  position: relative;
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 440px);
+  gap: 64px;
+  align-items: center;
+  padding: 56px max(24px, 6vw);
+  color: #fff;
+  background-color: #071426;
+  background-image: linear-gradient(#ffffff0f 1px, transparent 1px), linear-gradient(90deg, #ffffff0f 1px, transparent 1px);
+  background-size: 32px 32px;
+  overflow: hidden;
+}
+.lgv::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(640px 480px at 0% 0%, #3e7fd180, transparent 62%),
+    radial-gradient(320px 260px at 22% 18%, #9fd0f22e, transparent 70%),
+    radial-gradient(560px 440px at 70% 105%, #ff6a3359, transparent 62%);
+}
+.lgv>* { position: relative }
+.lgv-hx { display: grid; gap: 20px; justify-items: start; max-width: 560px }
+.lgv-pill { font-size: 12px; line-height: 16px; font-weight: 600; padding: 6px 12px; border-radius: 999px; border: 1px solid #ffffff2e; background: #ffffff0f; color: #d6e0ec }
+.lgv h1 { font-size: 48px; line-height: 52px; font-weight: 800; letter-spacing: -.02em; margin: 0; text-wrap: balance }
+.lgv h1 em { font-style: normal; color: var(--ac) }
+.lgv-hx p { margin: 0; font-size: 16px; line-height: 24px; color: #b4c2d6; max-width: 42ch }
+.lgv-glass {
+  margin-top: 16px;
+  display: grid; gap: 4px;
+  padding: 16px 20px;
+  border-radius: 12px;
+  background: #ffffff14;
+  border: 1px solid #ffffff29;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 12px 32px #00000040;
+}
+.lgv-glass small { color: #b4c2d6; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase }
+.lgv-glass b { font-size: 16px }
+.lgv-glass span { font-size: 13px; color: #d6e0ec }
+.lgv-mold {
+  background: var(--c);
+  color: var(--tx);
+  border-radius: 20px;
+  padding: 40px;
+  box-shadow: 0 24px 64px #00000066;
+}
+.lgv-mold form { display: grid; gap: 16px }
+.lgv-mold .lgo { height: 28px; width: auto }
+.lgv-mold .lgo.esc, :root[data-theme=dark] .lgv-mold .lgo.cla { display: none }
+:root[data-theme=dark] .lgv-mold .lgo.esc { display: block }
+.lgv-mold h2 { font-size: 32px; line-height: 38px; font-weight: 800; margin: 0 }
+.lgv-mold label { font-size: 13px; font-weight: 600; display: grid; gap: 6px; margin: 0 }
+.lgv-mold .form-control { min-height: 44px }
+.lgv-mold .btn { min-height: 44px }
+.lgv-mold .lgv-foot { font-size: 13px; color: var(--mu); text-align: center }
+
+@media (max-width: 991.98px) {
+  .lgv { grid-template-columns: minmax(0, 1fr); gap: 32px; padding: 32px 16px; align-content: center }
+  .lgv h1 { font-size: 32px; line-height: 38px }
+  .lgv-glass { display: none }
+  .lgv-mold { padding: 28px 22px; border-radius: 12px }
+}
+
+/* ---------- Logo no modo escuro: sempre toda branca ---------- */
+:root[data-theme=dark] img[src*="assets/logo"] { filter: brightness(0) invert(1) }
