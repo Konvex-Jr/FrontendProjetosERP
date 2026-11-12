@@ -1,0 +1,5 @@
+# Commits só de formatação, ignorados pelo git blame.
+# Ative com: git config blame.ignoreRevsFile .git-blame-ignore-revs
+
+# chore: formatar o frontend com o Prettier
+e9b336ca669cf47b8cb886f5e958c54d58020a43
