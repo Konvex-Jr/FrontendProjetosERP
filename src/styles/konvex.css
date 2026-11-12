@@ -146,40 +146,43 @@ table, .hs b, .tnum, time { font-variant-numeric: tabular-nums }
   .hd { background: #0e2340; box-shadow: none }
 }
 
-/* ---------- Login "Vidro" ---------- */
+/* ---------- Login "Vidro": painel da marca à esquerda, formulário à direita ---------- */
 .lgv {
-  position: relative;
   min-height: 100vh;
   display: grid;
-  grid-template-columns: minmax(0, 560px) minmax(0, 440px);
-  justify-content: center;
-  gap: clamp(48px, 8vw, 120px);
-  align-items: center;
-  padding: 56px max(24px, 6vw);
+  grid-template-columns: minmax(0, 1.1fr) minmax(480px, 1fr);
+}
+.lgv-hx {
+  position: relative;
+  display: grid;
+  align-content: space-between;
+  gap: 48px;
+  padding: 48px clamp(40px, 5vw, 96px);
   color: #fff;
   background-color: #071426;
   background-image: linear-gradient(#ffffff0f 1px, transparent 1px), linear-gradient(90deg, #ffffff0f 1px, transparent 1px);
   background-size: 32px 32px;
   overflow: hidden;
 }
-.lgv::before {
+.lgv-hx::before {
   content: '';
   position: absolute;
   inset: 0;
   pointer-events: none;
   background:
-    radial-gradient(640px 480px at 0% 0%, #3e7fd180, transparent 62%),
+    radial-gradient(600px 460px at 0% 0%, #3e7fd180, transparent 62%),
     radial-gradient(320px 260px at 22% 18%, #9fd0f22e, transparent 70%),
-    radial-gradient(560px 440px at 70% 105%, #ff6a3359, transparent 62%);
+    radial-gradient(520px 420px at 80% 105%, #ff6a3359, transparent 62%);
 }
-.lgv>* { position: relative }
-.lgv-hx { display: grid; gap: 20px; justify-items: start; max-width: 560px }
+.lgv-hx>* { position: relative }
+.lgv-logo { height: 28px; width: auto; justify-self: start }
+.lgv-tx { display: grid; gap: 20px; justify-items: start; max-width: 560px }
 .lgv-pill { font-size: 12px; line-height: 16px; font-weight: 600; padding: 6px 12px; border-radius: 999px; border: 1px solid #ffffff2e; background: #ffffff0f; color: #d6e0ec }
-.lgv h1 { font-size: 48px; line-height: 52px; font-weight: 800; letter-spacing: -.02em; margin: 0; text-wrap: balance }
+.lgv h1 { font-size: clamp(40px, 3.4vw, 56px); line-height: 1.08; font-weight: 800; letter-spacing: -.02em; margin: 0; text-wrap: balance }
 .lgv h1 em { font-style: normal; color: var(--ac) }
-.lgv-hx p { margin: 0; font-size: 16px; line-height: 24px; color: #b4c2d6; max-width: 42ch }
+.lgv-tx p { margin: 0; font-size: 16px; line-height: 24px; color: #b4c2d6; max-width: 42ch }
 .lgv-glass {
-  margin-top: 16px;
+  justify-self: start;
   display: grid; gap: 4px;
   padding: 16px 20px;
   border-radius: 12px;
@@ -187,33 +190,33 @@ table, .hs b, .tnum, time { font-variant-numeric: tabular-nums }
   border: 1px solid #ffffff29;
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  box-shadow: 0 12px 32px #00000040;
 }
 .lgv-glass small { color: #b4c2d6; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase }
 .lgv-glass b { font-size: 16px }
 .lgv-glass span { font-size: 13px; color: #d6e0ec }
 .lgv-mold {
+  display: grid;
+  place-items: center;
+  padding: 48px;
   background: var(--c);
   color: var(--tx);
-  border-radius: 20px;
-  padding: 40px;
-  box-shadow: 0 24px 64px #00000066;
 }
-.lgv-mold form { display: grid; gap: 16px }
-.lgv-mold .lgo { height: 28px; width: auto }
+.lgv-mold form { display: grid; gap: 16px; width: 100%; max-width: 380px }
+.lgv-mold .lgo { height: 28px; width: auto; justify-self: start }
 .lgv-mold .lgo.esc, :root[data-theme=dark] .lgv-mold .lgo.cla { display: none }
 :root[data-theme=dark] .lgv-mold .lgo.esc { display: block }
-.lgv-mold h2 { font-size: 32px; line-height: 38px; font-weight: 800; margin: 0 }
+.lgv-mold h2 { font-size: 30px; line-height: 36px; font-weight: 800; margin: 0 }
+.lgv-mold small { color: var(--mu); font-size: 14px }
 .lgv-mold label { font-size: 13px; font-weight: 600; display: grid; gap: 6px; margin: 0 }
 .lgv-mold .form-control { min-height: 44px }
 .lgv-mold .btn { min-height: 44px }
 .lgv-mold .lgv-foot { font-size: 13px; color: var(--mu); text-align: center }
 
+/* Celular e tablet: só o formulário, sobre a superfície. */
 @media (max-width: 991.98px) {
-  .lgv { grid-template-columns: minmax(0, 1fr); gap: 32px; padding: 32px 16px; align-content: center }
-  .lgv h1 { font-size: 32px; line-height: 38px }
-  .lgv-glass { display: none }
-  .lgv-mold { padding: 28px 22px; border-radius: 12px }
+  .lgv { grid-template-columns: minmax(0, 1fr) }
+  .lgv-hx { display: none }
+  .lgv-mold { padding: 32px 20px; min-height: 100vh }
 }
 
 /* ---------- Logo no modo escuro: sempre toda branca ---------- */
