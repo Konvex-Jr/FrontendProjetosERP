@@ -1,5 +1,12 @@
 import { iso } from './utils.js'
 
+/**
+ * Conversões do formato da API (codigo, dataInicio, objetos aninhados) para o formato curto
+ * guardado no contexto (`D`: id, inicio, fim, listas de códigos). As telas mais novas usam
+ * o objeto da API direto (com `codigo`); estas funções servem o contexto e as tarefas.
+ */
+
+/** Texto → chave sem acento e em minúsculas ('Sênior' → 'senior'); é a chave das senioridades. */
 export const slug = value =>
   String(value || '')
     .normalize('NFD')
@@ -7,8 +14,10 @@ export const slug = value =>
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '_')
 
+/** Data da API ('2026-11-12T00:00:00.000Z') → '2026-11-12'. Só corta o texto, sem converter fuso. */
 export const dateOnly = value => (value ? String(value).slice(0, 10) : '')
 
+/** Aceita a referência como objeto ({ codigo, nome }) ou já como código; devolve o código. */
 export function userCode(value) {
   if (!value || typeof value !== 'object') return value
   return value.codigo ?? value.id ?? null
@@ -71,6 +80,11 @@ export function adaptTask(task) {
   }
 }
 
+/**
+ * Configuração do contexto (`D.c`): `hoje` (AAAA-MM-DD de quando os dados carregaram), perfis e,
+ * por senioridade, nome e valor/hora (usados na Precificação). `usarPadrao` põe senioridades de
+ * exemplo quando não há registros (antes do login); logado, a lista vem da API.
+ */
 export function readConfig(registros = [], usarPadrao = registros.length === 0) {
   const senioridades = registros.length
     ? registros
@@ -90,6 +104,7 @@ export function readConfig(registros = [], usarPadrao = registros.length === 0) 
   }
 }
 
+/** Lista de senioridades em { codigo, nome, valorHora }, aceite ela como lista ou como objeto. */
 export function normalizeSenioridades(registros = []) {
   // A API normalmente retorna uma lista de entidades. Aceitamos também a forma
   // de configuração usada pelas telas para evitar divergências entre versões.

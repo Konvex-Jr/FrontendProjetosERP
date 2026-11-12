@@ -71,6 +71,7 @@ async function excluirItem(item, depois) {
 const useCategorias = () => useCarregar(conhecimento.categorias, []).dados || []
 const opcoes = lista => [...new Map(lista.map(x => [x.id, x.nome])).entries()].sort((a, b) => a[1].localeCompare(b[1]))
 
+/** /conhecimento mostra a lista; /conhecimento/:id, a ficha do item. */
 export default function Conhecimento() {
   const { id } = useParams()
   return id ? <Ficha id={id} /> : <Lista />
@@ -90,6 +91,7 @@ function Lista() {
   }, [texto])
 
   const ativos = Object.values(f).some(Boolean)
+  // Duas cargas: `todos` (sem filtro) monta as opções dos selects; `filtrados` vem da API só quando há filtro.
   const todos = useCarregar(() => conhecimento.listar(), [])
   const chave = JSON.stringify(f)
   const filtrados = useCarregar(

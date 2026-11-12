@@ -10,6 +10,7 @@ export function BotaoAnexar({ enviar, rotulo = 'Anexar arquivo', className = 'bt
   const [enviando, setEnviando] = useState(false)
   const escolher = async e => {
     const arquivo = e.target.files?.[0]
+    // Limpa o input para a pessoa poder escolher o mesmo arquivo de novo.
     e.target.value = ''
     if (!arquivo) return
     const problema = conferirArquivo(arquivo)
@@ -35,6 +36,7 @@ export function BotaoAnexar({ enviar, rotulo = 'Anexar arquivo', className = 'bt
   )
 }
 
+/** Baixa com a sessão (um link direto não levaria o token) e mostra o erro num alerta. */
 export async function baixarAnexo(anexo) {
   try {
     await api.baixar(anexo)

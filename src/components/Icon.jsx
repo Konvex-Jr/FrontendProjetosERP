@@ -1,3 +1,7 @@
+/**
+ * Ícones SVG de traço, desenhados à mão (sem biblioteca, para não pesar no pacote).
+ * A chave do menu que vem da API é a mesma do ícone: tela nova precisa de um ícone aqui com a mesma chave.
+ */
 const P = {
   dashboard: '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
   tarefas: '<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8.5 12.5l2.5 2.5 4.5-5"/>',
@@ -39,6 +43,7 @@ const P = {
   x: '<path d="M6 6l12 12M18 6L6 18"/>',
 }
 
+// dangerouslySetInnerHTML é seguro aqui: só entram os desenhos fixos de P, nunca texto digitado.
 export default function Ic({ k }) {
   return <svg className="i" viewBox="0 0 24 24" dangerouslySetInnerHTML={{ __html: P[k] }} />
 }

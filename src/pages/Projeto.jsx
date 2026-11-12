@@ -23,6 +23,10 @@ const ABAS = [
   ['base', 'Base'],
 ]
 
+/**
+ * Página de um projeto (/projetos/:id), com as abas Tarefas (kanban ou Gantt), Visão geral, Equipe e Base.
+ * Nas tarefas, gestão e líder organizam; quem está na equipe atual cria e conclui as suas (papelNasTarefas).
+ */
 export default function Projeto() {
   const { D, form, go, me, pode, refresh } = useApp(),
     { id } = useParams(),
@@ -94,6 +98,7 @@ export default function Projeto() {
   }
   const acoes = acoesTarefa(salvarTarefa)
 
+  // Escala do Gantt: do primeiro início ao último fim (+1 dia); `pc` converte data em %, `hp` é a posição de hoje.
   const a = Math.min(...T.map(t => +d(t.inicio))),
     z = Math.max(...T.map(t => +d(t.fim))) + DAY,
     L = z - a,

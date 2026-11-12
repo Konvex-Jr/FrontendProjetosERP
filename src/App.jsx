@@ -18,6 +18,12 @@ const Pessoas = carregarPagina(() => import('./pages/Pessoas'))
 const Perfil = carregarPagina(() => import('./pages/Perfil'))
 const Configuracoes = carregarPagina(() => import('./pages/Configuracoes'))
 
+/**
+ * Rotas do app (HashRouter: os endereços ficam como /#/tarefas). O Login fica fora do Layout;
+ * o Layout exige login e só abre telas que vieram no menu da pessoa.
+ * Rotas com :id usam a mesma página, que mostra a lista ou a ficha conforme o parâmetro.
+ * Tela nova: rota aqui + item no registro de módulos do backend + ícone em components/Icon.jsx.
+ */
 export default function App() {
   return (
     <Routes>
@@ -41,6 +47,7 @@ export default function App() {
         <Route path="perfil/:codigo" element={<Perfil />} />
         <Route path="configuracoes" element={<Configuracoes />} />
       </Route>
+      {/* Endereço desconhecido volta ao Dashboard. */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )

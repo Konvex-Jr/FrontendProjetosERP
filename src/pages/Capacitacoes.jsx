@@ -615,6 +615,7 @@ function Ficha({ id }) {
   )
 }
 
+/** /capacitacoes mostra a lista (ou o calendário); /capacitacoes/:id, a ficha. */
 export default function Capacitacoes() {
   const { id } = useParams()
   return id ? <Ficha id={id} /> : <Lista />

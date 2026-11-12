@@ -4,6 +4,10 @@ import { useApp } from '../context/AppContext'
 
 const BASE = import.meta.env.BASE_URL + 'assets/'
 
+/**
+ * Tela de login (fora do Layout). `entrar` do contexto chama a API, guarda a sessão e mostra o erro;
+ * quem já está logado vai direto ao Dashboard.
+ */
 export default function Login() {
   const { me, entrar, loading } = useApp()
   const [em, setEm] = useState(''),

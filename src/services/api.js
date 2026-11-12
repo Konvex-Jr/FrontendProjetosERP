@@ -1,5 +1,16 @@
+/**
+ * Cliente HTTP único do frontend: todo módulo em src/services chama `request` (ou `baixar`),
+ * nunca o fetch direto. Aqui ficam a sessão, a renovação do token e as mensagens de erro,
+ * para que todas as telas se comportem igual.
+ */
+// Endereço da API definido no build (VITE_API_URL; na produção, `/api` no mesmo domínio).
+// Sem ele, usa o backend local. A barra final sai porque os caminhos já começam com `/`.
 const API_URL = (import.meta.env?.VITE_API_URL || 'http://localhost:5001').replace(/\/$/, '')
 
+/**
+ * Erro de qualquer chamada. `message` já vem pronta para a pessoa ler (as telas mostram
+ * `error.message`); `status` 0 = sem conexão; `codigo` vem da API quando ela o envia.
+ */
 export class ApiError extends Error {
   constructor(message, status = 0, codigo = '') {
     super(message)
@@ -48,7 +59,10 @@ const gravar = (key, value) => {
   }
 }
 
+// Cópia em memória da sessão. O sessionStorage só serve para sobreviver ao F5: ele é por aba
+// e some ao fechar, então uma aba aberta do zero pede login de novo.
 let memoria = { token: ler(ACCESS_KEY), refreshToken: ler(REFRESH_KEY) }
+// Promessa da renovação em andamento (ver renovarSessao); null quando não há nenhuma.
 let renovando = null
 
 export const sessao = {
@@ -62,6 +76,7 @@ export const sessao = {
     return Boolean(memoria.token || memoria.refreshToken)
   },
   salvar({ token, refreshToken }) {
+    // Se a resposta não trouxer refresh token novo, mantém o atual.
     memoria = { token: token || '', refreshToken: refreshToken || memoria.refreshToken }
     gravar(ACCESS_KEY, memoria.token)
     gravar(REFRESH_KEY, memoria.refreshToken)
@@ -85,6 +100,8 @@ async function chamar(path, init) {
   }
 }
 
+// Lê como texto antes do JSON: corpo vazio (204) vira null e erro em texto puro
+// (ex.: página de erro do proxy) vira { message }, sem quebrar no JSON.parse.
 async function lerCorpo(response) {
   const text = await response.text()
   if (!text) return null
@@ -98,6 +115,7 @@ async function lerCorpo(response) {
 /** Renova o token de acesso. Chamadas simultâneas compartilham a mesma renovação. */
 export function renovarSessao() {
   if (!sessao.refreshToken) return Promise.resolve(false)
+  // Várias chamadas podem receber 401 juntas: todas esperam a mesma renovação, para não gastar o refresh token duas vezes.
   if (!renovando) {
     renovando = (async () => {
       try {
@@ -150,6 +168,7 @@ export async function request(path, { method = 'GET', body, token, auth = false,
     method,
     headers: {
       Accept: 'application/json',
+      // FormData: o navegador monta o Content-Type (com o boundary). Blob (anexo): vai o tipo do próprio arquivo.
       ...(body !== undefined && !(body instanceof FormData) && !(body instanceof Blob) ? { 'Content-Type': 'application/json' } : {}),
       ...(body instanceof Blob && body.type ? { 'Content-Type': body.type } : {}),
       ...(token ? { 'access-token': token } : {}),

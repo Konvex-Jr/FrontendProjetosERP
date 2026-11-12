@@ -8,9 +8,19 @@ import { capacitacoes } from '../services/capacitacoes'
 
 const Ctx = createContext(null)
 export const useApp = () => useContext(Ctx)
+// Dados sem login: u pessoas, p projetos, t tarefas, k capacitações.
 const VAZIO = { u: [], p: [], t: [], k: [] }
 const SEM_ACESSO = { permissoes: [], menu: [] }
 
+/**
+ * Estado global do app logado. `useApp()` dá acesso a:
+ * - `D`: dados compartilhados (u, p, t, k, c) já recortados para quem vê; `DF`: os mesmos, sem recorte;
+ * - `me` (código da pessoa logada), `mb` (true quando não é gestão), `pode(permissao)` e `nav` (menu);
+ * - `form(titulo, campos, inicial, salvar)`: abre o FormModal global (formato em components/FormModal.jsx);
+ * - `go(tela, id)`: navega pela chave da tela (ver `path` em lib/utils);
+ * - `entrar`, `sair`, `refresh` (recarrega D depois de salvar) e `recarregarCapacitacoes`.
+ * Telas com dados próprios carregam com useCarregar; D serve aos avatares, ao Dashboard e à Visão Estratégica.
+ */
 export function AppProvider({ children }) {
   const navigate = useNavigate()
   const [DF, setD] = useState(null)
@@ -25,6 +35,7 @@ export function AppProvider({ children }) {
     return { permissoes: result?.permissoes || [], menu: result?.menu || [] }
   }
 
+  // Dados compartilhados por várias telas, carregados juntos no login e a cada refresh.
   const loadApiData = async () => {
     const [users, projects, tasks, trainings, senioridades] = await Promise.all([
       request('/usuarios', { auth: true }),
@@ -54,6 +65,7 @@ export function AppProvider({ children }) {
   useEffect(() => {
     let active = true
 
+    // Abrir ou recarregar a página com sessão salva: confere a pessoa (/auth/me) e carrega tudo antes de mostrar as telas.
     const initialize = async () => {
       const defaultConfig = readConfig()
       if (!sessao.ativa) {
@@ -75,6 +87,7 @@ export function AppProvider({ children }) {
         setMe(null)
         setAcesso(SEM_ACESSO)
         setD({ c: defaultConfig, ...VAZIO })
+        // 401 = sessão vencida: só cai no login, sem alerta.
         if (error.status !== 401) alerts.error('Falha ao conectar com a API', error.message)
       }
     }
@@ -167,12 +180,14 @@ export function AppProvider({ children }) {
     setD(current => (current ? { ...current, k } : current))
   }
 
+  // O FormModal é desenhado pelo Layout a partir de `md`; `opcoes` passa extras como `largo`.
   const form = (title, fields, initial, save, opcoes = {}) => setMd({ t: title, fs: fields, init: initial, save, ...opcoes })
   const go = (name, pid) => {
     navigate(path(name, pid))
     window.scrollTo(0, 0)
   }
 
+  // Nada aparece antes de saber se há sessão: evita mostrar o login por um instante a quem já está logado.
   if (!sessionReady || !DF) return <main className="container py-5">Carregando…</main>
 
   return (

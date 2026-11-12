@@ -6,6 +6,12 @@ import Multi from './Multi'
  * c (opções de múltipla escolha; pode ser função dos valores), s (mostrar se), opt (opcional), h (dica abaixo do campo),
  * rows (linhas do textarea). `largo`: modal mais largo para textos longos (ex.: Base de Inteligência).
  * `save` pode ser assíncrono; se devolver false (ou falhar), o modal continua aberto.
+ *
+ * Detalhes: `o` é uma lista de pares [valor, rótulo]; `c` é uma lista de { id, nome, perfil? } (componente Multi);
+ * `t` aceita qualquer tipo de input HTML (date, number, url...); `s(valores)` e `c(valores)` recebem o que já foi
+ * preenchido, para um campo depender de outro; `disabled` trava um select. Campo sem `opt` é obrigatório.
+ * Dê valor inicial em `init` a todo select: sem ele a tela mostra a 1ª opção, mas o valor fica vazio até a pessoa trocar.
+ * Normalmente não se usa direto: as telas chamam `form(titulo, campos, inicial, salvar)` do contexto.
  */
 export default function FormModal({ t, fs, init, save, close, largo }) {
   const [v, setV] = useState(init),

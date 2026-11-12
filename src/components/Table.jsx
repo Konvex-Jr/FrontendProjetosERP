@@ -4,6 +4,14 @@ import { useState } from 'react'
  * Tabela configurável (ADR-007). `vazio`: texto quando não há linhas (diga o que fazer em seguida).
  * `filtros`: valores iniciais dos selects, por chave da coluna (ex.: vindo de um atalho do Dashboard).
  * `busca={false}`: esconde a busca e os filtros internos (quando a tela filtra pela API, como a Base).
+ *
+ * Cada coluna de `cols`:
+ * - `k`: chave. Sem `k`, a coluna não ordena nem entra na busca (ex.: Equipe, Ações);
+ * - `l`: rótulo do cabeçalho. No celular vira o rótulo do campo no cartão; a coluna 'Ações' vai para o canto superior direito do cartão;
+ * - `get(linha)`: valor usado na busca, na ordenação e no filtro (padrão: linha[k]). Use para texto, não para JSX;
+ * - `render(linha)`: o que aparece na célula (padrão: o valor);
+ * - `filter`: cria um select com os valores distintos da coluna; `fl`: rótulo desse select.
+ * A primeira coluna é o título do cartão no celular. Cada linha precisa de `id` (key do React).
  */
 export default function Table({ cols, rows, vazio, filtros, busca = true }) {
   const [q, setQ] = useState(''),

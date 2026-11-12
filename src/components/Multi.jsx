@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { chip } from '../lib/utils'
 
+/** Múltipla escolha com busca (responsáveis, equipe). `opts` = [{ id, nome, perfil? }]; `value` = lista de ids. */
 export default function Multi({ opts, value, onChange }) {
   const [o, setO] = useState(false),
     [q, setQ] = useState(''),
     ref = useRef(null)
+  // Fecha a lista ao clicar fora do componente.
   useEffect(() => {
     const f = e => ref.current && !ref.current.contains(e.target) && setO(false)
     document.addEventListener('mousedown', f)
