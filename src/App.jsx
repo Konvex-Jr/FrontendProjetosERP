@@ -1,19 +1,22 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import Layout from './components/Layout'
 import Login from './pages/Login'
-import Dashboard from './pages/Dashboard'
-import Projetos from './pages/Projetos'
-import Projeto from './pages/Projeto'
-import Tarefas from './pages/Tarefas'
-import Capacitacoes from './pages/Capacitacoes'
-import Estrategia from './pages/Estrategia'
-import Gestao from './pages/Gestao'
-import Conhecimento from './pages/Conhecimento'
-import Iniciativas from './pages/Iniciativas'
-import Precificacao from './pages/Precificacao'
-import Pessoas from './pages/Pessoas'
-import Perfil from './pages/Perfil'
-import Configuracoes from './pages/Configuracoes'
+import carregarPagina from './lib/carregarPagina'
+
+// Cada página vira um arquivo separado, baixado na primeira visita. O Login fica no pacote de entrada.
+const Dashboard = carregarPagina(() => import('./pages/Dashboard'))
+const Projetos = carregarPagina(() => import('./pages/Projetos'))
+const Projeto = carregarPagina(() => import('./pages/Projeto'))
+const Tarefas = carregarPagina(() => import('./pages/Tarefas'))
+const Capacitacoes = carregarPagina(() => import('./pages/Capacitacoes'))
+const Estrategia = carregarPagina(() => import('./pages/Estrategia'))
+const Gestao = carregarPagina(() => import('./pages/Gestao'))
+const Conhecimento = carregarPagina(() => import('./pages/Conhecimento'))
+const Iniciativas = carregarPagina(() => import('./pages/Iniciativas'))
+const Precificacao = carregarPagina(() => import('./pages/Precificacao'))
+const Pessoas = carregarPagina(() => import('./pages/Pessoas'))
+const Perfil = carregarPagina(() => import('./pages/Perfil'))
+const Configuracoes = carregarPagina(() => import('./pages/Configuracoes'))
 
 export default function App() {
   return (

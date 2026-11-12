@@ -1,5 +1,9 @@
-import Swal from 'sweetalert2'
-import 'sweetalert2/dist/sweetalert2.min.css'
+// O SweetAlert2 (JS + CSS) só é baixado no primeiro alerta, fora do pacote de entrada.
+let swal = null
+const carregar = () => swal ??= Promise.all([
+  import('sweetalert2'),
+  import('sweetalert2/dist/sweetalert2.min.css'),
+]).then(([modulo]) => modulo.default, erro => { swal = null; throw erro })
 
 const baseOptions = {
   buttonsStyling: false,
@@ -11,7 +15,7 @@ const baseOptions = {
   },
 }
 
-const show = options => Swal.fire({ ...baseOptions, ...options })
+const show = async options => (await carregar()).fire({ ...baseOptions, ...options })
 
 const alerts = {
   success: (title, text = '') => show({ icon: 'success', title, text, confirmButtonText: 'Continuar' }),
@@ -30,8 +34,8 @@ const alerts = {
     })
     return result.isConfirmed
   },
-  toastSuccess: (title, text = '') => Swal.fire({ ...baseOptions, toast: true, position: 'top-end', icon: 'success', title, text, showConfirmButton: false, timer: 2400, timerProgressBar: true }),
-  close: () => Swal.close(),
+  toastSuccess: (title, text = '') => show({ toast: true, position: 'top-end', icon: 'success', title, text, showConfirmButton: false, timer: 2400, timerProgressBar: true }),
+  close: () => { swal?.then(Swal => Swal.close()) },
 }
 
 export default alerts

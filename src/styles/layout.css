@@ -453,3 +453,8 @@ html.tt *::after {
     scroll-behavior: auto !important
   }
 }
+
+/* Espaço reservado enquanto o arquivo da página carrega: evita o rodapé pular. */
+.pagina-carregando {
+  min-height: 60vh
+}

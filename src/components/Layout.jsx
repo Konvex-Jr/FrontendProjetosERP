@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 import { Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import { fm, ini, un, chip } from '../lib/utils'
@@ -84,7 +84,11 @@ export default function Layout() {
     <>
       <Header />
       <SideNav />
-      <main className="app-main"><div key={pathname} className="page-in"><Outlet /></div></main>
+      <main className="app-main">
+        <Suspense fallback={<div className="pagina-carregando" aria-busy="true" />}>
+          <div key={pathname} className="page-in"><Outlet /></div>
+        </Suspense>
+      </main>
       {md && <FormModal {...md} close={() => setMd(null)} />}
     </>
   )
