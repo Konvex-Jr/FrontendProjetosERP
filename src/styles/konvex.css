@@ -5,7 +5,7 @@
  */
 
 body {
-  font-family: Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-family: 'Inter Variable', Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
   letter-spacing: 0;
   font-variant-numeric: normal;
   background-image: radial-gradient(circle, var(--dot) 1px, transparent 1.5px);

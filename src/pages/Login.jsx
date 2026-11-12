@@ -17,7 +17,7 @@ export default function Login() {
   return (
     <div className="lgv">
       <section className="lgv-hx">
-        <img className="lgv-logo" src={BASE + 'logo-branca.png'} alt="Konvex Jr" />
+        <img className="lgv-logo" src={BASE + 'logo-branca.webp'} width={192} height={28} alt="Konvex Jr" />
         <div className="lgv-tx">
           <span className="lgv-pill">Sistema interno · Konvex Jr</span>
           <h1>A Konvex em <em>movimento</em>.</h1>
@@ -31,8 +31,8 @@ export default function Login() {
       </section>
       <main className="lgv-mold">
         <form onSubmit={send}>
-          <img className="lgo cla" src={BASE + 'logo.png'} alt="Konvex Jr" />
-          <img className="lgo esc" src={BASE + 'logo-branca.png'} alt="Konvex Jr" />
+          <img className="lgo cla" src={BASE + 'logo.webp'} width={192} height={28} alt="Konvex Jr" />
+          <img className="lgo esc" src={BASE + 'logo-branca.webp'} width={192} height={28} alt="Konvex Jr" />
           <div>
             <h2>Bem-vindo de volta</h2>
             <small>Entre com sua conta da Konvex.</small>
