@@ -17,16 +17,19 @@ export default function Login() {
   return (
     <div className="lgv">
       <section className="lgv-hx">
-        <span className="lgv-pill">Sistema interno · Konvex Jr</span>
-        <h1>A Konvex em <em>movimento</em>.</h1>
-        <p>Projetos, tarefas, pessoas e capacitações num só lugar.</p>
+        <img className="lgv-logo" src={BASE + 'logo-branca.png'} alt="Konvex Jr" />
+        <div className="lgv-tx">
+          <span className="lgv-pill">Sistema interno · Konvex Jr</span>
+          <h1>A Konvex em <em>movimento</em>.</h1>
+          <p>Projetos, tarefas, pessoas e capacitações num só lugar.</p>
+        </div>
         <div className="lgv-glass" aria-hidden="true">
           <small>Acesso</small>
           <b>Membros da Konvex Jr</b>
           <span>Entre com o e-mail da empresa.</span>
         </div>
       </section>
-      <div className="lgv-mold">
+      <main className="lgv-mold">
         <form onSubmit={send}>
           <img className="lgo cla" src={BASE + 'logo.png'} alt="Konvex Jr" />
           <img className="lgo esc" src={BASE + 'logo-branca.png'} alt="Konvex Jr" />
@@ -43,7 +46,7 @@ export default function Login() {
           <button className="btn btn-dk w-100" disabled={loading}>{loading ? 'Entrando…' : 'Entrar'}</button>
           <span className="lgv-foot">Problemas para entrar? Fale com a Inovação.</span>
         </form>
-      </div>
+      </main>
     </div>
   )
 }
