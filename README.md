@@ -54,3 +54,19 @@ A imagem do frontend usa `VITE_API_URL=http://localhost:5001` por padrão, alinh
 - `npm test`: testes das funções puras (`test/`).
 - `npm run e2e`: levantamento no navegador (`e2e/levantamento.mjs`). Entra como diretora, gerente e membro e abre todas as telas do menu em 1366 px e 375 px; falha com erro no console, "NaN" na tela ou rolagem horizontal. Precisa da API de desenvolvimento com dados fictícios (no backend: `npm run dev:docker && npm run dados:ficticios`) e do Playwright (`npm i -g playwright && npx playwright install chromium`). Prints em `e2e/prints/`.
 - Todo PR roda testes e build no GitHub Actions (`.github/workflows/ci.yml`). A `main` só recebe mudanças por PR com o CI verde.
+
+## Desempenho
+
+O que a pessoa baixa para abrir o sistema tem limite, e o CI cobra.
+
+- `npm run orcamento` (`scripts/orcamento.mjs`): roda no CI depois do build e falha se o `dist/` passar dos limites, medidos em gzip:
+  - `index.html` ≤ 2 KB;
+  - JS de entrada ≤ 85 KB (hoje ~69 KB);
+  - CSS ≤ 50 KB.
+- `npm run desempenho` (`e2e/desempenho.mjs`): serve o `dist/` com gzip e os mesmos cabeçalhos de cache do `nginx.conf` e roda o Lighthouse 12 (via `npx`, perfil de celular) na tela de login. Mínimos: desempenho 90, acessibilidade 100, boas práticas 100. Precisa de `npm run build` antes e de um Chrome instalado (se não for achado, use `CHROME_PATH=/caminho/do/chrome`). Para medir outro endereço: `APP_URL=https://... npm run desempenho`.
+
+Se o orçamento estourar, quase sempre é algo pesado importado direto no pacote de entrada. As páginas usam `lazy()` (`src/lib/carregarPagina.js`) e o SweetAlert2 é importado só no primeiro alerta (`src/lib/alerts.js`); siga o mesmo caminho.
+
+O `nginx.conf` comprime com gzip, guarda por 1 ano os arquivos com hash no nome (`/assets/*-<hash>.js|css|woff2`), por 7 dias imagens e ícones e manda `no-cache` no `index.html`. A fonte Inter vem do pacote `@fontsource-variable/inter`, sem Google Fonts.
+
+O sistema é interno e fica fora do Google: `public/robots.txt` com `Disallow: /` e `<meta name="robots" content="noindex">` no `index.html`. Por isso o Lighthouse não mede SEO.
