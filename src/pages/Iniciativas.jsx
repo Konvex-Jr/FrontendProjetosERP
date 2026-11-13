@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
-import { ST, PC, chip, fd } from '../lib/utils'
+import { ST, PC, chip, fd, iso } from '../lib/utils'
 import Ic from '../components/Icon'
 import ActionMenu from '../components/ActionMenu'
 import Table from '../components/Table'
@@ -101,7 +101,7 @@ async function excluirIniciativa(item, depois) {
 
 /** Tarefa de Inovação já ligada à iniciativa (só para quem organiza tarefas avulsas). */
 function novaTarefa({ D, form, item, aoSalvar }) {
-  const hoje = new Date().toISOString().slice(0, 10)
+  const hoje = iso(new Date())
   form(
     'Nova tarefa de Inovação',
     [

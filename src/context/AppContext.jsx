@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { path } from '../lib/utils'
+import { iso, path } from '../lib/utils'
 import { request, sessao } from '../services/api'
 import alerts from '../lib/alerts'
 import { adaptProject, adaptTask, adaptUser, readConfig } from '../lib/apiMappers'
@@ -105,6 +105,19 @@ export function AppProvider({ children }) {
       active = false
     }
   }, [])
+  // "Hoje" (D.c.hoje) acompanha o relógio: uma aba aberta de um dia para o outro não fica mostrando
+  // os atrasos do dia anterior. Confere a cada minuto e quando a aba volta ao foco.
+  useEffect(() => {
+    const conferirDia = () =>
+      setD(atual => (atual?.c && atual.c.hoje !== iso(new Date()) ? { ...atual, c: { ...atual.c, hoje: iso(new Date()) } } : atual))
+    const timer = setInterval(conferirDia, 60_000)
+    window.addEventListener('focus', conferirDia)
+    return () => {
+      clearInterval(timer)
+      window.removeEventListener('focus', conferirDia)
+    }
+  }, [])
+
   // Ações liberadas pelo backend (GET /auth/permissoes); a API continua checando cada uma.
   const pode = permissao => acesso.permissoes.includes(permissao)
   // Sem permissão de gestor, a pessoa vê só os próprios projetos e tarefas.

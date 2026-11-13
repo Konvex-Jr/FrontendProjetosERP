@@ -60,7 +60,7 @@ export const ini = n =>
     .slice(0, 2)
 /** Nome da pessoa pelo código, procurando em D.u ('—' se não achar). */
 export const un = (D, id) => D.u.find(u => u.id == id)?.nome || '—'
-/** Hoje como Date. Vem de D.c.hoje, calculado quando os dados do contexto carregam (login, F5 ou refresh depois de salvar). */
+/** Hoje como Date. Vem de D.c.hoje, que o AppContext atualiza quando o dia muda. */
 export const hj = D => d(D.c.hoje)
 /** Nomes de várias pessoas, separados por vírgula. */
 export const nm = (D, ids) => (ids || []).map(i => un(D, i)).join(', ') || '—'
