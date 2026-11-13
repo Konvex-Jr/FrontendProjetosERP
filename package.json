@@ -10,6 +10,7 @@
     "preview": "vite preview",
     "test": "node --test test/*.test.js",
     "e2e": "node e2e/levantamento.mjs",
+    "capturas": "node e2e/capturas.mjs",
     "orcamento": "node scripts/orcamento.mjs",
     "desempenho": "node e2e/desempenho.mjs",
     "lint": "eslint .",
