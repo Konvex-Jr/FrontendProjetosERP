@@ -51,8 +51,6 @@ export const path = (n, pid) =>
 
 /** Classes do chip (badge arredondado), com a cor opcional: ok, wa, er... */
 export const chip = (c = '') => 'badge rounded-pill ' + c
-/** Id gerado no navegador. */
-export const nid = () => crypto.randomUUID()
 /** Iniciais do nome, para o avatar (até 2 letras). */
 export const ini = n =>
   n
@@ -67,17 +65,15 @@ export const hj = D => d(D.c.hoje)
 /** Nomes de várias pessoas, separados por vírgula. */
 export const nm = (D, ids) => (ids || []).map(i => un(D, i)).join(', ') || '—'
 /**
- * Progresso do projeto: % das tarefas de D.t que estão concluídas.
- * Atenção: para membro, D.t só tem as tarefas dele (ver AppContext), então o número depende de quem vê.
+ * Progresso do projeto: % das tarefas concluídas, pela contagem que a API manda em `tarefas`
+ * ({ total, concluidas }, todas as tarefas do projeto). Assim membro e gestão veem o mesmo número;
+ * D.t do membro só tem as tarefas dele. Sem contagem, conta as tarefas carregadas.
  */
 export const prog = (D, p) => {
+  const c = p.tarefas || D.p.find(x => x.id == p.id)?.tarefas
+  if (c) return c.total ? Math.round((c.concluidas / c.total) * 100) : 0
   const t = D.t.filter(x => x.projetoId == p.id)
   return t.length ? Math.round((t.filter(x => x.status == 'concluida').length / t.length) * 100) : 0
-}
-/** Segunda-feira da semana de hoje ('AAAA-MM-DD'). */
-export const semana = D => {
-  const h = hj(D)
-  return iso(+h - ((h.getDay() + 6) % 7) * DAY)
 }
 /** Número → 'R$ 1.234,56'. */
 export const brl = n => (n || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })

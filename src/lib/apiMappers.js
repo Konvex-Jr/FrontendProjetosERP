@@ -49,6 +49,8 @@ export function adaptProject(project) {
     fim: dateOnly(project.dataFim),
     status: project.status,
     membros: (project.membros || []).map(userCode),
+    // Contagem de todas as tarefas do projeto (para o progresso; ver prog em lib/utils.js).
+    tarefas: project.tarefas,
   }
 }
 
