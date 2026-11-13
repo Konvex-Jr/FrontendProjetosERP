@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import alerts from './alerts'
 
 /**
@@ -7,20 +7,24 @@ import alerts from './alerts'
  * `carregar` devolve uma Promise; `deps` funciona como no useEffect (mudou, carrega de novo).
  * `dados` começa null (a tela mostra "Carregando…"); num erro, os dados anteriores ficam.
  * Depois de salvar, use `await recarregar()`.
- * Atenção: a chamada anterior não é cancelada; se `deps` mudar rápido, vale a resposta que chegar por último.
+ * Se `deps` mudar rápido (filtros da Base, das Iniciativas), só a resposta da chamada mais nova
+ * vale: uma resposta lenta de um filtro antigo é descartada.
  */
 export default function useCarregar(carregar, deps = []) {
   const [dados, setDados] = useState(null)
   const [carregando, setCarregando] = useState(true)
+  const ultima = useRef(0)
 
   const recarregar = useCallback(async () => {
+    const minha = ++ultima.current
     setCarregando(true)
     try {
-      setDados(await carregar())
+      const resultado = await carregar()
+      if (minha === ultima.current) setDados(resultado)
     } catch (error) {
-      alerts.error('Não foi possível carregar', error.message)
+      if (minha === ultima.current) alerts.error('Não foi possível carregar', error.message)
     } finally {
-      setCarregando(false)
+      if (minha === ultima.current) setCarregando(false)
     }
     // As dependências vêm de quem chama (como no useEffect); o lint não consegue conferir uma lista dinâmica.
     // eslint-disable-next-line react-hooks/exhaustive-deps, react-hooks/use-memo

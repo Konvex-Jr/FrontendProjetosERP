@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import Multi from './Multi'
+import { valoresIniciais } from '../lib/formulario'
 
 /**
  * Campos: k (chave), l (rótulo), t (tipo do input ou 'textarea'), o (opções de select),
@@ -10,7 +11,7 @@ import Multi from './Multi'
  * Detalhes: `o` é uma lista de pares [valor, rótulo]; `c` é uma lista de { id, nome, perfil? } (componente Multi);
  * `t` aceita qualquer tipo de input HTML (date, number, url...); `s(valores)` e `c(valores)` recebem o que já foi
  * preenchido, para um campo depender de outro; `disabled` trava um select. Campo sem `opt` é obrigatório.
- * Dê valor inicial em `init` a todo select: sem ele a tela mostra a 1ª opção, mas o valor fica vazio até a pessoa trocar.
+ * Select visível sem valor é enviado com a 1ª opção, a que a tela mostra (lib/formulario.js).
  * Normalmente não se usa direto: as telas chamam `form(titulo, campos, inicial, salvar)` do contexto.
  */
 export default function FormModal({ t, fs, init, save, close, largo }) {
@@ -21,7 +22,9 @@ export default function FormModal({ t, fs, init, save, close, largo }) {
     e.preventDefault()
     setSalvando(true)
     try {
-      if ((await save(v)) !== false) close()
+      // Select visível que a pessoa não mexeu vai com a 1ª opção, a que a tela mostra.
+      const visiveis = fs.filter(x => !x.s || x.s(v))
+      if ((await save(valoresIniciais(visiveis, v))) !== false) close()
     } catch {
       // Quem chamou já mostrou o erro; o formulário fica aberto para corrigir.
     } finally {

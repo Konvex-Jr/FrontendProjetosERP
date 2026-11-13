@@ -1,5 +1,8 @@
 node_modules/
 dist/
 .env
+.env.*
+!*.example
+*.pem
 .DS_Store
 e2e/prints/

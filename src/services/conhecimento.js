@@ -1,4 +1,5 @@
 import { request } from './api.js'
+import { iso } from '../lib/utils.js'
 import { normalizarLink } from './documentos.js'
 
 /**
@@ -95,7 +96,7 @@ export const valoresConhecimento = (item, inicial = {}) =>
         data: item.data,
         projetos: item.projetos.map(p => p.id),
       }
-    : { categoria: 'pesquisa', data: new Date().toISOString().slice(0, 10), projetos: [], ...inicial }
+    : { categoria: 'pesquisa', data: iso(new Date()), projetos: [], ...inicial }
 
 export const corpoConhecimento = v => ({
   titulo: (v.titulo || '').trim(),

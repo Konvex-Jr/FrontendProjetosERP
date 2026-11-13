@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
-import { TIPO, chip, fd } from '../lib/utils'
+import { TIPO, chip, fd, iso } from '../lib/utils'
 import Ic from '../components/Icon'
 import ActionMenu from '../components/ActionMenu'
 import Markdown from '../components/Markdown'
@@ -166,7 +166,7 @@ function Cartao({ c, abrir, acoes }) {
 function Calendario({ lista, mes, setMes, abrir }) {
   const semanas = semanasDoMes(mes, lista)
   const doMes = lista.filter(c => mesDe(c.data) === mes)
-  const hoje = new Date().toISOString().slice(0, 10)
+  const hoje = iso(new Date())
   return (
     <div className="card card-body">
       <div className="d-flex align-items-center justify-content-between gap-2 mb-2">
@@ -234,7 +234,8 @@ function Lista() {
   const abrir = id => go('capacitacoes', id)
   const todas = dados || []
   const lista = todas.filter(c => (!f.tipo || c.tipo === f.tipo) && (!f.minhas || c.inscrito))
-  const mes = f.mes || mesDe(new Date().toISOString())
+  // Mês local: toISOString (UTC) abriria o mês seguinte no último dia do mês, depois das 21h.
+  const mes = f.mes || mesDe(iso(new Date()))
   const proximas = lista.filter(c => c.situacao !== 'realizada')
   const realizadas = lista.filter(c => c.situacao === 'realizada').reverse()
   const secao = (titulo, itens) =>

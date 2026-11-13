@@ -120,7 +120,7 @@ export default function Projetos() {
       ]}
     />
   )
-  const pg = p => prog(D, { id: p.codigo })
+  const pg = p => prog(D, { id: p.codigo, tarefas: p.tarefas })
   const periodo = p => fm(dia(p.dataInicio)) + ' a ' + fm(dia(p.dataFim))
   const cols = [
     { k: 'nome', l: 'Projeto' },
