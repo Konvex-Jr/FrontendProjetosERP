@@ -72,6 +72,7 @@ test('request keeps the API code and turns server errors into a clear sentence',
 test('mensagemDeErro explains answers without a message', () => {
   assert.equal(mensagemDeErro(403, null), 'Você não tem permissão para esta ação.')
   assert.match(mensagemDeErro(404, {}), /recarregue/)
+  assert.match(mensagemDeErro(429, null), /Muitas tentativas/)
   assert.equal(mensagemDeErro(400, { message: 'Título obrigatório.' }), 'Título obrigatório.')
 })
 

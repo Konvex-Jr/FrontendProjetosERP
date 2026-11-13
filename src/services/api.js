@@ -33,6 +33,7 @@ export function mensagemDeErro(status, data) {
   if (status === 403) return 'Você não tem permissão para esta ação.'
   if (status === 404) return 'Não encontrado. Pode ter sido excluído; recarregue a página.'
   if (status === 413) return 'O conteúdo enviado é grande demais.'
+  if (status === 429) return 'Muitas tentativas seguidas. Espere alguns minutos e tente de novo.'
   return `Não foi possível concluir (erro ${status}). Tente de novo.`
 }
 
