@@ -37,7 +37,9 @@ export default function useCarregar(carregar, deps = [], { chave } = {}) {
       setCarregando(chave ? memoria.obter(chave) === undefined : true)
       try {
         const resultado = chave ? await memoria.buscar(chave, carregar, { forcar }) : await carregar()
-        if (minha === ultima.current) setDados(resultado)
+        // Com chave, a memória é a fonte da verdade: ela pode ter descartado esta resposta
+        // (troca de pessoa, ou uma busca mais nova da mesma chave em outra tela).
+        if (minha === ultima.current) setDados(chave ? (memoria.obter(chave) ?? null) : resultado)
       } catch (error) {
         // 401 já é tratado pelo fluxo de sessão; um alerta a mais só atrapalha.
         if (minha === ultima.current && !(chave && error.status === 401)) {

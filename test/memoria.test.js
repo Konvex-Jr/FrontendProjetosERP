@@ -271,3 +271,22 @@ test('forcar descarta resultado de geração anterior (troca de pessoa)', async 
   await p
   assert.equal(memoria.obter('item'), undefined)
 })
+
+test('obter é a fonte da verdade quando a resposta é descartada por troca de pessoa', async () => {
+  let liberar
+  const p = memoria.buscar('item', () => new Promise(r => (liberar = () => r('de-ana'))))
+  memoria.definirPessoa('bia')
+  liberar()
+  // a promessa ainda resolve com o valor descartado; quem exibe deve ler obter()
+  assert.equal(await p, 'de-ana')
+  assert.equal(memoria.obter('item'), undefined)
+})
+
+test('obter devolve o valor da busca forçada quando a antiga é descartada', async () => {
+  let liberar
+  const antiga = memoria.buscar('item', () => new Promise(r => (liberar = () => r('antiga'))))
+  await memoria.buscar('item', async () => 'nova', { forcar: true })
+  liberar()
+  assert.equal(await antiga, 'antiga')
+  assert.equal(memoria.obter('item'), 'nova')
+})
