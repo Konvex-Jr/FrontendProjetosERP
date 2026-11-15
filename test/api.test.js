@@ -104,7 +104,7 @@ test('request sends binary files without JSON serialization', async () => {
   }
   try {
     const { request } = await import('../src/services/api.js')
-    const result = await request('/pastas/folder/documents/upload', {
+    const result = await request('/biblioteca/b1/anexos', {
       method: 'POST',
       token: 'token',
       body: file,

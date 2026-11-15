@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { prog } from '../src/lib/utils.js'
+import { NAV, path, prog } from '../src/lib/utils.js'
 
 // Revisão de 12/11/2026: o membro recebe só as próprias tarefas em D.t; o % vinha diferente do da gestão.
 test('prog usa a contagem de todas as tarefas que vem da API', () => {
@@ -23,4 +23,22 @@ test('sem contagem da API, cai nas tarefas carregadas', () => {
     ],
   }
   assert.equal(prog(D, { id: 'p1' }), 50)
+})
+
+// Sessão 17: Biblioteca no lugar de Base de Inteligência; saem Iniciativas e Gestão.
+test('NAV tem a Biblioteca e não tem mais Base, Iniciativas nem Gestão', () => {
+  const chaves = NAV.map(x => x[0])
+  assert.ok(chaves.includes('biblioteca'))
+  for (const antiga of ['conhecimento', 'iniciativas', 'gestao']) assert.ok(!chaves.includes(antiga), antiga)
+  assert.deepEqual(
+    NAV.find(x => x[0] === 'biblioteca'),
+    ['biblioteca', 'Biblioteca', '/biblioteca'],
+  )
+  // Mesma posição da antiga Base (depois de Capacitações).
+  assert.equal(chaves.indexOf('biblioteca'), chaves.indexOf('capacitacoes') + 1)
+})
+
+test('path leva à lista e à ficha da Biblioteca', () => {
+  assert.equal(path('biblioteca'), '/biblioteca')
+  assert.equal(path('biblioteca', 'b1'), '/biblioteca/b1')
 })

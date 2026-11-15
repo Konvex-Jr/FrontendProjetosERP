@@ -61,8 +61,6 @@ export function adaptTask(task) {
     projetoNome: task.projeto?.nome,
     avulsa: !task.projeto,
     categoria: task.categoria || undefined,
-    iniciativaId: task.iniciativa?.codigo || undefined,
-    iniciativaNome: task.iniciativa?.nome || undefined,
     criadaPor: task.criadaPor ? task.criadaPor.nomeExibicao || task.criadaPor.nome : undefined,
     titulo: task.titulo,
     descricao: task.descricao || '',
@@ -124,3 +122,22 @@ export function normalizeSenioridades(registros = []) {
     }))
     .filter(item => item.codigo && item.nome)
 }
+
+/**
+ * Item da Biblioteca (sessão 17). Mantém o formato da API (`codigo`), só garante os padrões.
+ * `projeto` é null sem projeto e também quando a pessoa não vê o projeto ligado.
+ */
+export const itemBibliotecaDaApi = item => ({
+  codigo: item.codigo,
+  titulo: item.titulo || '',
+  conteudo: item.conteudo || '',
+  links: item.links || [],
+  tags: item.tags || [],
+  projeto: item.projeto ? { codigo: item.projeto.codigo, nome: item.projeto.nome } : null,
+  sigilo: item.sigilo || 'todos',
+  autor: item.autor ? { codigo: item.autor.codigo, nome: item.autor.nome } : null,
+  criadoEm: item.criadoEm || '',
+  atualizadoEm: item.atualizadoEm || '',
+  podeAlterar: Boolean(item.podeAlterar),
+  anexos: item.anexos || [],
+})

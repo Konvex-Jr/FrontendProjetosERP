@@ -14,17 +14,17 @@ import { projetos, rotuloPrioridade } from '../services/projetos'
 import { acoesTarefa, papelNasTarefas, tarefas } from '../services/tarefas'
 import { adaptTask } from '../lib/apiMappers'
 import { StatusProjeto, camposProjeto, valoresProjeto } from './Projetos'
-import { ItensDoProjeto } from './Conhecimento'
+import { ItensDoProjeto } from './Biblioteca'
 
 const ABAS = [
   ['tarefas', 'Tarefas'],
   ['geral', 'Visão geral'],
   ['equipe', 'Equipe'],
-  ['base', 'Base'],
+  ['biblioteca', 'Biblioteca'],
 ]
 
 /**
- * Página de um projeto (/projetos/:id), com as abas Tarefas (kanban ou Gantt), Visão geral, Equipe e Base.
+ * Página de um projeto (/projetos/:id), com as abas Tarefas (kanban ou Gantt), Visão geral, Equipe e Biblioteca.
  * Nas tarefas, gestão e líder organizam; quem está na equipe atual cria e conclui as suas (papelNasTarefas).
  */
 export default function Projeto() {
@@ -244,7 +244,7 @@ export default function Projeto() {
       </div>
       {aba == 'tarefas' && (pt == 'kanban' ? kanban() : gantt())}
       {aba == 'geral' && geral()}
-      {aba == 'base' && <ItensDoProjeto projeto={projeto} />}
+      {aba == 'biblioteca' && <ItensDoProjeto projeto={projeto} />}
       {aba == 'equipe' && <EquipeProjeto projeto={projeto} todos={todos} gente={gente} gestor={gestor} aoSalvar={aoSalvar} />}
       {tk && T.find(x => x.id == tk) && (
         <TaskModal

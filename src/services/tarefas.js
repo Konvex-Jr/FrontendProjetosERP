@@ -28,20 +28,16 @@ export const CATEGORIAS = [
 ]
 export const rotuloCategoria = c => CATEGORIAS.find(x => x[0] === c)?.[1] || c || ''
 /** De onde a tarefa é: nome do projeto ou categoria da avulsa. */
-export const origemTarefa = t =>
-  t.avulsa ? rotuloCategoria(t.categoria) + (t.iniciativaNome ? ' · ' + t.iniciativaNome : '') : t.projetoNome || 'Projeto'
+export const origemTarefa = t => (t.avulsa ? rotuloCategoria(t.categoria) : t.projetoNome || 'Projeto')
 
-/** Iniciativa ligada (sessão 12b): só tarefa avulsa de Inovação; nas outras vai null (desliga). */
-export const iniciativaDa = t => (t.categoria === 'inovacao' ? t.iniciativaId || null : null)
-
-/** Corpo do POST /tarefas: com projeto, ou avulsa com `t.categoria` (e a iniciativa, se for de Inovação). */
+/** Corpo do POST /tarefas: com projeto, ou avulsa com `t.categoria`. */
 export const corpoNovaTarefa = (codigoProjeto, t) =>
-  codigoProjeto ? { codigoProjeto, ...base(t) } : { categoria: t.categoria, codigoIniciativa: iniciativaDa(t), ...base(t) }
+  codigoProjeto ? { codigoProjeto, ...base(t) } : { categoria: t.categoria, ...base(t) }
 
 /** Corpo do PUT /tarefas/:codigo (envia tudo; a API ignora responsáveis quando quem edita é membro). */
 export const corpoTarefa = t => ({
   ...base(t),
-  ...(t.avulsa ? { categoria: t.categoria, codigoIniciativa: iniciativaDa(t) } : {}),
+  ...(t.avulsa ? { categoria: t.categoria } : {}),
   status: t.status,
   codigoDependencia: t.dependeDe || null,
   checklist: (t.checklist || []).map(i => ({ codigo: i.id, texto: i.texto, feito: Boolean(i.feito) })),
