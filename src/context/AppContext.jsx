@@ -7,6 +7,7 @@ import { readConfig } from '../lib/apiMappers'
 import { capacitacoes } from '../services/capacitacoes'
 import { carregarAcesso, carregarDadosGlobais, carregarInicio } from '../services/inicio'
 import { memoria } from '../lib/memoria'
+import { EsqueletoApp } from '../components/Esqueleto'
 
 const Ctx = createContext(null)
 export const useApp = () => useContext(Ctx)
@@ -189,7 +190,8 @@ export function AppProvider({ children }) {
   }
 
   // Nada aparece antes de saber se há sessão: evita mostrar o login por um instante a quem já está logado.
-  if (!sessionReady || !DF) return <main className="container py-5">Carregando…</main>
+  // Com sessão salva, o esqueleto do layout ocupa o lugar; sem sessão a resposta é imediata e vai ao login.
+  if (!sessionReady || !DF) return sessao.ativa ? <EsqueletoApp /> : null
 
   return (
     <Ctx.Provider value={{ D, DF, form, go, me, mb, nav, entrar, sair, md, setMd, loading, refresh, pode, recarregarCapacitacoes }}>

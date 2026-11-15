@@ -459,3 +459,72 @@ html.tt *::after {
 .pagina-carregando {
   min-height: 60vh
 }
+
+/* Esqueletos de carregamento: blocos com brilho suave, só com os tokens do tema (claro e escuro). */
+.esq {
+  display: flex;
+  flex-direction: column;
+  gap: 14px
+}
+
+.esq-b {
+  display: block;
+  border-radius: var(--rd);
+  background: linear-gradient(90deg, var(--col) 25%, var(--ln) 50%, var(--col) 75%);
+  background-size: 200% 100%;
+  animation: esq-brilho 1.4s ease-in-out infinite
+}
+
+.esq-linha {
+  height: 64px
+}
+
+/* No cabeçalho e no menu (fundo marinho nos dois temas) os blocos ficam translúcidos sobre ele. */
+.hd .esq-b {
+  background: linear-gradient(90deg, color-mix(in srgb, currentColor 12%, transparent) 25%, color-mix(in srgb, currentColor 24%, transparent) 50%, color-mix(in srgb, currentColor 12%, transparent) 75%);
+  background-size: 200% 100%
+}
+
+.esq-menu .esq-b {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--ln) 18%, transparent) 25%, color-mix(in srgb, var(--ln) 36%, transparent) 50%, color-mix(in srgb, var(--ln) 18%, transparent) 75%);
+  background-size: 200% 100%
+}
+
+.esq-logo {
+  width: 150px;
+  height: 22px
+}
+
+.esq-chip {
+  width: 120px;
+  height: 26px;
+  border-radius: 13px
+}
+
+.esq-avatar,
+.esq-icone {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%
+}
+
+.esq-avatar {
+  width: 34px;
+  height: 34px
+}
+
+@keyframes esq-brilho {
+  from {
+    background-position: 200% 0
+  }
+
+  to {
+    background-position: -200% 0
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .esq-b {
+    animation: none
+  }
+}

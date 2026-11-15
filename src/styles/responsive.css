@@ -138,6 +138,16 @@
   }
 
 
+  /* Esqueleto do cabeçalho acompanha o compacto: logo menor e sem o bloco da data. */
+  .esq-logo {
+    width: 110px;
+    height: 18px
+  }
+
+  .esq-chip {
+    display: none
+  }
+
   /* Cabeçalho do sistema compacto: logo menor e "Sair" só com ícone. */
   .hdi {
     gap: 8px

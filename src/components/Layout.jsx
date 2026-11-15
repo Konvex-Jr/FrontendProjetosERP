@@ -4,6 +4,7 @@ import { useApp } from '../context/AppContext'
 import { fm, ini, un, chip } from '../lib/utils'
 import Ic from './Icon'
 import FormModal from './FormModal'
+import Esqueleto from './Esqueleto'
 
 /** Barra do topo: data de hoje, troca de tema, pessoa logada (abre o perfil) e Sair. */
 function Header() {
@@ -169,7 +170,7 @@ export default function Layout() {
       <SideNav />
       <main className="app-main">
         {/* Fallback enquanto o arquivo da página baixa (carregarPagina); a key por rota repete a animação de entrada. */}
-        <Suspense fallback={<div className="pagina-carregando" aria-busy="true" />}>
+        <Suspense fallback={<Esqueleto />}>
           <div key={pathname} className="page-in">
             <Outlet />
           </div>
