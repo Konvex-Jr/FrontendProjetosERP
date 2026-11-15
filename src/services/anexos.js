@@ -1,5 +1,7 @@
 import { baixar, request } from './api.js'
+import { memoria } from '../lib/memoria.js'
 import { memoriaArquivos } from '../lib/memoriaArquivos.js'
+import { aoTrocarPessoa } from '../lib/memoriasDaAba.js'
 
 /**
  * Anexos (sessão 12c, decisões de 09/11/2026): até 20 MB, documentos e imagens.
@@ -87,8 +89,9 @@ const enviarBytes = (path, arquivo) =>
 export const LIMITE_ANTECIPAR = 5 * 1024 * 1024
 /** Antecipações ao mesmo tempo; as que passarem disso são ignoradas (não esperam numa fila). */
 export const MAXIMO_ANTECIPANDO = 2
-// Anexos sendo antecipados agora (códigos).
-const antecipando = new Set()
+// Anexos sendo antecipados agora (códigos). Outra pessoa (ou o fim da sessão) começa com as vagas livres.
+let antecipando = new Set()
+aoTrocarPessoa(() => (antecipando = new Set()))
 
 /** Acima deste tamanho a tela mostra o progresso do download (barra na janela, estado no botão). */
 export const MOSTRAR_PROGRESSO = 1024 * 1024
@@ -122,6 +125,28 @@ function arquivoDo(anexo, aoProgresso) {
   return memoriaArquivos.buscar(anexo.id, avisar => baixar(path, { aoProgresso: avisar }), { aoProgresso })
 }
 
+// Resultado de uma busca que terminou (bem ou mal) depois da troca de pessoa.
+const TROCOU = Symbol('trocou de pessoa')
+
+/**
+ * Roda `buscar(mesma)` lembrando a pessoa do começo; `mesma()` diz se ela ainda é a da aba.
+ * Se a pessoa mudou até o fim, devolve TROCOU no lugar do arquivo ou do erro.
+ */
+async function daMesmaPessoa(buscar) {
+  const pessoa = memoria.pessoa()
+  const mesma = () => memoria.pessoa() === pessoa
+  try {
+    const resultado = await buscar(mesma)
+    return mesma() ? resultado : TROCOU
+  } catch (error) {
+    if (mesma()) throw error
+    return TROCOU
+  }
+}
+
+// Progresso que só chega à tela enquanto a pessoa for a mesma.
+const avisarSe = (mesma, aoProgresso) => aoProgresso && ((recebidos, total) => mesma() && aoProgresso(recebidos, total))
+
 export const anexos = {
   /** `dono`: 'biblioteca' ou 'tarefas'. */
   enviar: (dono, codigo, arquivo) => enviarBytes(`/${dono}/${codigo}/anexos`, arquivo),
@@ -140,25 +165,35 @@ export const anexos = {
   async antecipar(anexo) {
     if (!podeVer(anexo.nome) || !(anexo.bytes > 0 && anexo.bytes <= LIMITE_ANTECIPAR)) return
     if (antecipando.has(anexo.id) || antecipando.size >= MAXIMO_ANTECIPANDO || memoriaArquivos.obter(anexo.id)) return
-    antecipando.add(anexo.id)
+    // A vaga é liberada no conjunto em que foi ocupada: se a pessoa mudou, as vagas novas não são tocadas.
+    const vagas = antecipando
+    vagas.add(anexo.id)
     try {
       await arquivoDo(anexo)
     } catch {
       /* antecipação é só um ganho; quem clicar vê o erro */
     } finally {
-      antecipando.delete(anexo.id)
+      vagas.delete(anexo.id)
     }
   },
-  /** Arquivo guardado ou baixado pela API; devolve um endereço local para abrir em janela e o chamador revoga com `URL.revokeObjectURL`. */
+  /**
+   * Arquivo guardado ou baixado pela API; devolve um endereço local para abrir em janela e o chamador revoga com `URL.revokeObjectURL`.
+   * Devolve null (sem erro nem progresso) se a pessoa mudou enquanto o arquivo chegava.
+   */
   async abrir(anexo, { aoProgresso } = {}) {
     if (!podeVer(anexo.nome)) throw new Error('Este tipo de arquivo não abre aqui. Baixe para ver.')
     const tipo = VISUALIZAVEIS[extensao(anexo.nome)]
-    const blob = await arquivoDo(anexo, aoProgresso)
+    const blob = await daMesmaPessoa(mesma => arquivoDo(anexo, avisarSe(mesma, aoProgresso)))
+    if (blob === TROCOU) return null
     return { url: URL.createObjectURL(new Blob([blob], { type: tipo })), tipo }
   },
-  /** Arquivo guardado ou baixado pela API (o token vai no cabeçalho), entregue ao navegador com o nome original. */
+  /**
+   * Arquivo guardado ou baixado pela API (o token vai no cabeçalho), entregue ao navegador com o nome original.
+   * Se a pessoa mudou enquanto o arquivo chegava, não entrega nem dá erro: o arquivo era de quem saiu.
+   */
   async baixar(anexo, { aoProgresso } = {}) {
-    const blob = await arquivoDo(anexo, aoProgresso)
+    const blob = await daMesmaPessoa(mesma => arquivoDo(anexo, avisarSe(mesma, aoProgresso)))
+    if (blob === TROCOU) return
     const url = URL.createObjectURL(blob)
     const a = Object.assign(document.createElement('a'), { href: url, download: anexo.nome })
     document.body.appendChild(a)

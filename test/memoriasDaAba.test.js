@@ -42,3 +42,30 @@ test('sair apaga os dados e os arquivos e deixa a aba sem pessoa', () => {
   assert.equal(memoria.obter('projetos'), undefined)
   assert.equal(memoriaArquivos.tamanhoTotal(), 0)
 })
+
+test('trocar de pessoa ou sair libera as vagas de antecipação de anexos', async () => {
+  const { anexos } = await import('../src/services/anexos.js')
+  const original = globalThis.fetch
+  const chamadas = []
+  // Respostas que nunca chegam: as duas vagas ficam ocupadas pela pessoa anterior.
+  globalThis.fetch = url => (chamadas.push(String(url).replace(/^.*\/anexos\//, '')), new Promise(() => {}))
+  const esperar = () => new Promise(r => setTimeout(r, 0))
+  try {
+    anexos.antecipar({ id: 'x1', nome: 'a.pdf', bytes: 10 })
+    anexos.antecipar({ id: 'x2', nome: 'b.pdf', bytes: 10 })
+    await esperar()
+    definirPessoa('bia')
+    anexos.antecipar({ id: 'x3', nome: 'c.pdf', bytes: 10 })
+    await esperar()
+    assert.deepEqual(chamadas, ['x1', 'x2', 'x3'])
+    anexos.antecipar({ id: 'x4', nome: 'd.pdf', bytes: 10 })
+    apagarMemorias()
+    definirPessoa('caio')
+    anexos.antecipar({ id: 'x5', nome: 'e.pdf', bytes: 10 })
+    anexos.antecipar({ id: 'x6', nome: 'f.pdf', bytes: 10 })
+    await esperar()
+    assert.deepEqual(chamadas, ['x1', 'x2', 'x3', 'x4', 'x5', 'x6'])
+  } finally {
+    globalThis.fetch = original
+  }
+})

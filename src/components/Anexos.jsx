@@ -1,9 +1,8 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Ic from './Icon'
 import alerts from '../lib/alerts'
+import ZonaEnvio from './ZonaEnvio'
 import {
-  ACEITA,
-  DICA,
   acaoAoAbrir,
   adaptAnexo,
   anexos as api,
@@ -13,86 +12,12 @@ import {
   podeVer,
   progressoVisivel,
   resumoFalhas,
-  textoProgresso,
 } from '../services/anexos'
 import { fd } from '../lib/utils'
 
 /** Mesma largura do celular em responsive.css: lá o PDF baixa em vez de abrir na janela. */
 const CELULAR = '(max-width: 575.98px)'
 const ehCelular = () => typeof matchMedia === 'function' && matchMedia(CELULAR).matches
-
-/**
- * Zona de envio: o botão abre o seletor (alternativa de teclado) e a área aceita arquivos soltos.
- * Entrega a lista inteira em `aoEscolher(arquivos)`; quem chama confere e envia.
- * `ocupado = { atual, total }` trava a zona e mostra "Enviando 2 de 5…".
- */
-export function ZonaEnvio({ aoEscolher, multiple = true, rotulo = 'Anexar arquivos', ocupado, dica = DICA, accept = ACEITA }) {
-  const entrada = useRef(null)
-  // Contador: arrastar por cima de um filho dispara dragleave no pai; só sai do estado quando volta a zero.
-  const dentro = useRef(0)
-  const [sobre, setSobre] = useState(false)
-  const entregar = lista => {
-    const arquivos = [...(lista || [])]
-    if (arquivos.length) aoEscolher(multiple ? arquivos : arquivos.slice(0, 1))
-  }
-  const temArquivos = e => [...(e.dataTransfer?.types || [])].includes('Files')
-  const arrastar = {
-    onDragEnter: e => {
-      if (!temArquivos(e)) return
-      e.preventDefault()
-      dentro.current++
-      setSobre(true)
-    },
-    onDragOver: e => {
-      if (!temArquivos(e)) return
-      e.preventDefault()
-      e.dataTransfer.dropEffect = ocupado ? 'none' : 'copy'
-    },
-    onDragLeave: () => {
-      dentro.current = Math.max(0, dentro.current - 1)
-      if (!dentro.current) setSobre(false)
-    },
-    onDrop: e => {
-      e.preventDefault()
-      dentro.current = 0
-      setSobre(false)
-      if (!ocupado) entregar(e.dataTransfer?.files)
-    },
-  }
-  const progresso = textoProgresso(ocupado)
-  return (
-    <div className={'ze' + (sobre && !ocupado ? ' is-over' : '') + (ocupado ? ' is-busy' : '')} {...arrastar}>
-      <input
-        ref={entrada}
-        type="file"
-        accept={accept}
-        multiple={multiple}
-        hidden
-        onChange={e => {
-          const arquivos = [...(e.target.files || [])]
-          // Limpa o input para a pessoa poder escolher o mesmo arquivo de novo.
-          e.target.value = ''
-          entregar(arquivos)
-        }}
-      />
-      <button type="button" className="btn btn-g btn-sm" disabled={Boolean(ocupado)} onClick={() => entrada.current?.click()}>
-        <Ic k="upload" />
-        {rotulo}
-      </button>
-      <span className="ze-t" aria-live="polite">
-        {progresso ? (
-          progresso
-        ) : (
-          <>
-            <Ic k="clip" />
-            {multiple ? 'ou arraste os arquivos para cá' : 'ou arraste o arquivo para cá'}
-          </>
-        )}
-      </span>
-      {dica && <small className="ze-d">{dica}</small>}
-    </div>
-  )
-}
 
 /**
  * Baixa com a sessão (um link direto não levaria o token) e mostra o erro num alerta.
@@ -184,6 +109,8 @@ export function JanelaAnexo({ anexo, fechar }) {
     // Se o arquivo já foi antecipado ou está guardado na aba, chega na hora (sem barra).
     api.abrir(anexo, { aoProgresso: (recebidos, total) => vivo && setChegando({ recebidos, total }) }).then(
       r => {
+        // null: a pessoa saiu enquanto o arquivo chegava; a tela de quem entrou não muda.
+        if (!r) return
         url = r.url
         if (vivo) setArquivo(r)
         else URL.revokeObjectURL(url)
@@ -204,9 +131,10 @@ export function JanelaAnexo({ anexo, fechar }) {
   // Esc fecha com o foco em qualquer lugar fora do PDF (no body também). Escuta na captura da janela
   // e para o evento ali: um modal por baixo (ex.: tarefa, que escuta no window) não fecha junto.
   // Com o foco dentro do leitor de PDF do Chromium, a tecla não chega à página; fica o botão "Fechar".
+  // Com um alerta (SweetAlert) aberto por cima, o Esc é dele: fecha só o alerta. Um aviso no canto (toast) não conta.
   useEffect(() => {
     const tecla = e => {
-      if (e.key !== 'Escape') return
+      if (e.key !== 'Escape' || document.querySelector('.swal2-container .swal2-popup:not(.swal2-toast)')) return
       e.stopPropagation()
       fechar()
     }
@@ -272,6 +200,8 @@ export default function Anexos({ dono, codigo, lista, podeAlterar, aoMudar }) {
   const [vendo, setVendo] = useState(null)
   const [ocupado, setOcupado] = useState(null)
   const downloads = useDownloads()
+  // Mesma função entre renderizações: a janela registra o Esc uma vez, não a cada renderização.
+  const fecharJanela = useCallback(() => setVendo(null), [])
   const abrir = a => (acaoAoAbrir(a.nome, ehCelular()) === 'janela' ? setVendo(a) : downloads.baixar(a))
   // Mouse ou foco parados no nome por 120 ms (ou um toque) já começam a baixar PDF e imagem pequenos
   // (até 5 MB): o clique que vem depois abre com o arquivo na aba. As regras ficam em anexos.antecipar.
@@ -350,7 +280,7 @@ export default function Anexos({ dono, codigo, lista, podeAlterar, aoMudar }) {
           <ZonaEnvio aoEscolher={enviar} ocupado={ocupado} />
         </div>
       )}
-      {vendo && <JanelaAnexo anexo={vendo} fechar={() => setVendo(null)} />}
+      {vendo && <JanelaAnexo anexo={vendo} fechar={fecharJanela} />}
     </>
   )
 }

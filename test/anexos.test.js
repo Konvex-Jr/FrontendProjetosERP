@@ -389,3 +389,97 @@ test('antecipador: mouse e foco esperam 120 ms e cancelam ao sair; toque começa
     mock.timers.reset()
   }
 })
+
+// fetch falso que só responde quando o teste manda: `soltar()` entrega 4 bytes, `falhar()` dá 500.
+function fetchAdiado() {
+  const original = globalThis.fetch
+  const controle = {}
+  globalThis.fetch = () =>
+    new Promise(r => {
+      controle.soltar = () =>
+        r({ ok: true, status: 200, headers: new Headers({ 'content-length': '4' }), blob: async () => new Blob(['abcd']) })
+      controle.falhar = () => r({ ok: false, status: 500, text: async () => '' })
+    })
+  controle.restaurar = () => (globalThis.fetch = original)
+  return controle
+}
+
+// Sai A, entra B (o que o AppContext faz pelo memoriasDaAba).
+const trocarParaBia = () => {
+  memoria.definirPessoa(null)
+  memoria.definirPessoa('bia')
+}
+
+test('baixar de A que termina depois da troca de pessoa não entrega o arquivo na sessão de B', async () => {
+  const f = fetchAdiado()
+  const criar = URL.createObjectURL
+  URL.createObjectURL = () => 'blob:x'
+  const doc = globalThis.document
+  let cliques = 0
+  globalThis.document = { createElement: () => ({ click: () => cliques++, remove() {} }), body: { appendChild() {} } }
+  const progresso = []
+  try {
+    const baixando = anexos.baixar({ id: 'a9', nome: 'grande.docx' }, { aoProgresso: (r, t) => progresso.push([r, t]) })
+    await new Promise(r => setTimeout(r, 0))
+    trocarParaBia()
+    f.soltar()
+    await baixando
+  } finally {
+    f.restaurar()
+    URL.createObjectURL = criar
+    globalThis.document = doc
+  }
+  assert.equal(cliques, 0)
+  assert.deepEqual(progresso, [])
+})
+
+test('baixar e abrir de A que falham depois da troca de pessoa não mostram erro a B', async () => {
+  const f = fetchAdiado()
+  try {
+    const baixando = anexos.baixar({ id: 'a9', nome: 'grande.docx' })
+    await new Promise(r => setTimeout(r, 0))
+    trocarParaBia()
+    f.falhar()
+    await assert.doesNotReject(baixando)
+    memoria.definirPessoa('ana')
+    const abrindo = anexos.abrir({ id: 'a8', nome: 'x.pdf' })
+    await new Promise(r => setTimeout(r, 0))
+    trocarParaBia()
+    f.falhar()
+    assert.equal(await abrindo, null)
+  } finally {
+    f.restaurar()
+  }
+})
+
+test('abrir de A que termina depois da troca de pessoa devolve null, sem endereço nem progresso', async () => {
+  const f = fetchAdiado()
+  const criar = URL.createObjectURL
+  let criados = 0
+  URL.createObjectURL = () => (criados++, 'blob:x')
+  const progresso = []
+  try {
+    const abrindo = anexos.abrir({ id: 'a8', nome: 'x.pdf' }, { aoProgresso: (r, t) => progresso.push([r, t]) })
+    await new Promise(r => setTimeout(r, 0))
+    trocarParaBia()
+    f.soltar()
+    assert.equal(await abrindo, null)
+  } finally {
+    f.restaurar()
+    URL.createObjectURL = criar
+  }
+  assert.equal(criados, 0)
+  assert.deepEqual(progresso, [])
+})
+
+test('baixar de quem continua logado entrega o arquivo e o erro como antes', async () => {
+  const f = fetchAdiado()
+  try {
+    const baixando = anexos.baixar({ id: 'a9', nome: 'grande.docx' })
+    await new Promise(r => setTimeout(r, 0))
+    f.falhar()
+    await assert.rejects(baixando)
+  } finally {
+    f.restaurar()
+  }
+})
