@@ -109,3 +109,25 @@ test('anteciparDados engole erro da busca e da página', async () => {
     anteciparDados('/w', { me: 'p1', nav: nav(['/w']) }, { paginas: { '/w': { precarregar: () => Promise.reject(new Error('x')) } } }),
   )
 })
+
+test('anteciparDados descarta o dado se a pessoa mudou enquanto a tela baixava', async () => {
+  let chamadas = 0
+  let soltar
+  const modulo = { dadosDaTela: ({ me }) => ({ chave: 'perfil:eu', carregar: async () => (chamadas++, { perfilDe: me }) }) }
+  const pagina = { precarregar: () => new Promise(r => (soltar = () => r(modulo))) }
+  const pendente = anteciparDados('/perfil', { me: 'p1', nav: nav(['/perfil']) }, { paginas: { '/perfil': pagina } })
+  // Sair e entrar como outra pessoa antes do arquivo da tela chegar.
+  memoria.limpar()
+  memoria.definirPessoa(null)
+  memoria.definirPessoa('p2')
+  soltar()
+  await pendente
+  assert.equal(chamadas, 0)
+  assert.equal(memoria.obter('perfil:eu'), undefined)
+})
+
+test('memoria.pessoa devolve o código da pessoa atual', () => {
+  assert.equal(memoria.pessoa(), 'p1')
+  memoria.definirPessoa('p9')
+  assert.equal(memoria.pessoa(), 'p9')
+})

@@ -51,6 +51,11 @@ export const memoria = {
     apagarTudo()
   },
 
+  /** Código da pessoa dona da memória agora (null sem ninguém logado). */
+  pessoa() {
+    return pessoaAtual
+  },
+
   obter(chave) {
     return dados.get(chave)
   },

@@ -48,6 +48,9 @@ export async function anteciparDados(caminho, contexto, { paginas, agora = Date.
 
   try {
     const modulo = await pagina.precarregar()
+    // Enquanto o arquivo da tela baixava, a pessoa pode ter saído e outra entrado: o contexto
+    // é da pessoa antiga e a busca iria com o token da nova, gravando dado de uma na memória da outra.
+    if (memoria.pessoa() !== me) return
     if (typeof modulo?.dadosDaTela !== 'function') return
     const { chave, carregar } = modulo.dadosDaTela(contexto)
     await memoria.buscar(chave, carregar)
