@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Medição do carregamento com latência simulada (sessão 18). A VPS fica em Boston e cada ida e
+ * Medição do carregamento com latência simulada (sessão 18). A VPS fica nos EUA e cada ida e
  * volta leva de 130 a 230 ms; aqui o Chromium soma 150 ms a cada requisição (CDP
  * Network.emulateNetworkConditions), sem limite de banda, para medir o que a pessoa sente.
  *
