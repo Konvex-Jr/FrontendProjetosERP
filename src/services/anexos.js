@@ -104,11 +104,16 @@ export const anexos = {
   },
 }
 
-/** Envia os arquivos ao dono, um por vez, sem parar no primeiro erro; o que falha na conferência nem chama a API. */
-export async function enviarVarios(dono, codigo, arquivos, enviar = anexos.enviar) {
+/**
+ * Envia os arquivos ao dono, um por vez, sem parar no primeiro erro; o que falha na conferência nem chama a API.
+ * `aoAvancar(atual, total)` é chamado antes de cada arquivo (para a tela mostrar "Enviando 2 de 5…").
+ */
+export async function enviarVarios(dono, codigo, arquivos, enviar = anexos.enviar, aoAvancar) {
+  const lista = [...(arquivos || [])]
   const falhas = []
   let enviados = 0
-  for (const arquivo of arquivos || []) {
+  for (const [i, arquivo] of lista.entries()) {
+    aoAvancar?.(i + 1, lista.length)
     const problema = conferirArquivo(arquivo)
     if (problema) {
       falhas.push({ nome: arquivo?.name || '', erro: problema })
@@ -123,3 +128,15 @@ export async function enviarVarios(dono, codigo, arquivos, enviar = anexos.envia
   }
   return { enviados, falhas }
 }
+
+/** Texto do envio em andamento: `{ atual: 2, total: 5 }` → "Enviando 2 de 5…"; um arquivo só → "Enviando…". */
+export const textoProgresso = ocupado => {
+  if (!ocupado) return ''
+  return ocupado.total > 1 ? `Enviando ${ocupado.atual} de ${ocupado.total}…` : 'Enviando…'
+}
+
+/** Aviso de sucesso com a quantidade: "1 arquivo enviado", "3 arquivos enviados". */
+export const avisoEnviados = n => (n === 1 ? '1 arquivo enviado' : `${n} arquivos enviados`)
+
+/** Lista do alerta de falhas: uma linha por arquivo, "nome: motivo". */
+export const resumoFalhas = falhas => falhas.map(f => `${f.nome}: ${f.erro}`).join('\n')

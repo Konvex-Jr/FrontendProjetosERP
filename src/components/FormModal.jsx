@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import Multi from './Multi'
+import { ZonaEnvio } from './Anexos'
 import { valoresIniciais } from '../lib/formulario'
 
 /**
@@ -11,7 +12,8 @@ import { valoresIniciais } from '../lib/formulario'
  * Detalhes: `o` é uma lista de pares [valor, rótulo]; `c` é uma lista de { id, nome, perfil? } (componente Multi);
  * `t` aceita qualquer tipo de input HTML (date, number, url...); `s(valores)` e `c(valores)` recebem o que já foi
  * preenchido, para um campo depender de outro; `disabled` trava um select. Campo sem `opt` é obrigatório.
- * `t: 'file'` guarda a lista de arquivos escolhidos (File[]); `accept` e `multiple` vão para o input.
+ * `t: 'file'` usa a zona de envio (seletor ou arrastar e soltar) e guarda a lista escolhida (File[]); `multiple` e `accept` vão para a zona.
+ * Campo de arquivo é sempre opcional (a zona não tem `required`); a tela confere se precisar.
  * Select visível sem valor é enviado com a 1ª opção, a que a tela mostra (lib/formulario.js).
  * Normalmente não se usa direto: as telas chamam `form(titulo, campos, inicial, salvar)` do contexto.
  */
@@ -45,18 +47,6 @@ export default function FormModal({ t, fs, init, save, close, largo }) {
         </select>
       )
     if (x.t === 'textarea') return <textarea rows={x.rows || 3} {...comum} />
-    // Input de arquivo não aceita `value`: o formulário guarda os arquivos escolhidos.
-    if (x.t === 'file')
-      return (
-        <input
-          type="file"
-          className="form-control mt-1"
-          required={!x.opt}
-          accept={x.accept}
-          multiple={Boolean(x.multiple)}
-          onChange={e => set(x.k, [...(e.target.files || [])])}
-        />
-      )
     return <input type={x.t || 'text'} {...comum} />
   }
   return (
@@ -74,6 +64,19 @@ export default function FormModal({ t, fs, init, save, close, largo }) {
                     <div className="mb-3" key={x.k}>
                       <div className="form-label">{x.l}</div>
                       <Multi opts={typeof x.c === 'function' ? x.c(v) : x.c} value={v[x.k] || []} onChange={z => set(x.k, z)} />
+                    </div>
+                  ) : x.t === 'file' ? (
+                    // Fora de <label>: a zona tem o próprio botão e a área de soltar. O formulário guarda os arquivos.
+                    <div className="mb-3" key={x.k}>
+                      <div className="form-label">{x.l}</div>
+                      <ZonaEnvio
+                        aoEscolher={z => set(x.k, z)}
+                        multiple={Boolean(x.multiple)}
+                        accept={x.accept}
+                        rotulo={x.multiple ? 'Escolher arquivos' : 'Escolher arquivo'}
+                        dica={x.h}
+                      />
+                      {!!v[x.k]?.length && <small className="d-block mt-1">Escolhidos: {v[x.k].map(f => f.name).join(', ')}</small>}
                     </div>
                   ) : (
                     <label className="form-label w-100 mb-3" key={x.k}>

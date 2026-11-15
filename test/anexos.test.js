@@ -9,8 +9,11 @@ import {
   conferirArquivo,
   enviarVarios,
   extensao,
+  avisoEnviados,
   podeVer,
+  resumoFalhas,
   tamanhoLegivel,
+  textoProgresso,
 } from '../src/services/anexos.js'
 
 const arquivo = (name, size, type = 'application/pdf') => {
@@ -139,4 +142,42 @@ test('abrir usa o tipo da extensão, nunca o da resposta, e recusa o que não se
     globalThis.fetch = original
     URL.createObjectURL = criar
   }
+})
+
+test('enviarVarios avisa o progresso antes de cada arquivo, inclusive os recusados na conferência', async () => {
+  const passos = []
+  const lista = [arquivo('a.pdf', 5), arquivo('b.exe', 5), arquivo('c.png', 5)]
+  await enviarVarios(
+    'biblioteca',
+    'b1',
+    lista,
+    async () => {},
+    (atual, total) => passos.push([atual, total]),
+  )
+  assert.deepEqual(passos, [
+    [1, 3],
+    [2, 3],
+    [3, 3],
+  ])
+})
+
+test('textoProgresso mostra a posição só quando há mais de um arquivo', () => {
+  assert.equal(textoProgresso({ atual: 2, total: 5 }), 'Enviando 2 de 5…')
+  assert.equal(textoProgresso({ atual: 1, total: 1 }), 'Enviando…')
+  assert.equal(textoProgresso(null), '')
+})
+
+test('avisoEnviados concorda com a quantidade', () => {
+  assert.equal(avisoEnviados(1), '1 arquivo enviado')
+  assert.equal(avisoEnviados(3), '3 arquivos enviados')
+})
+
+test('resumoFalhas lista um arquivo por linha com o motivo', () => {
+  assert.equal(
+    resumoFalhas([
+      { nome: 'a.exe', erro: 'Tipo não aceito.' },
+      { nome: 'b.pdf', erro: 'Falhou' },
+    ]),
+    'a.exe: Tipo não aceito.\nb.pdf: Falhou',
+  )
 })

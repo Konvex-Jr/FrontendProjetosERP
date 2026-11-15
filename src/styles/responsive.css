@@ -296,6 +296,17 @@
     display: block
   }
 
+  /* Janela de anexo: o conteúdo ocupa o resto da tela. */
+  .jv .modal-content {
+    display: flex;
+    flex-direction: column
+  }
+
+  .jv-c {
+    flex: 1;
+    height: auto
+  }
+
   /* Modais em tela cheia. */
   .modal-dialog {
     margin: 0;

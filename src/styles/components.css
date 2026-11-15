@@ -1387,6 +1387,99 @@ button.kc-tag {
     margin-left: auto
 }
 
+/* Zona de envio (sessão 19): botão + área que aceita arquivos soltos */
+.ze {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 12px;
+    padding: 12px 14px;
+    border: 2px dashed var(--ln);
+    border-radius: var(--rd);
+    background: var(--c);
+    color: var(--mu);
+    transition: border-color .2s, background-color .2s
+}
+
+.ze.is-over {
+    border-color: var(--ac);
+    background: color-mix(in srgb, var(--ac) 8%, var(--c))
+}
+
+.ze.is-busy {
+    cursor: progress
+}
+
+.ze-t {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: .875rem
+}
+
+.ze-t svg {
+    width: 15px;
+    height: 15px
+}
+
+.ze-d {
+    flex-basis: 100%;
+    color: var(--mu)
+}
+
+/* Janela de visualização de anexo (PDF ou imagem) */
+.jv .modal-content {
+    overflow: hidden
+}
+
+.jv-h {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 12px;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--ln)
+}
+
+.jv-h h3 {
+    min-width: 0;
+    overflow-wrap: anywhere
+}
+
+.jv-c {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 78vh;
+    background: var(--col)
+}
+
+.jv-c iframe {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    background: #fff
+}
+
+.jv-c img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain
+}
+
+.jv-m {
+    margin: 0;
+    padding: 24px;
+    color: var(--mu);
+    text-align: center
+}
+
+/* Alertas com lista (ex.: arquivos que não foram enviados): uma linha por item. */
+.konvex-alert .swal2-html-container {
+    white-space: pre-line
+}
+
 /* Calendário interno de capacitações (sessão 13). No celular vira agenda (responsive.css). */
 .cal {
     display: grid;
