@@ -139,6 +139,20 @@ export function renovarSessao() {
   return renovando
 }
 
+/**
+ * Diz se o token de acesso já venceu (ou vence em até 5 s), lendo o `exp` do payload JWT.
+ * Só serve para antecipar a renovação: quem confere a assinatura é a API. Token ilegível,
+ * sem `exp` ou vazio conta como não vencido, e a chamada segue o fluxo normal de 401.
+ */
+export function tokenVencido(token, agora = Date.now()) {
+  try {
+    const payload = JSON.parse(atob(String(token).split('.')[1].replace(/-/g, '+').replace(/_/g, '/')))
+    return typeof payload.exp === 'number' && payload.exp * 1000 <= agora + 5000
+  } catch {
+    return false
+  }
+}
+
 function expirar() {
   sessao.limpar()
   if (typeof sessao.onExpirada === 'function') sessao.onExpirada()
@@ -150,6 +164,14 @@ function expirar() {
  */
 async function fetchAutenticado(path, { headers = {}, ...init } = {}) {
   const enviar = () => chamar(path, { ...init, headers: { ...headers, ...(sessao.token ? { 'access-token': sessao.token } : {}) } })
+  // Token já vencido: renova antes de chamar, em vez de gastar uma ida à API só para receber 401.
+  if (sessao.refreshToken && tokenVencido(sessao.token)) {
+    if (!(await renovarSessao())) {
+      expirar()
+      // Mesma resposta que um 401 daria, sem chamar a rota.
+      return { ok: false, status: 401, text: async () => '', blob: async () => new Blob() }
+    }
+  }
   let response = await enviar()
   if (response.status === 401 && sessao.refreshToken) {
     if (await renovarSessao()) response = await enviar()

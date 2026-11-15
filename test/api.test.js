@@ -182,3 +182,64 @@ test('se a renovação falha, limpa a sessão e avisa o app', async () => {
     sessao.limpar()
   }
 })
+
+// Monta um JWT só com o payload que importa (o cliente não confere assinatura).
+function jwtCom(exp) {
+  const parte = obj => Buffer.from(JSON.stringify(obj)).toString('base64url')
+  return `${parte({ alg: 'HS256' })}.${parte({ exp })}.assinatura`
+}
+
+test('tokenVencido lê o exp do token', async () => {
+  const { tokenVencido } = await import('../src/services/api.js')
+  const agora = Date.now()
+  const seg = s => Math.floor(agora / 1000) + s
+  assert.equal(tokenVencido(jwtCom(seg(-60)), agora), true)
+  assert.equal(tokenVencido(jwtCom(seg(600)), agora), false)
+  assert.equal(tokenVencido(jwtCom(seg(3)), agora), true)
+  assert.equal(tokenVencido('abc', agora), false)
+  assert.equal(tokenVencido('', agora), false)
+})
+
+test('token vencido é renovado antes da chamada', async () => {
+  const { request, sessao } = await import('../src/services/api.js')
+  const vencido = jwtCom(Math.floor(Date.now() / 1000) - 60)
+  sessao.salvar({ token: vencido, refreshToken: 'refresh-1' })
+  const chamadas = []
+  globalThis.fetch = async (url, options) => {
+    chamadas.push([String(url).replace(apiUrl, ''), options.headers['access-token']])
+    if (String(url).endsWith('/auth/refresh')) return response(200, '{"token":"novo","refreshToken":"refresh-2"}')
+    return response(200, '[1]')
+  }
+  try {
+    assert.deepEqual(await request('/projetos', { auth: true }), [1])
+    assert.deepEqual(chamadas, [
+      ['/auth/refresh', undefined],
+      ['/projetos', 'novo'],
+    ])
+  } finally {
+    sessao.limpar()
+  }
+})
+
+test('renovação antecipada que falha limpa a sessão e não chama a rota', async () => {
+  const { request, sessao } = await import('../src/services/api.js')
+  sessao.salvar({ token: jwtCom(Math.floor(Date.now() / 1000) - 60), refreshToken: 'revogado' })
+  let avisado = false
+  sessao.onExpirada = () => {
+    avisado = true
+  }
+  const chamadas = []
+  globalThis.fetch = async url => {
+    chamadas.push(String(url).replace(apiUrl, ''))
+    return response(401, '{"message":"Sessão inválida."}')
+  }
+  try {
+    await assert.rejects(request('/projetos', { auth: true }), error => error instanceof ApiError && error.status === 401)
+    assert.deepEqual(chamadas, ['/auth/refresh'])
+    assert.equal(sessao.ativa, false)
+    assert.equal(avisado, true)
+  } finally {
+    sessao.onExpirada = null
+    sessao.limpar()
+  }
+})
