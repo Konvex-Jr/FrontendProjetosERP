@@ -66,6 +66,12 @@ export const biblioteca = {
   excluir: codigo => send('DELETE', `/biblioteca/${codigo}`),
 }
 
+/**
+ * Itens que a pessoa cadastrou (seção do perfil). A chave leva o código da pessoa vista, nunca "eu":
+ * o mesmo perfil abre por /perfil e /perfil/:codigo e a memória da aba tem de ser a mesma.
+ */
+export const itensDoAutor = codigo => ({ chave: `biblioteca:autor:${codigo}`, carregar: () => biblioteca.listar({ autor: codigo }) })
+
 /* ---------- Formulário da tela (pages/Biblioteca.jsx) ---------- */
 
 export const LIMITE_TITULO = 160

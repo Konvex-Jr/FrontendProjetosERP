@@ -4,6 +4,7 @@ import {
   SIGILOS,
   biblioteca,
   consulta,
+  itensDoAutor,
   corpoCriacao,
   corpoEdicao,
   dadosBiblioteca,
@@ -200,4 +201,10 @@ test('problemaBiblioteca confere título, sigilo de projeto e arquivos', () => {
   assert.equal(problemaBiblioteca({ ...ok, sigilo: 'projeto', codigoProjeto: '' }, { sigilo: 'projeto', projeto: null }), '')
   assert.match(problemaBiblioteca({ ...ok, arquivos: [arq('x.exe')] }), /^x\.exe: Tipo de arquivo não aceito/)
   assert.match(problemaBiblioteca({ ...ok, links: 'ftp://a.com' }), /http/)
+})
+
+test('itens do perfil: chave usa o código da pessoa vista, nunca "eu"', () => {
+  assert.equal(itensDoAutor('u1').chave, 'biblioteca:autor:u1')
+  assert.notEqual(itensDoAutor('u1').chave, itensDoAutor('u2').chave)
+  assert.ok(!itensDoAutor('u1').chave.includes('eu'))
 })

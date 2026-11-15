@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import { chip, fd } from '../lib/utils'
+import Clipe from '../components/Clipe'
 import Ic from '../components/Icon'
 import ActionMenu from '../components/ActionMenu'
 import Table from '../components/Table'
@@ -125,6 +126,7 @@ function TituloItem({ x }) {
     >
       <b>{x.titulo}</b>
       <small className="d-block">{resumo(x.conteudo) || (x.links.length ? x.links[0] : '')}</small>
+      <Clipe n={x.anexos.length} />
     </a>
   )
 }
