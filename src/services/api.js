@@ -186,7 +186,25 @@ async function fetchAutenticado(path, { headers = {}, ...init } = {}) {
  * Chamada JSON à API. Com `auth: true` usa a sessão (e renova o token sozinho).
  * `token` explícito continua aceito para chamadas avulsas, sem renovação.
  */
-export async function request(path, { method = 'GET', body, token, auth = false, headers = {} } = {}) {
+// GETs autenticados em andamento, por `path|token`: telas que pedem o mesmo dado ao mesmo tempo
+// (ex.: vários componentes montando juntos) fazem uma só chamada. A entrada sai ao terminar,
+// com sucesso ou erro, então nada fica guardado entre uma chamada e outra.
+const getsEmAndamento = new Map()
+
+export function request(path, opcoes = {}) {
+  const { method = 'GET', token, auth = false } = opcoes
+  if (method !== 'GET' || !auth || token) return executar(path, opcoes)
+  // A chave usa o token do momento da chamada, antes de qualquer renovação antecipada.
+  const chave = `${path}|${sessao.token}`
+  let promessa = getsEmAndamento.get(chave)
+  if (!promessa) {
+    promessa = executar(path, opcoes).finally(() => getsEmAndamento.delete(chave))
+    getsEmAndamento.set(chave, promessa)
+  }
+  return promessa
+}
+
+async function executar(path, { method = 'GET', body, token, auth = false, headers = {} } = {}) {
   const init = {
     method,
     headers: {

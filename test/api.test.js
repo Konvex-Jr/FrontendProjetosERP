@@ -243,3 +243,79 @@ test('renovação antecipada que falha limpa a sessão e não chama a rota', asy
     sessao.limpar()
   }
 })
+
+test('GETs iguais em andamento fazem uma só chamada', async () => {
+  const { request, sessao } = await import('../src/services/api.js')
+  sessao.salvar({ token: 'tk', refreshToken: '' })
+  let chamadas = 0
+  globalThis.fetch = async () => {
+    chamadas += 1
+    await new Promise(resolve => setTimeout(resolve, 10))
+    return response(200, '[1,2]')
+  }
+  try {
+    const [a, b] = await Promise.all([request('/projetos', { auth: true }), request('/projetos', { auth: true })])
+    assert.equal(chamadas, 1)
+    assert.deepEqual(a, [1, 2])
+    assert.equal(a, b)
+  } finally {
+    sessao.limpar()
+  }
+})
+
+test('GETs iguais em andamento compartilham também o erro', async () => {
+  const { request, sessao } = await import('../src/services/api.js')
+  sessao.salvar({ token: 'tk', refreshToken: '' })
+  let chamadas = 0
+  globalThis.fetch = async () => {
+    chamadas += 1
+    return response(500, '{}')
+  }
+  try {
+    const resultados = await Promise.allSettled([request('/projetos', { auth: true }), request('/projetos', { auth: true })])
+    assert.equal(chamadas, 1)
+    assert.deepEqual(
+      resultados.map(r => r.status),
+      ['rejected', 'rejected'],
+    )
+  } finally {
+    sessao.limpar()
+  }
+})
+
+test('depois da resposta, um GET igual chama de novo', async () => {
+  const { request, sessao } = await import('../src/services/api.js')
+  sessao.salvar({ token: 'tk', refreshToken: '' })
+  let chamadas = 0
+  globalThis.fetch = async () => {
+    chamadas += 1
+    return response(200, '[]')
+  }
+  try {
+    await request('/projetos', { auth: true })
+    await request('/projetos', { auth: true })
+    assert.equal(chamadas, 2)
+  } finally {
+    sessao.limpar()
+  }
+})
+
+test('POST nunca é juntado', async () => {
+  const { request, sessao } = await import('../src/services/api.js')
+  sessao.salvar({ token: 'tk', refreshToken: '' })
+  let chamadas = 0
+  globalThis.fetch = async () => {
+    chamadas += 1
+    await new Promise(resolve => setTimeout(resolve, 10))
+    return response(201, '{}')
+  }
+  try {
+    await Promise.all([
+      request('/tarefas', { method: 'POST', auth: true, body: {} }),
+      request('/tarefas', { method: 'POST', auth: true, body: {} }),
+    ])
+    assert.equal(chamadas, 2)
+  } finally {
+    sessao.limpar()
+  }
+})
