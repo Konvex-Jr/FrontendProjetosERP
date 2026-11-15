@@ -131,16 +131,22 @@ export function JanelaAnexo({ anexo, fechar }) {
     botaoFechar.current?.focus()
     return () => antes?.focus?.()
   }, [])
-  const tecla = e => {
-    if (e.key !== 'Escape') return
-    // Para aqui: um modal por baixo (ex.: tarefa) não fecha junto.
-    e.stopPropagation()
-    fechar()
-  }
+  // Esc fecha com o foco em qualquer lugar fora do PDF (no body também). Escuta na captura da janela
+  // e para o evento ali: um modal por baixo (ex.: tarefa, que escuta no window) não fecha junto.
+  // Com o foco dentro do leitor de PDF do Chromium, a tecla não chega à página; fica o botão "Fechar".
+  useEffect(() => {
+    const tecla = e => {
+      if (e.key !== 'Escape') return
+      e.stopPropagation()
+      fechar()
+    }
+    addEventListener('keydown', tecla, true)
+    return () => removeEventListener('keydown', tecla, true)
+  }, [fechar])
   return (
     <>
       <div className="modal-backdrop show" />
-      <div className="modal d-block" tabIndex="-1" onClick={fechar} onKeyDown={tecla}>
+      <div className="modal d-block" tabIndex="-1" onClick={fechar}>
         <div
           className="modal-dialog modal-dialog-centered modal-xl jv"
           role="dialog"
@@ -170,6 +176,8 @@ export function JanelaAnexo({ anexo, fechar }) {
                   Abrindo…
                 </p>
               ) : arquivo.tipo === 'application/pdf' ? (
+                // Sem `sandbox`: ele quebra o leitor de PDF do Chromium. Só chega PDF aqui, porque o tipo
+                // do Blob é forçado pela extensão (VISUALIZAVEIS), nunca pelo que a resposta diz.
                 <iframe title={anexo.nome} src={arquivo.url} />
               ) : (
                 <img src={arquivo.url} alt={anexo.nome} />

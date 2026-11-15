@@ -13,7 +13,7 @@ import { valoresIniciais } from '../lib/formulario'
  * `t` aceita qualquer tipo de input HTML (date, number, url...); `s(valores)` e `c(valores)` recebem o que já foi
  * preenchido, para um campo depender de outro; `disabled` trava um select. Campo sem `opt` é obrigatório.
  * `t: 'file'` usa a zona de envio (seletor ou arrastar e soltar) e guarda a lista escolhida (File[]); `multiple` e `accept` vão para a zona.
- * Campo de arquivo é sempre opcional (a zona não tem `required`); a tela confere se precisar.
+ * Campo de arquivo sem `opt` também é obrigatório: um input escondido leva o aviso do navegador e barra o envio.
  * Select visível sem valor é enviado com a 1ª opção, a que a tela mostra (lib/formulario.js).
  * Normalmente não se usa direto: as telas chamam `form(titulo, campos, inicial, salvar)` do contexto.
  */
@@ -67,8 +67,20 @@ export default function FormModal({ t, fs, init, save, close, largo }) {
                     </div>
                   ) : x.t === 'file' ? (
                     // Fora de <label>: a zona tem o próprio botão e a área de soltar. O formulário guarda os arquivos.
-                    <div className="mb-3" key={x.k}>
+                    <div className="mb-3 position-relative" key={x.k}>
                       <div className="form-label">{x.l}</div>
+                      {!x.opt && (
+                        // A zona não tem input visível com `required`; este carrega a validação do navegador.
+                        <input
+                          className="visually-hidden"
+                          tabIndex={-1}
+                          aria-hidden="true"
+                          value={v[x.k]?.length ? 'ok' : ''}
+                          // Sem readOnly: campo só leitura fica fora da validação do navegador.
+                          onChange={() => {}}
+                          ref={el => el?.setCustomValidity(v[x.k]?.length ? '' : 'Escolha pelo menos um arquivo.')}
+                        />
+                      )}
                       <ZonaEnvio
                         aoEscolher={z => set(x.k, z)}
                         multiple={Boolean(x.multiple)}
