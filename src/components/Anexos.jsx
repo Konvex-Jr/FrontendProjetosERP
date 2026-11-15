@@ -8,6 +8,7 @@ import {
   adaptAnexo,
   anexos as api,
   avisoEnviados,
+  criarAntecipador,
   enviarVarios,
   podeVer,
   progressoVisivel,
@@ -272,9 +273,11 @@ export default function Anexos({ dono, codigo, lista, podeAlterar, aoMudar }) {
   const [ocupado, setOcupado] = useState(null)
   const downloads = useDownloads()
   const abrir = a => (acaoAoAbrir(a.nome, ehCelular()) === 'janela' ? setVendo(a) : downloads.baixar(a))
-  // Passar o mouse, focar ou tocar no nome já começa a baixar PDF e imagem pequenos (até 5 MB):
-  // o clique que vem depois abre com o arquivo na aba. A regra fica em anexos.antecipar.
-  const antecipar = a => () => api.antecipar(a)
+  // Mouse ou foco parados no nome por 120 ms (ou um toque) já começam a baixar PDF e imagem pequenos
+  // (até 5 MB): o clique que vem depois abre com o arquivo na aba. As regras ficam em anexos.antecipar.
+  const antecipador = useRef(null)
+  antecipador.current ??= criarAntecipador()
+  useEffect(() => () => antecipador.current.cancelarTodos(), [])
   const enviar = async arquivos => {
     setOcupado({ atual: 1, total: arquivos.length })
     let resultado
@@ -311,9 +314,11 @@ export default function Anexos({ dono, codigo, lista, podeAlterar, aoMudar }) {
                 type="button"
                 className="ax-n"
                 onClick={() => abrir(a)}
-                onPointerEnter={antecipar(a)}
-                onFocus={antecipar(a)}
-                onTouchStart={antecipar(a)}
+                onPointerEnter={() => antecipador.current.agendar(a)}
+                onPointerLeave={() => antecipador.current.cancelar(a)}
+                onFocus={() => antecipador.current.agendar(a)}
+                onBlur={() => antecipador.current.cancelar(a)}
+                onTouchStart={() => antecipador.current.agora(a)}
                 title={podeVer(a.nome) ? 'Ver' : 'Baixar'}
               >
                 <Ic k="file" />

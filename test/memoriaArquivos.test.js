@@ -183,3 +183,18 @@ test('apagar tira o arquivo e descarta a busca em andamento', async () => {
   await busca
   assert.equal(memoriaArquivos.obter('a2'), undefined)
 })
+
+test('carregar que falha na hora (síncrono) não deixa busca rejeitada presa na chave', async () => {
+  const erro = new Error('falhou antes de começar')
+  await assert.rejects(
+    memoriaArquivos.buscar('a1', () => {
+      throw erro
+    }),
+    e => e === erro,
+  )
+  const arquivo = blob()
+  let chamadas = 0
+  assert.equal(await memoriaArquivos.buscar('a1', async () => (chamadas++, arquivo)), arquivo)
+  assert.equal(chamadas, 1)
+  assert.equal(memoriaArquivos.obter('a1'), arquivo)
+})

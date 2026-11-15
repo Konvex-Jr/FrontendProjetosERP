@@ -85,18 +85,25 @@ const enviarBytes = (path, arquivo) =>
 
 /** Até este tamanho o PDF ou a imagem começa a baixar antes do clique (mouse, foco ou toque no nome). */
 export const LIMITE_ANTECIPAR = 5 * 1024 * 1024
+/** Antecipações ao mesmo tempo; as que passarem disso são ignoradas (não esperam numa fila). */
+export const MAXIMO_ANTECIPANDO = 2
+// Anexos sendo antecipados agora (códigos).
+const antecipando = new Set()
 
 /** Acima deste tamanho a tela mostra o progresso do download (barra na janela, estado no botão). */
 export const MOSTRAR_PROGRESSO = 1024 * 1024
 
 /**
  * O que mostrar do progresso `{ recebidos, total }` de um anexo de `bytes` (tamanho da lista):
- * null para arquivo de até 1 MB; `pct` null quando a resposta não diz o tamanho ("Baixando…").
+ * null para arquivo de até 1 MB; `pct` null quando a resposta não diz o tamanho ("Baixando…"),
+ * inclusive quando nem a resposta nem a lista dizem.
  */
 export function progressoVisivel(progresso, bytes) {
   if (!progresso) return null
   const { recebidos, total } = progresso
-  if ((total ?? bytes ?? Infinity) <= MOSTRAR_PROGRESSO) return null
+  // Tamanho conhecido (pela resposta ou pela lista) e pequeno: sem progresso. Sem nenhum dos dois, "Baixando…".
+  const tamanho = total || bytes
+  if (tamanho && tamanho <= MOSTRAR_PROGRESSO) return null
   if (!total) return { pct: null, texto: 'Baixando…' }
   const pct = Math.min(100, Math.floor((recebidos / total) * 100))
   return { pct, texto: `Baixando… ${pct}%` }
@@ -126,13 +133,20 @@ export const anexos = {
       memoriaArquivos.apagar(codigo)
     }
   },
-  /** Começa a baixar PDF ou imagem de até 5 MB antes do clique; erro é ignorado (o clique tenta de novo). */
+  /**
+   * Começa a baixar PDF ou imagem de até 5 MB antes do clique, no máximo 2 por vez (passar o mouse
+   * por uma lista longa não dispara vários downloads). Erro é ignorado (o clique tenta de novo).
+   */
   async antecipar(anexo) {
     if (!podeVer(anexo.nome) || !(anexo.bytes > 0 && anexo.bytes <= LIMITE_ANTECIPAR)) return
+    if (antecipando.has(anexo.id) || antecipando.size >= MAXIMO_ANTECIPANDO || memoriaArquivos.obter(anexo.id)) return
+    antecipando.add(anexo.id)
     try {
       await arquivoDo(anexo)
     } catch {
       /* antecipação é só um ganho; quem clicar vê o erro */
+    } finally {
+      antecipando.delete(anexo.id)
     }
   },
   /** Arquivo guardado ou baixado pela API; devolve um endereço local para abrir em janela e o chamador revoga com `URL.revokeObjectURL`. */
@@ -152,6 +166,42 @@ export const anexos = {
     a.remove()
     setTimeout(() => URL.revokeObjectURL(url), 30000)
   },
+}
+
+/** Quanto o mouse ou o foco precisa ficar no nome antes de antecipar: passar de relance não baixa nada. */
+export const ESPERA_ANTECIPAR_MS = 120
+
+/**
+ * Agenda antecipações de uma lista de anexos. `agendar` (mouse, foco) espera 120 ms e `cancelar`
+ * (saiu, perdeu o foco) desiste; `agora` (toque) começa na hora; `cancelarTodos` ao desmontar.
+ */
+export function criarAntecipador(antecipar = anexo => anexos.antecipar(anexo)) {
+  const agendados = new Map()
+  const cancelar = anexo => {
+    clearTimeout(agendados.get(anexo.id))
+    agendados.delete(anexo.id)
+  }
+  return {
+    agendar(anexo) {
+      cancelar(anexo)
+      agendados.set(
+        anexo.id,
+        setTimeout(() => {
+          agendados.delete(anexo.id)
+          antecipar(anexo)
+        }, ESPERA_ANTECIPAR_MS),
+      )
+    },
+    cancelar,
+    agora(anexo) {
+      cancelar(anexo)
+      antecipar(anexo)
+    },
+    cancelarTodos() {
+      for (const id of agendados.values()) clearTimeout(id)
+      agendados.clear()
+    },
+  }
 }
 
 /**

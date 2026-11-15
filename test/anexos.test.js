@@ -8,6 +8,8 @@ import {
   acaoAoAbrir,
   adaptAnexo,
   anexos,
+  criarAntecipador,
+  ESPERA_ANTECIPAR_MS,
   conferirArquivo,
   enviarVarios,
   extensao,
@@ -323,5 +325,67 @@ test('progresso só aparece acima de 1 MB e vira "Baixando…" sem o tamanho tot
   assert.deepEqual(progressoVisivel({ recebidos: 3 * MB, total: 2 * MB }, 2 * MB), { pct: 100, texto: 'Baixando… 100%' })
   assert.deepEqual(progressoVisivel({ recebidos: 10, total: null }, 3 * MB), { pct: null, texto: 'Baixando…' })
   assert.deepEqual(progressoVisivel({ recebidos: 10, total: null }, undefined), { pct: null, texto: 'Baixando…' })
+  // Tamanho desconhecido dos dois lados (0 ou ausente): "Baixando…", não esconde.
+  assert.deepEqual(progressoVisivel({ recebidos: 10, total: null }, 0), { pct: null, texto: 'Baixando…' })
+  assert.deepEqual(progressoVisivel({ recebidos: 10, total: 0 }, 0), { pct: null, texto: 'Baixando…' })
   assert.equal(progressoVisivel({ recebidos: 10, total: null }, 500), null)
+})
+
+test('antecipa no máximo 2 arquivos por vez; o terceiro é ignorado, não espera na fila', async () => {
+  const original = globalThis.fetch
+  const pendentes = []
+  const chamadas = []
+  globalThis.fetch = url => {
+    chamadas.push(String(url).replace(/^.*\/anexos\//, ''))
+    return new Promise(r => pendentes.push(() => r({ ok: true, status: 200, headers: new Headers(), blob: async () => new Blob(['x']) })))
+  }
+  try {
+    const a = anexos.antecipar({ id: 'a1', nome: 'a.pdf', bytes: 10 })
+    const b = anexos.antecipar({ id: 'a2', nome: 'b.pdf', bytes: 10 })
+    await anexos.antecipar({ id: 'a3', nome: 'c.pdf', bytes: 10 })
+    await new Promise(r => setTimeout(r, 0))
+    assert.deepEqual(chamadas, ['a1', 'a2'])
+    pendentes.forEach(f => f())
+    await Promise.all([a, b])
+    // Com as duas terminadas, outra pode começar.
+    const c = anexos.antecipar({ id: 'a3', nome: 'c.pdf', bytes: 10 })
+    await new Promise(r => setTimeout(r, 0))
+    pendentes.at(-1)()
+    await c
+    assert.deepEqual(chamadas, ['a1', 'a2', 'a3'])
+  } finally {
+    globalThis.fetch = original
+  }
+})
+
+test('antecipador: mouse e foco esperam 120 ms e cancelam ao sair; toque começa na hora', () => {
+  mock.timers.enable({ apis: ['setTimeout'] })
+  const antecipados = []
+  const ant = criarAntecipador(a => antecipados.push(a.id))
+  try {
+    assert.equal(ESPERA_ANTECIPAR_MS, 120)
+    ant.agendar({ id: 'a1' })
+    mock.timers.tick(ESPERA_ANTECIPAR_MS - 1)
+    assert.deepEqual(antecipados, [])
+    mock.timers.tick(1)
+    assert.deepEqual(antecipados, ['a1'])
+
+    // Passou o mouse de relance: sai antes dos 120 ms e nada é buscado.
+    ant.agendar({ id: 'a2' })
+    mock.timers.tick(60)
+    ant.cancelar({ id: 'a2' })
+    mock.timers.tick(200)
+    assert.deepEqual(antecipados, ['a1'])
+
+    ant.agora({ id: 'a3' })
+    assert.deepEqual(antecipados, ['a1', 'a3'])
+
+    // Ao desmontar a lista, nada agendado dispara depois.
+    ant.agendar({ id: 'a4' })
+    ant.cancelarTodos()
+    mock.timers.tick(200)
+    assert.deepEqual(antecipados, ['a1', 'a3'])
+  } finally {
+    mock.timers.reset()
+  }
 })

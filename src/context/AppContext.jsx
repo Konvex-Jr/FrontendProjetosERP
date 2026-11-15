@@ -6,8 +6,7 @@ import alerts from '../lib/alerts'
 import { readConfig } from '../lib/apiMappers'
 import { capacitacoes } from '../services/capacitacoes'
 import { carregarAcesso, carregarDadosGlobais, carregarInicio } from '../services/inicio'
-import { memoria } from '../lib/memoria'
-import { memoriaArquivos } from '../lib/memoriaArquivos'
+import { apagarMemorias, definirPessoa } from '../lib/memoriasDaAba'
 import { EsqueletoApp } from '../components/Esqueleto'
 
 const Ctx = createContext(null)
@@ -15,20 +14,6 @@ export const useApp = () => useContext(Ctx)
 // Dados sem login: u pessoas, p projetos, t tarefas, k capacitações.
 const VAZIO = { u: [], p: [], t: [], k: [] }
 const SEM_ACESSO = { permissoes: [], menu: [] }
-
-// Troca a dona das memórias da aba (dados e arquivos dos anexos). Outra pessoa apaga na hora
-// os arquivos guardados, sem esperar o próximo acesso (que também confere a pessoa).
-function definirPessoa(codigo) {
-  if (memoria.pessoa() !== codigo) memoriaArquivos.limpar()
-  memoria.definirPessoa(codigo)
-}
-
-// Fim de sessão: nada de uma pessoa (dados ou arquivos) fica para a próxima nesta aba.
-function apagarMemorias() {
-  memoria.limpar()
-  memoriaArquivos.limpar()
-  memoria.definirPessoa(null)
-}
 
 /**
  * Estado global do app logado. `useApp()` dá acesso a:

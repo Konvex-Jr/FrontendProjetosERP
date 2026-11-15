@@ -85,6 +85,9 @@ export const memoriaArquivos = {
     // Ainda vale gravar o resultado? Não se a busca foi descartada (apagar, limpar ou outra
     // busca no lugar) nem se outra pessoa está na aba agora.
     const valida = () => emAndamento.get(codigo) === entrada && memoria.pessoa() === pessoa
+    // A entrada vai para emAndamento antes de chamar carregar: se ele falhar na hora (erro
+    // síncrono), o finally abaixo a encontra e tira, sem deixar uma promessa rejeitada presa na chave.
+    emAndamento.set(codigo, entrada)
     entrada.promessa = (async () => {
       try {
         const blob = await carregar(avisar)
@@ -97,7 +100,6 @@ export const memoriaArquivos = {
         if (emAndamento.get(codigo) === entrada) emAndamento.delete(codigo)
       }
     })()
-    emAndamento.set(codigo, entrada)
     return entrada.promessa
   },
 
