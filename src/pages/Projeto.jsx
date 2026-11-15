@@ -9,6 +9,7 @@ import EquipeProjeto from '../components/EquipeProjeto'
 import { Av, PageBar, Seg } from '../components/Ui'
 import alerts from '../lib/alerts'
 import useCarregar from '../lib/useCarregar'
+import Esqueleto from '../components/Esqueleto'
 import { configuracoes, pessoas } from '../services/pessoas'
 import { projetos, rotuloPrioridade } from '../services/projetos'
 import { acoesTarefa, papelNasTarefas, tarefas } from '../services/tarefas'
@@ -35,16 +36,20 @@ export default function Projeto() {
     [tk, setTk] = useState(null)
   const [aba, setAba] = useState('tarefas')
   const gestor = pode('projetos.editar')
-  const { dados, carregando, recarregar } = useCarregar(async () => {
-    const [projeto, todos, gente, areas, lista] = await Promise.all([
-      projetos.buscar(pid),
-      projetos.listar(),
-      gestor ? pessoas.listar() : [],
-      gestor ? configuracoes.areas() : [],
-      tarefas.listar({ codigoProjeto: pid }),
-    ])
-    return { projeto, todos, gente, areas, tarefas: lista.map(adaptTask) }
-  }, [pid, gestor])
+  const { dados, carregando, recarregar } = useCarregar(
+    async () => {
+      const [projeto, todos, gente, areas, lista] = await Promise.all([
+        projetos.buscar(pid),
+        projetos.listar(),
+        gestor ? pessoas.listar() : [],
+        gestor ? configuracoes.areas() : [],
+        tarefas.listar({ codigoProjeto: pid }),
+      ])
+      return { projeto, todos, gente, areas, tarefas: lista.map(adaptTask) }
+    },
+    [pid, gestor],
+    { chave: `projeto:${pid}` },
+  )
   const voltar = (
     <button className="btn btn-g" onClick={() => go('projetos')}>
       <Ic k="back" />
@@ -53,9 +58,12 @@ export default function Projeto() {
   )
   if (!dados)
     return (
-      <PageBar title="Projeto" sub={carregando ? 'Carregando…' : 'Projeto não encontrado.'}>
-        {voltar}
-      </PageBar>
+      <>
+        <PageBar title="Projeto" sub={carregando ? '' : 'Projeto não encontrado.'}>
+          {voltar}
+        </PageBar>
+        {carregando && <Esqueleto />}
+      </>
     )
   const { projeto, todos, gente, areas } = dados
   // Depois de salvar: recarrega o projeto e os dados compartilhados (tarefas, avatares, painel).

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import { TIPO, chip, fd, iso } from '../lib/utils'
@@ -9,6 +9,7 @@ import Anexos from '../components/Anexos'
 import { PageBar, Prog, Seg, Stars } from '../components/Ui'
 import alerts from '../lib/alerts'
 import useCarregar from '../lib/useCarregar'
+import Esqueleto from '../components/Esqueleto'
 import { DIAS_SEMANA, mesDe, mudarMes, nomeDoMes, semanasDoMes } from '../lib/calendario'
 import { SITUACAO, capacitacoes, horas, valoresCapacitacao } from '../services/capacitacoes'
 
@@ -224,15 +225,32 @@ function Calendario({ lista, mes, setMes, abrir }) {
   )
 }
 
+/**
+ * Chave e busca das opções da lista (a lista em si vem dos dados globais). O menu
+ * (src/lib/antecipar.js) usa as mesmas para buscar antes do clique.
+ */
+export function dadosDaTela() {
+  return { chave: 'capacitacoes:opcoes', carregar: capacitacoes.opcoes }
+}
+
 function Lista() {
-  const { D, form, go } = useApp()
-  const op = useCarregar(capacitacoes.opcoes, []).dados || { podeGerir: false }
-  const { dados, carregando, recarregar } = useCarregar(capacitacoes.listar, [])
+  const { D, form, go, recarregarCapacitacoes } = useApp()
+  const telaOpcoes = dadosDaTela()
+  const op = useCarregar(telaOpcoes.carregar, [], { chave: telaOpcoes.chave }).dados || { podeGerir: false }
+  // A lista já vem nos dados globais (mesmo formato de capacitacoes.listar()); salvar recarrega pelo contexto.
   const [f, setF] = useState(ultimos)
   const set = (k, v) => setF(o => (ultimos = { ...o, [k]: v }))
-  const acoes = useAcoes(recarregar)
+  const acoes = useAcoes(recarregarCapacitacoes)
+  // A lista aparece na hora com D.k, mas ele só muda quando esta tela ou o refresh o recarregam:
+  // criar, editar, presença, avaliação e anexos (feitos na ficha) ou mudanças de outras pessoas.
+  // Por isso, ao abrir, busca de novo por trás, como as telas com chave.
+  useEffect(() => {
+    recarregarCapacitacoes().catch(() => {})
+    // Só ao abrir: a função muda a cada render do contexto e repetiria a busca sem parar.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   const abrir = id => go('capacitacoes', id)
-  const todas = dados || []
+  const todas = D.k || []
   const lista = todas.filter(c => (!f.tipo || c.tipo === f.tipo) && (!f.minhas || c.inscrito))
   // Mês local: toISOString (UTC) abriria o mês seguinte no último dia do mês, depois das 21h.
   const mes = f.mes || mesDe(iso(new Date()))
@@ -300,9 +318,7 @@ function Lista() {
           </select>
         </div>
       </div>
-      {carregando && !dados ? (
-        <small>Carregando…</small>
-      ) : f.visao === 'calendario' ? (
+      {f.visao === 'calendario' ? (
         <Calendario lista={lista} mes={mes} setMes={m => set('mes', m)} abrir={abrir} />
       ) : mostrar[0].length + mostrar[1].length ? (
         <>
@@ -460,8 +476,10 @@ function Avaliar({ c, aoMudar }) {
 }
 
 function Avaliacoes({ c }) {
-  const { dados } = useCarregar(() => capacitacoes.avaliacoes(c.id), [c.id, c.avaliacoes, c.media])
-  if (!dados) return <small>Carregando…</small>
+  const { dados } = useCarregar(() => capacitacoes.avaliacoes(c.id), [c.id, c.avaliacoes, c.media], {
+    chave: `capacitacao:${c.id}:avaliacoes`,
+  })
+  if (!dados) return <Esqueleto linhas={2} />
   if (!dados.length) return <small>Nenhuma avaliação ainda.</small>
   return dados.map((a, i) => (
     <div className="fbk" key={a.usuario?.codigo || i}>
@@ -489,7 +507,7 @@ function Avaliacoes({ c }) {
 
 function Ficha({ id }) {
   const { D, form, go } = useApp()
-  const { dados: c, carregando, recarregar } = useCarregar(() => capacitacoes.buscar(id), [id])
+  const { dados: c, carregando, recarregar } = useCarregar(() => capacitacoes.buscar(id), [id], { chave: `capacitacao:${id}` })
   const acoes = useAcoes(recarregar)
   const voltar = (
     <button className="btn btn-g" onClick={() => go('capacitacoes')}>
@@ -499,9 +517,12 @@ function Ficha({ id }) {
   )
   if (!c)
     return (
-      <PageBar title="Capacitações" sub={carregando ? 'Carregando…' : 'Capacitação não encontrada. Ela pode ter sido excluída.'}>
-        {voltar}
-      </PageBar>
+      <>
+        <PageBar title="Capacitações" sub={carregando ? '' : 'Capacitação não encontrada. Ela pode ter sido excluída.'}>
+          {voltar}
+        </PageBar>
+        {carregando && <Esqueleto />}
+      </>
     )
   const comecou = c.situacao === 'realizada'
   return (

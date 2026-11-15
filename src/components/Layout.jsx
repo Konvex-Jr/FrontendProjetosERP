@@ -1,9 +1,12 @@
-import { Suspense, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import { fm, ini, un, chip } from '../lib/utils'
 import Ic from './Icon'
 import FormModal from './FormModal'
+import Esqueleto from './Esqueleto'
+import { PAGINAS } from '../paginas'
+import { anteciparDados, precarregarPaginas } from '../lib/antecipar'
 
 /** Barra do topo: data de hoje, troca de tema, pessoa logada (abre o perfil) e Sair. */
 function Header() {
@@ -73,9 +76,20 @@ const ITENS_BARRA = 4
 
 /** Menu lateral (no celular, barra inferior com gaveta "Mais"). Os itens vêm da API (`nav`). */
 function SideNav() {
-  const { nav, go } = useApp(),
+  const { nav, go, me, mb, pode } = useApp(),
     { pathname } = useLocation()
   const [gaveta, setGaveta] = useState(false)
+  // Depois de montar, baixa no tempo ocioso o arquivo de cada tela do menu: o clique abre sem esperar.
+  // A dependência é o texto dos caminhos: o `nav` é um array novo a cada render do contexto.
+  const caminhos = nav.map(([, , caminho]) => caminho).join(' ')
+  useEffect(() => {
+    precarregarPaginas(caminhos.split(' '), PAGINAS)
+  }, [caminhos])
+  // Mouse em cima, foco ou toque num item: busca os dados da tela antes do clique (só itens do menu).
+  const antecipar = caminho => {
+    const buscar = () => anteciparDados(caminho, { me, mb, pode, nav }, { paginas: PAGINAS })
+    return { onMouseEnter: buscar, onFocus: buscar, onTouchStart: buscar }
+  }
   const ativo = nav.findIndex(([, , p]) => (p === '/' ? pathname === '/' : pathname.startsWith(p)))
   const comMais = nav.length > ITENS_BARRA + 1
   const ir = k => {
@@ -95,9 +109,10 @@ function SideNav() {
           alt="Konvex Jr – ir para a Visão Geral"
           onClick={() => ir(nav[0]?.[0])}
         />
-        {nav.map(([k, l], i) => (
+        {nav.map(([k, l, p], i) => (
           <a
             key={k}
+            {...antecipar(p)}
             role="button"
             tabIndex={0}
             className={(i === ativo ? 'on' : '') + (comMais && i >= ITENS_BARRA ? ' ex' : '')}
@@ -133,10 +148,11 @@ function SideNav() {
                 <Ic k="x" />
               </button>
             </div>
-            {nav.map(([k, l], i) => (
+            {nav.map(([k, l, p], i) => (
               <button
                 type="button"
                 key={k}
+                {...antecipar(p)}
                 className={'gv-i' + (i === ativo ? ' on' : '')}
                 aria-current={i === ativo ? 'page' : undefined}
                 onClick={() => ir(k)}
@@ -169,7 +185,7 @@ export default function Layout() {
       <SideNav />
       <main className="app-main">
         {/* Fallback enquanto o arquivo da página baixa (carregarPagina); a key por rota repete a animação de entrada. */}
-        <Suspense fallback={<div className="pagina-carregando" aria-busy="true" />}>
+        <Suspense fallback={<Esqueleto />}>
           <div key={pathname} className="page-in">
             <Outlet />
           </div>

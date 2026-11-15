@@ -6,6 +6,7 @@ import Ic from '../components/Icon'
 import { PageBar, Prog } from '../components/Ui'
 import alerts from '../lib/alerts'
 import useCarregar from '../lib/useCarregar'
+import Esqueleto from '../components/Esqueleto'
 import { juntarTecnologia, minhaConta, pessoas, rotuloStatus, tecnologias, tecnologiasDe } from '../services/pessoas'
 import { horas } from '../services/capacitacoes'
 
@@ -152,15 +153,30 @@ function Lista({ titulo, itens, vazio, linha }) {
   )
 }
 
+/**
+ * Chave e busca do perfil. Sem `outro` é o próprio perfil (o que o menu, src/lib/antecipar.js,
+ * busca antes do clique, com a mesma chave). `contexto` = { me } do useApp().
+ */
+export function dadosDaTela({ me }, outro) {
+  return { chave: `perfil:${outro || 'eu'}`, carregar: () => pessoas.perfil(outro || me) }
+}
+
 /** RF-013: perfil da pessoa. Em /perfil é o próprio; em /perfil/:codigo, o de outra pessoa. */
 export default function Perfil() {
   const { codigo: outro } = useParams()
   const { me, form, go, refresh } = useApp()
   const codigo = outro || me
   const meu = codigo === me
-  const { dados: perfil, carregando, recarregar } = useCarregar(() => pessoas.perfil(codigo), [codigo])
+  const tela = dadosDaTela({ me }, outro)
+  const { dados: perfil, carregando, recarregar } = useCarregar(tela.carregar, [codigo], { chave: tela.chave })
 
-  if (!perfil) return <PageBar title={meu ? 'Meu perfil' : 'Perfil'} sub={carregando ? 'Carregando…' : 'Não foi possível carregar.'} />
+  if (!perfil)
+    return (
+      <>
+        <PageBar title={meu ? 'Meu perfil' : 'Perfil'} sub={carregando ? '' : 'Não foi possível carregar.'} />
+        {carregando && <Esqueleto />}
+      </>
+    )
 
   const { usuario: u, projetosAtuais, projetosAnteriores, historico, capacitacoes, alocacao } = perfil
 

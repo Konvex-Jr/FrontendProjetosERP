@@ -6,6 +6,7 @@ import Table from '../components/Table'
 import { PageBar, Seg } from '../components/Ui'
 import alerts from '../lib/alerts'
 import useCarregar from '../lib/useCarregar'
+import Esqueleto from '../components/Esqueleto'
 import { configuracoes } from '../services/pessoas'
 
 const ABAS = [
@@ -18,16 +19,31 @@ const SIM_NAO = [
   ['false', 'Inativo'],
 ]
 
+/** Chave e busca da tela; o menu (src/lib/antecipar.js) usa as mesmas para buscar antes do clique. */
+export function dadosDaTela() {
+  return {
+    chave: 'configuracoes',
+    carregar: async () => {
+      const [areas, cargos, senioridades] = await Promise.all([configuracoes.areas(), configuracoes.cargos(), configuracoes.senioridades()])
+      return { areas, cargos, senioridades }
+    },
+  }
+}
+
 /** ADR-007: listas configuráveis (áreas, cargos, senioridades). Só diretores editam. */
 export default function Configuracoes() {
   const { form, refresh } = useApp()
   const [aba, setAba] = useState('areas')
-  const { dados, carregando, recarregar } = useCarregar(async () => {
-    const [areas, cargos, senioridades] = await Promise.all([configuracoes.areas(), configuracoes.cargos(), configuracoes.senioridades()])
-    return { areas, cargos, senioridades }
-  })
+  const tela = dadosDaTela()
+  const { dados, carregando, recarregar } = useCarregar(tela.carregar, [], { chave: tela.chave })
 
-  if (!dados) return <PageBar title="Configurações" sub={carregando ? 'Carregando…' : 'Não foi possível carregar.'} />
+  if (!dados)
+    return (
+      <>
+        <PageBar title="Configurações" sub={carregando ? '' : 'Não foi possível carregar.'} />
+        {carregando && <Esqueleto />}
+      </>
+    )
 
   const { areas, cargos, senioridades } = dados
   const nomeArea = codigo => areas.find(a => a.codigo === codigo)?.nome || '—'

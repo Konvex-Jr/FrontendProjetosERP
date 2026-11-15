@@ -1,26 +1,27 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import Layout from './components/Layout'
 import Login from './pages/Login'
-import carregarPagina from './lib/carregarPagina'
+import {
+  Biblioteca,
+  Capacitacoes,
+  Configuracoes,
+  Dashboard,
+  Estrategia,
+  Perfil,
+  Pessoas,
+  Precificacao,
+  Projeto,
+  Projetos,
+  Tarefas,
+} from './paginas'
 
-// Cada página vira um arquivo separado, baixado na primeira visita. O Login fica no pacote de entrada.
-const Dashboard = carregarPagina(() => import('./pages/Dashboard'))
-const Projetos = carregarPagina(() => import('./pages/Projetos'))
-const Projeto = carregarPagina(() => import('./pages/Projeto'))
-const Tarefas = carregarPagina(() => import('./pages/Tarefas'))
-const Capacitacoes = carregarPagina(() => import('./pages/Capacitacoes'))
-const Estrategia = carregarPagina(() => import('./pages/Estrategia'))
-const Biblioteca = carregarPagina(() => import('./pages/Biblioteca'))
-const Precificacao = carregarPagina(() => import('./pages/Precificacao'))
-const Pessoas = carregarPagina(() => import('./pages/Pessoas'))
-const Perfil = carregarPagina(() => import('./pages/Perfil'))
-const Configuracoes = carregarPagina(() => import('./pages/Configuracoes'))
+// As páginas (arquivos separados, baixados sob demanda) estão em src/paginas.js. O Login fica no pacote de entrada.
 
 /**
  * Rotas do app (HashRouter: os endereços ficam como /#/tarefas). O Login fica fora do Layout;
  * o Layout exige login e só abre telas que vieram no menu da pessoa.
  * Rotas com :id usam a mesma página, que mostra a lista ou a ficha conforme o parâmetro.
- * Tela nova: rota aqui + item no registro de módulos do backend + ícone em components/Icon.jsx.
+ * Tela nova: página em src/paginas.js (e no PAGINAS, se estiver no menu) + rota aqui + item no registro de módulos do backend + ícone em components/Icon.jsx.
  */
 export default function App() {
   return (

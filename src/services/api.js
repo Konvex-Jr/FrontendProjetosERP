@@ -119,14 +119,29 @@ export function renovarSessao() {
   // Várias chamadas podem receber 401 juntas: todas esperam a mesma renovação, para não gastar o refresh token duas vezes.
   if (!renovando) {
     renovando = (async () => {
+      // Refresh token desta renovação: se a sessão mudar enquanto a API responde, a resposta é de outra sessão.
+      const usado = sessao.refreshToken
       try {
         const response = await chamar('/auth/refresh', {
           method: 'POST',
           headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
-          body: JSON.stringify({ refreshToken: sessao.refreshToken }),
+          body: JSON.stringify({ refreshToken: usado }),
         })
         const data = await lerCorpo(response)
         if (!response.ok || !data?.token) return false
+        if (sessao.refreshToken !== usado) {
+          // A pessoa saiu (ou outra entrou) durante a renovação. Salvar aqui religaria a sessão
+          // antiga nesta aba (o F5 entraria de novo como ela) ou trocaria a sessão de quem entrou.
+          // A API já trocou o refresh token: o novo fica sem dono e é revogado, sem esperar.
+          if (data.refreshToken) {
+            chamar('/auth/logout', {
+              method: 'POST',
+              headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+              body: JSON.stringify({ refreshToken: data.refreshToken }),
+            }).catch(() => {})
+          }
+          return false
+        }
         sessao.salvar({ token: data.token, refreshToken: data.refreshToken })
         return true
       } catch {
@@ -139,9 +154,27 @@ export function renovarSessao() {
   return renovando
 }
 
+/**
+ * Diz se o token de acesso já venceu (ou vence em até 5 s), lendo o `exp` do payload JWT.
+ * Só serve para antecipar a renovação: quem confere a assinatura é a API. Token ilegível,
+ * sem `exp` ou vazio conta como não vencido, e a chamada segue o fluxo normal de 401.
+ */
+export function tokenVencido(token, agora = Date.now()) {
+  try {
+    const payload = JSON.parse(atob(String(token).split('.')[1].replace(/-/g, '+').replace(/_/g, '/')))
+    return typeof payload.exp === 'number' && payload.exp * 1000 <= agora + 5000
+  } catch {
+    return false
+  }
+}
+
+// Várias chamadas paralelas (ex.: as do início do app) podem receber 401 juntas: só a primeira,
+// que de fato encerra a sessão, avisa o app; as outras achariam a sessão já limpa e repetiriam
+// o alerta e a ida ao login.
 function expirar() {
+  const estavaAtiva = sessao.ativa
   sessao.limpar()
-  if (typeof sessao.onExpirada === 'function') sessao.onExpirada()
+  if (estavaAtiva && typeof sessao.onExpirada === 'function') sessao.onExpirada()
 }
 
 /**
@@ -150,10 +183,17 @@ function expirar() {
  */
 async function fetchAutenticado(path, { headers = {}, ...init } = {}) {
   const enviar = () => chamar(path, { ...init, headers: { ...headers, ...(sessao.token ? { 'access-token': sessao.token } : {}) } })
+  // Token já vencido: tenta renovar antes de chamar, em vez de gastar uma ida à API só para receber 401.
+  // Se falhar, segue para a chamada normal: sem internet vira "sem conexão" e a sessão é mantida;
+  // refresh recusado vira 401 da API e o fluxo abaixo encerra a sessão.
+  if (sessao.refreshToken && tokenVencido(sessao.token)) await renovarSessao()
   let response = await enviar()
   if (response.status === 401 && sessao.refreshToken) {
+    const usado = sessao.refreshToken
     if (await renovarSessao()) response = await enviar()
-    else expirar()
+    // Só encerra se a sessão ainda for a que tentou renovar: se a pessoa saiu ou outra entrou
+    // nesse meio-tempo, limpar aqui derrubaria a sessão de quem está na aba agora.
+    else if (sessao.refreshToken === usado) expirar()
   } else if (response.status === 401) {
     expirar()
   }
@@ -164,7 +204,25 @@ async function fetchAutenticado(path, { headers = {}, ...init } = {}) {
  * Chamada JSON à API. Com `auth: true` usa a sessão (e renova o token sozinho).
  * `token` explícito continua aceito para chamadas avulsas, sem renovação.
  */
-export async function request(path, { method = 'GET', body, token, auth = false, headers = {} } = {}) {
+// GETs autenticados em andamento, por `path|token`: telas que pedem o mesmo dado ao mesmo tempo
+// (ex.: vários componentes montando juntos) fazem uma só chamada. A entrada sai ao terminar,
+// com sucesso ou erro, então nada fica guardado entre uma chamada e outra.
+const getsEmAndamento = new Map()
+
+export function request(path, opcoes = {}) {
+  const { method = 'GET', token, auth = false } = opcoes
+  if (method !== 'GET' || !auth || token) return executar(path, opcoes)
+  // A chave usa o token do momento da chamada, antes de qualquer renovação antecipada.
+  const chave = `${path}|${sessao.token}`
+  let promessa = getsEmAndamento.get(chave)
+  if (!promessa) {
+    promessa = executar(path, opcoes).finally(() => getsEmAndamento.delete(chave))
+    getsEmAndamento.set(chave, promessa)
+  }
+  return promessa
+}
+
+async function executar(path, { method = 'GET', body, token, auth = false, headers = {} } = {}) {
   const init = {
     method,
     headers: {

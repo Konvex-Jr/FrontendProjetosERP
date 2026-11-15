@@ -8,6 +8,7 @@ import ActionMenu from '../components/ActionMenu'
 import { PageBar } from '../components/Ui'
 import alerts from '../lib/alerts'
 import useCarregar from '../lib/useCarregar'
+import Esqueleto from '../components/Esqueleto'
 import { configuracoes, pessoas, rotuloStatus, STATUS_PESSOA, tecnologiasDe } from '../services/pessoas'
 
 const COR_STATUS = { ativo: 'ok', trainee: '', alumni: 'wa', inativo: 'er' }
@@ -18,21 +19,36 @@ const PERFIS = [
 ]
 const SAIDA = ['alumni', 'inativo']
 
+/** Chave e busca da tela; o menu (src/lib/antecipar.js) usa as mesmas para buscar antes do clique. */
+export function dadosDaTela() {
+  return {
+    chave: 'pessoas',
+    carregar: async () => {
+      const [lista, areas, cargos, senioridades] = await Promise.all([
+        pessoas.listar(),
+        configuracoes.areas(),
+        configuracoes.cargos(),
+        configuracoes.senioridades(),
+      ])
+      return { lista, areas, cargos, senioridades }
+    },
+  }
+}
+
 /** RF-010 a RF-016: cadastro e acompanhamento de pessoas (gestores). */
 export default function Pessoas() {
   const { form, go, me, pode, refresh } = useApp()
   const [filtros] = useState(() => consumir('usuarios'))
-  const { dados, carregando, recarregar } = useCarregar(async () => {
-    const [lista, areas, cargos, senioridades] = await Promise.all([
-      pessoas.listar(),
-      configuracoes.areas(),
-      configuracoes.cargos(),
-      configuracoes.senioridades(),
-    ])
-    return { lista, areas, cargos, senioridades }
-  })
+  const tela = dadosDaTela()
+  const { dados, carregando, recarregar } = useCarregar(tela.carregar, [], { chave: tela.chave })
 
-  if (!dados) return <PageBar title="Pessoas" sub={carregando ? 'Carregando…' : 'Não foi possível carregar.'} />
+  if (!dados)
+    return (
+      <>
+        <PageBar title="Pessoas" sub={carregando ? '' : 'Não foi possível carregar.'} />
+        {carregando && <Esqueleto />}
+      </>
+    )
 
   const { lista, areas, cargos, senioridades } = dados
   const gereDiretores = pode('pessoas.gerirDiretores')

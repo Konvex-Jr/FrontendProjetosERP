@@ -13,6 +13,7 @@
     "capturas": "node e2e/capturas.mjs",
     "orcamento": "node scripts/orcamento.mjs",
     "desempenho": "node e2e/desempenho.mjs",
+    "carregamento": "node e2e/carregamento.mjs",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
