@@ -153,9 +153,13 @@ export function tokenVencido(token, agora = Date.now()) {
   }
 }
 
+// Várias chamadas paralelas (ex.: as do início do app) podem receber 401 juntas: só a primeira,
+// que de fato encerra a sessão, avisa o app; as outras achariam a sessão já limpa e repetiriam
+// o alerta e a ida ao login.
 function expirar() {
+  const estavaAtiva = sessao.ativa
   sessao.limpar()
-  if (typeof sessao.onExpirada === 'function') sessao.onExpirada()
+  if (estavaAtiva && typeof sessao.onExpirada === 'function') sessao.onExpirada()
 }
 
 /**

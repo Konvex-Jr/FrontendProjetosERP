@@ -3,8 +3,10 @@ import { useNavigate } from 'react-router-dom'
 import { iso, path } from '../lib/utils'
 import { request, sessao } from '../services/api'
 import alerts from '../lib/alerts'
-import { adaptProject, adaptTask, adaptUser, readConfig } from '../lib/apiMappers'
+import { readConfig } from '../lib/apiMappers'
 import { capacitacoes } from '../services/capacitacoes'
+import { carregarAcesso, carregarDadosGlobais, carregarInicio } from '../services/inicio'
+import { memoria } from '../lib/memoria'
 
 const Ctx = createContext(null)
 export const useApp = () => useContext(Ctx)
@@ -30,32 +32,8 @@ export function AppProvider({ children }) {
   const [sessionReady, setSessionReady] = useState(false)
   const [acesso, setAcesso] = useState(SEM_ACESSO)
 
-  const loadAcesso = async () => {
-    const result = await request('/auth/permissoes', { auth: true })
-    return { permissoes: result?.permissoes || [], menu: result?.menu || [] }
-  }
-
-  // Dados compartilhados por várias telas, carregados juntos no login e a cada refresh.
-  const loadApiData = async () => {
-    const [users, projects, tasks, trainings, senioridades] = await Promise.all([
-      request('/usuarios', { auth: true }),
-      request('/projetos', { auth: true }),
-      request('/tarefas', { auth: true }),
-      capacitacoes.listar(),
-      request('/senioridades', { auth: true }),
-    ])
-    return {
-      u: users.map(adaptUser),
-      p: projects.map(adaptProject),
-      t: tasks.map(adaptTask),
-      // Capacitações já adaptadas (services/capacitacoes.js); usadas no Dashboard e na Visão Estratégica.
-      k: trainings,
-      senioridades,
-    }
-  }
-
   const refresh = async config => {
-    const apiData = await loadApiData()
+    const apiData = await carregarDadosGlobais()
     const resolvedConfig = config || readConfig(apiData.senioridades, false)
     const next = { ...apiData, c: resolvedConfig }
     setD(next)
@@ -65,7 +43,8 @@ export function AppProvider({ children }) {
   useEffect(() => {
     let active = true
 
-    // Abrir ou recarregar a página com sessão salva: confere a pessoa (/auth/me) e carrega tudo antes de mostrar as telas.
+    // Abrir ou recarregar a página com sessão salva: confere a pessoa (/auth/me), os dados e o menu
+    // numa rodada só (services/inicio.js), antes de mostrar as telas.
     const initialize = async () => {
       const defaultConfig = readConfig()
       if (!sessao.ativa) {
@@ -75,15 +54,18 @@ export function AppProvider({ children }) {
       }
 
       try {
-        const eu = await request('/auth/me', { auth: true })
-        const [data, permissoes] = await Promise.all([loadApiData(), loadAcesso()])
+        const { eu, dados: data, acesso: permissoes } = await carregarInicio()
         if (!active) return
+        // A memória de dados passa a ser desta pessoa antes de qualquer tela montar e ler dela.
+        memoria.definirPessoa(eu.codigo)
         setAcesso(permissoes)
         setMe(eu.codigo)
         setD({ ...data, c: readConfig(data.senioridades, false) })
       } catch (error) {
         console.error('Erro ao carregar dados da API:', error)
         sessao.limpar()
+        memoria.limpar()
+        memoria.definirPessoa(null)
         setMe(null)
         setAcesso(SEM_ACESSO)
         setD({ c: defaultConfig, ...VAZIO })
@@ -135,7 +117,11 @@ export function AppProvider({ children }) {
   }, [DF, me, mb])
   const nav = acesso.menu.map(item => [item.chave, item.rotulo, item.caminho])
 
+  // Fim de sessão (sair, sessão expirada, login que falhou): apaga também a memória de dados,
+  // para nada de uma pessoa aparecer para a próxima que entrar nesta aba.
   const limparEstado = () => {
+    memoria.limpar()
+    memoria.definirPessoa(null)
     setMe(null)
     setMd(null)
     setAcesso(SEM_ACESSO)
@@ -148,7 +134,9 @@ export function AppProvider({ children }) {
       const result = await request('/auth/login', { method: 'POST', body: { email: email.trim().toLowerCase(), senha } })
       if (!result?.token || !result?.usuario?.codigo) throw new Error('A API não retornou uma sessão válida.')
       sessao.salvar({ token: result.token, refreshToken: result.refreshToken })
-      const [data, permissoes] = await Promise.all([loadApiData(), loadAcesso()])
+      // Troca a dona da memória antes de buscar dados: outra conta nesta aba apaga o que havia.
+      memoria.definirPessoa(result.usuario.codigo)
+      const [data, permissoes] = await Promise.all([carregarDadosGlobais(), carregarAcesso()])
       setD({ ...data, c: readConfig(data.senioridades, false) })
       setAcesso(permissoes)
       setMe(result.usuario.codigo)
