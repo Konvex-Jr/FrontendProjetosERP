@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { afterEach, beforeEach, test } from 'node:test'
+import { afterEach, beforeEach, mock, test } from 'node:test'
 import { memoria } from '../src/lib/memoria.js'
 
 beforeEach(() => {
@@ -211,5 +211,28 @@ test('não usa localStorage nem sessionStorage', async () => {
       if (d) Object.defineProperty(globalThis, nome, d)
       else delete globalThis[nome]
     }
+  }
+})
+
+test('ouvinte que lança não impede os demais avisos nem derruba limpar e buscar', async () => {
+  const erros = mock.method(console, 'error', () => {})
+  try {
+    await memoria.buscar('a', async () => 1)
+    await memoria.buscar('b', async () => 2)
+    const avisos = []
+    memoria.ouvir('a', () => {
+      throw erroComStatus(404)
+    })
+    memoria.ouvir('b', valor => avisos.push(valor))
+
+    memoria.limpar()
+    assert.deepEqual(avisos, [undefined])
+
+    // gravação: ouvinte lança com status 404, mas a busca resolve e o dado fica
+    assert.equal(await memoria.buscar('a', async () => 3), 3)
+    assert.equal(memoria.obter('a'), 3)
+    assert.ok(erros.mock.callCount() >= 2)
+  } finally {
+    erros.mock.restore()
   }
 })

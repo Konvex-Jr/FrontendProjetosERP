@@ -16,7 +16,15 @@ let pessoaAtual = null
 let geracao = 0
 
 function avisar(chave, valor) {
-  for (const fn of [...(ouvintes.get(chave) ?? [])]) fn(valor)
+  for (const fn of [...(ouvintes.get(chave) ?? [])]) {
+    // Ouvinte com defeito não pode impedir os outros de saber nem quebrar
+    // quem chamou (logout, troca de conta ou a própria busca).
+    try {
+      fn(valor)
+    } catch (erro) {
+      console.error('Falha em ouvinte da memória', erro)
+    }
+  }
 }
 
 function apagarTudo() {
