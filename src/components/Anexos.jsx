@@ -10,6 +10,7 @@ import {
   avisoEnviados,
   enviarVarios,
   podeVer,
+  progressoVisivel,
   resumoFalhas,
   textoProgresso,
 } from '../services/anexos'
@@ -92,13 +93,77 @@ export function ZonaEnvio({ aoEscolher, multiple = true, rotulo = 'Anexar arquiv
   )
 }
 
-/** Baixa com a sessão (um link direto não levaria o token) e mostra o erro num alerta. */
-export async function baixarAnexo(anexo) {
+/**
+ * Baixa com a sessão (um link direto não levaria o token) e mostra o erro num alerta.
+ * Usa o arquivo guardado na aba quando houver; `aoProgresso(recebidos, total)` acompanha a busca.
+ */
+export async function baixarAnexo(anexo, aoProgresso) {
   try {
-    await api.baixar(anexo)
+    await api.baixar(anexo, { aoProgresso })
   } catch (error) {
     await alerts.error('Não foi possível baixar o arquivo', error.message)
   }
+}
+
+/**
+ * Estado de um download por anexo: `baixar(anexo)` marca o anexo enquanto chega e `progresso(id)`
+ * diz o que mostrar (null em arquivo pequeno). Um anexo em download não começa outro igual.
+ */
+function useDownloads() {
+  const [andamento, setAndamento] = useState({})
+  const baixar = async anexo => {
+    if (andamento[anexo.id]) return
+    const marcar = valor => setAndamento(atual => ({ ...atual, [anexo.id]: valor }))
+    marcar({ recebidos: 0, total: null, bytes: anexo.bytes })
+    try {
+      await baixarAnexo(anexo, (recebidos, total) => marcar({ recebidos, total, bytes: anexo.bytes }))
+    } finally {
+      setAndamento(({ [anexo.id]: _, ...resto }) => resto)
+    }
+  }
+  return { baixar, emAndamento: id => Boolean(andamento[id]), progresso: id => progressoVisivel(andamento[id], andamento[id]?.bytes) }
+}
+
+/** Botão "Baixar": enquanto chega, fica ocupado e mostra o progresso (o fundo enche até 100%). */
+function BotaoBaixar({ anexo, downloads, comTexto = false }) {
+  const ocupado = downloads.emAndamento(anexo.id)
+  const p = downloads.progresso(anexo.id)
+  const rotulo = p ? p.texto : 'Baixar'
+  return (
+    <button
+      type="button"
+      className={'btn btn-g btn-sm' + (p ? ' btn-prog' : '')}
+      style={p?.pct != null ? { '--p': `${p.pct}%` } : undefined}
+      onClick={() => downloads.baixar(anexo)}
+      disabled={ocupado}
+      aria-busy={ocupado || undefined}
+      aria-label={comTexto ? undefined : rotulo}
+      data-tip={comTexto ? undefined : rotulo}
+    >
+      {p && !comTexto ? <span className="btn-prog-t">{p.pct == null ? '…' : `${p.pct}%`}</span> : <Ic k="download" />}
+      {comTexto && rotulo}
+    </button>
+  )
+}
+
+/** Barra de progresso de quem está abrindo um arquivo grande; sem o total, barra em movimento e "Baixando…". */
+function BarraProgresso({ progresso }) {
+  const definida = progresso.pct != null
+  return (
+    <div className="jv-p" role="status">
+      <div
+        className={'jv-b' + (definida ? '' : ' is-ind')}
+        role="progressbar"
+        aria-label="Progresso do download"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={definida ? progresso.pct : undefined}
+      >
+        <span style={definida ? { width: `${progresso.pct}%` } : undefined} />
+      </div>
+      <p className="jv-m">{progresso.texto}</p>
+    </div>
+  )
 }
 
 /**
@@ -108,11 +173,15 @@ export async function baixarAnexo(anexo) {
 export function JanelaAnexo({ anexo, fechar }) {
   const [arquivo, setArquivo] = useState(null)
   const [erro, setErro] = useState('')
+  const [chegando, setChegando] = useState(null)
+  const progresso = progressoVisivel(chegando, anexo.bytes)
+  const downloads = useDownloads()
   const botaoFechar = useRef(null)
   useEffect(() => {
     let vivo = true
     let url = ''
-    api.abrir(anexo).then(
+    // Se o arquivo já foi antecipado ou está guardado na aba, chega na hora (sem barra).
+    api.abrir(anexo, { aoProgresso: (recebidos, total) => vivo && setChegando({ recebidos, total }) }).then(
       r => {
         url = r.url
         if (vivo) setArquivo(r)
@@ -158,10 +227,7 @@ export function JanelaAnexo({ anexo, fechar }) {
             <div className="jv-h">
               <h3 className="h6 fw-bold m-0">{anexo.nome}</h3>
               <span className="d-flex gap-2">
-                <button type="button" className="btn btn-g btn-sm" onClick={() => baixarAnexo(anexo)}>
-                  <Ic k="download" />
-                  Baixar
-                </button>
+                <BotaoBaixar anexo={anexo} downloads={downloads} comTexto />
                 <button ref={botaoFechar} type="button" className="btn btn-g btn-sm" onClick={fechar}>
                   <Ic k="x" />
                   Fechar
@@ -172,9 +238,13 @@ export function JanelaAnexo({ anexo, fechar }) {
               {erro ? (
                 <p className="jv-m">Não foi possível abrir o arquivo. {erro} Use “Baixar” para tentar de novo.</p>
               ) : !arquivo ? (
-                <p className="jv-m" role="status">
-                  Abrindo…
-                </p>
+                progresso ? (
+                  <BarraProgresso progresso={progresso} />
+                ) : (
+                  <p className="jv-m" role="status">
+                    Abrindo…
+                  </p>
+                )
               ) : arquivo.tipo === 'application/pdf' ? (
                 // Sem `sandbox`: ele quebra o leitor de PDF do Chromium. Só chega PDF aqui, porque o tipo
                 // do Blob é forçado pela extensão (VISUALIZAVEIS), nunca pelo que a resposta diz.
@@ -200,7 +270,11 @@ export default function Anexos({ dono, codigo, lista, podeAlterar, aoMudar }) {
   const itens = (lista || []).map(adaptAnexo)
   const [vendo, setVendo] = useState(null)
   const [ocupado, setOcupado] = useState(null)
-  const abrir = a => (acaoAoAbrir(a.nome, ehCelular()) === 'janela' ? setVendo(a) : baixarAnexo(a))
+  const downloads = useDownloads()
+  const abrir = a => (acaoAoAbrir(a.nome, ehCelular()) === 'janela' ? setVendo(a) : downloads.baixar(a))
+  // Passar o mouse, focar ou tocar no nome já começa a baixar PDF e imagem pequenos (até 5 MB):
+  // o clique que vem depois abre com o arquivo na aba. A regra fica em anexos.antecipar.
+  const antecipar = a => () => api.antecipar(a)
   const enviar = async arquivos => {
     setOcupado({ atual: 1, total: arquivos.length })
     let resultado
@@ -233,7 +307,15 @@ export default function Anexos({ dono, codigo, lista, podeAlterar, aoMudar }) {
         <ul className="ax">
           {itens.map(a => (
             <li key={a.id}>
-              <button type="button" className="ax-n" onClick={() => abrir(a)} title={podeVer(a.nome) ? 'Ver' : 'Baixar'}>
+              <button
+                type="button"
+                className="ax-n"
+                onClick={() => abrir(a)}
+                onPointerEnter={antecipar(a)}
+                onFocus={antecipar(a)}
+                onTouchStart={antecipar(a)}
+                title={podeVer(a.nome) ? 'Ver' : 'Baixar'}
+              >
                 <Ic k="file" />
                 <span>{a.nome}</span>
               </button>
@@ -241,9 +323,7 @@ export default function Anexos({ dono, codigo, lista, podeAlterar, aoMudar }) {
                 {a.tamanho} · {a.enviadoPor} · {fd(a.data)}
               </small>
               <span className="ax-a">
-                <button type="button" className="btn btn-g btn-sm" onClick={() => baixarAnexo(a)} aria-label="Baixar" data-tip="Baixar">
-                  <Ic k="download" />
-                </button>
+                <BotaoBaixar anexo={a} downloads={downloads} />
                 {(a.podeExcluir ?? podeAlterar) && (
                   <button type="button" className="btn btn-g btn-sm" onClick={() => excluir(a)} aria-label="Excluir" data-tip="Excluir">
                     <Ic k="trash" />

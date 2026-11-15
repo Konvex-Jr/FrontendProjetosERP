@@ -1,4 +1,5 @@
 import { baixar, request } from './api.js'
+import { memoriaArquivos } from '../lib/memoriaArquivos.js'
 
 /**
  * Anexos (sessão 12c, decisões de 09/11/2026): até 20 MB, documentos e imagens.
@@ -68,6 +69,7 @@ export const adaptAnexo = a => ({
   nome: a.nome,
   ext: extensao(a.nome),
   tamanho: tamanhoLegivel(a.tamanhoBytes),
+  bytes: Number(a.tamanhoBytes) || 0,
   enviadoPor: a.enviadoPor?.nome || '—',
   data: String(a.enviadoEm || '').slice(0, 10),
   podeExcluir: a.podeExcluir,
@@ -81,20 +83,68 @@ const enviarBytes = (path, arquivo) =>
     headers: { 'Content-Type': 'application/octet-stream', 'X-Nome-Arquivo': encodeURIComponent(arquivo.name) },
   })
 
+/** Até este tamanho o PDF ou a imagem começa a baixar antes do clique (mouse, foco ou toque no nome). */
+export const LIMITE_ANTECIPAR = 5 * 1024 * 1024
+
+/** Acima deste tamanho a tela mostra o progresso do download (barra na janela, estado no botão). */
+export const MOSTRAR_PROGRESSO = 1024 * 1024
+
+/**
+ * O que mostrar do progresso `{ recebidos, total }` de um anexo de `bytes` (tamanho da lista):
+ * null para arquivo de até 1 MB; `pct` null quando a resposta não diz o tamanho ("Baixando…").
+ */
+export function progressoVisivel(progresso, bytes) {
+  if (!progresso) return null
+  const { recebidos, total } = progresso
+  if ((total ?? bytes ?? Infinity) <= MOSTRAR_PROGRESSO) return null
+  if (!total) return { pct: null, texto: 'Baixando…' }
+  const pct = Math.min(100, Math.floor((recebidos / total) * 100))
+  return { pct, texto: `Baixando… ${pct}%` }
+}
+
+/**
+ * O arquivo do anexo: o guardado na aba (memoriaArquivos) ou buscado na API. Só PDF e imagem são
+ * guardados; o resto (Word, planilhas...) vai direto, para não tirar da memória o que abre na janela.
+ * `aoProgresso(recebidos, total)` acompanha a busca, mesmo se ela já tiver começado por antecipação.
+ */
+function arquivoDo(anexo, aoProgresso) {
+  const path = `/anexos/${anexo.id}`
+  if (!podeVer(anexo.nome)) return baixar(path, { aoProgresso })
+  const guardado = memoriaArquivos.obter(anexo.id)
+  if (guardado) return Promise.resolve(guardado)
+  return memoriaArquivos.buscar(anexo.id, avisar => baixar(path, { aoProgresso: avisar }), { aoProgresso })
+}
+
 export const anexos = {
   /** `dono`: 'biblioteca' ou 'tarefas'. */
   enviar: (dono, codigo, arquivo) => enviarBytes(`/${dono}/${codigo}/anexos`, arquivo),
-  excluir: codigo => request(`/anexos/${codigo}`, { method: 'DELETE', auth: true }),
-  /** Baixa pela API e devolve um endereço local para abrir em janela; o chamador revoga com `URL.revokeObjectURL`. */
-  async abrir(anexo) {
+  /** Exclui na API e tira o arquivo da memória da aba (mesmo se a API recusar: na dúvida, busca de novo). */
+  async excluir(codigo) {
+    try {
+      return await request(`/anexos/${codigo}`, { method: 'DELETE', auth: true })
+    } finally {
+      memoriaArquivos.apagar(codigo)
+    }
+  },
+  /** Começa a baixar PDF ou imagem de até 5 MB antes do clique; erro é ignorado (o clique tenta de novo). */
+  async antecipar(anexo) {
+    if (!podeVer(anexo.nome) || !(anexo.bytes > 0 && anexo.bytes <= LIMITE_ANTECIPAR)) return
+    try {
+      await arquivoDo(anexo)
+    } catch {
+      /* antecipação é só um ganho; quem clicar vê o erro */
+    }
+  },
+  /** Arquivo guardado ou baixado pela API; devolve um endereço local para abrir em janela e o chamador revoga com `URL.revokeObjectURL`. */
+  async abrir(anexo, { aoProgresso } = {}) {
     if (!podeVer(anexo.nome)) throw new Error('Este tipo de arquivo não abre aqui. Baixe para ver.')
     const tipo = VISUALIZAVEIS[extensao(anexo.nome)]
-    const blob = await baixar(`/anexos/${anexo.id}`)
+    const blob = await arquivoDo(anexo, aoProgresso)
     return { url: URL.createObjectURL(new Blob([blob], { type: tipo })), tipo }
   },
-  /** Baixa pela API (o token vai no cabeçalho) e entrega ao navegador com o nome original. */
-  async baixar(anexo) {
-    const blob = await baixar(`/anexos/${anexo.id}`)
+  /** Arquivo guardado ou baixado pela API (o token vai no cabeçalho), entregue ao navegador com o nome original. */
+  async baixar(anexo, { aoProgresso } = {}) {
+    const blob = await arquivoDo(anexo, aoProgresso)
     const url = URL.createObjectURL(blob)
     const a = Object.assign(document.createElement('a'), { href: url, download: anexo.nome })
     document.body.appendChild(a)

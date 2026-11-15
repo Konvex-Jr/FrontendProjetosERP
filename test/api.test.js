@@ -497,3 +497,55 @@ test('renovação antecipada e 401 de outra chamada ao mesmo tempo fazem uma só
     sessao.limpar()
   }
 })
+
+// Resposta com corpo em fluxo (ReadableStream), como o fetch do navegador.
+function respostaEmPedacos(pedacos, cabecalhos = {}) {
+  const corpo = new ReadableStream({
+    start(controller) {
+      for (const p of pedacos) controller.enqueue(new Uint8Array(p))
+      controller.close()
+    },
+  })
+  return { ok: true, status: 200, headers: new Headers(cabecalhos), body: corpo, blob: async () => assert.fail('lê em pedaços') }
+}
+
+test('baixar com aoProgresso lê em pedaços e avisa (recebidos, total) até (total, total)', async () => {
+  const { baixar } = await import('../src/services/api.js')
+  globalThis.fetch = async () => respostaEmPedacos([3, 4, 5], { 'content-length': '12', 'content-type': 'application/pdf' })
+  const vistos = []
+  const blob = await baixar('/anexos/a1', { aoProgresso: (recebidos, total) => vistos.push([recebidos, total]) })
+  assert.equal(blob.size, 12)
+  assert.equal(blob.type, 'application/pdf')
+  assert.deepEqual(vistos, [
+    [0, 12],
+    [3, 12],
+    [7, 12],
+    [12, 12],
+  ])
+})
+
+test('baixar com aoProgresso sem Content-Length avisa total null', async () => {
+  const { baixar } = await import('../src/services/api.js')
+  globalThis.fetch = async () => respostaEmPedacos([2, 2])
+  const vistos = []
+  await baixar('/anexos/a1', { aoProgresso: (recebidos, total) => vistos.push([recebidos, total]) })
+  assert.deepEqual(vistos, [
+    [0, null],
+    [2, null],
+    [4, null],
+  ])
+})
+
+test('baixar que para no meio vira ApiError com mensagem para a pessoa', async () => {
+  const { baixar } = await import('../src/services/api.js')
+  const corpo = new ReadableStream({
+    pull(controller) {
+      controller.error(new TypeError('network error'))
+    },
+  })
+  globalThis.fetch = async () => ({ ok: true, status: 200, headers: new Headers({ 'content-length': '10' }), body: corpo })
+  await assert.rejects(
+    baixar('/anexos/a1', { aoProgresso: () => {} }),
+    e => e instanceof ApiError && e.status === 0 && /parou no meio/.test(e.message),
+  )
+})

@@ -1387,6 +1387,24 @@ button.kc-tag {
     margin-left: auto
 }
 
+/* Botão "Baixar" com download em andamento (sessão 19): o fundo enche até --p */
+.btn-prog {
+    background-image: linear-gradient(to right, color-mix(in srgb, var(--ac) 22%, transparent) var(--p, 0%), transparent var(--p, 0%));
+    cursor: progress
+}
+
+.btn-prog:disabled {
+    opacity: 1
+}
+
+.btn-prog-t {
+    display: inline-block;
+    min-width: 3ch;
+    font-size: .75rem;
+    font-variant-numeric: tabular-nums;
+    text-align: center
+}
+
 /* Zona de envio (sessão 19): botão + área que aceita arquivos soltos */
 .ze {
     display: flex;
@@ -1473,6 +1491,61 @@ button.kc-tag {
     padding: 24px;
     color: var(--mu);
     text-align: center
+}
+
+/* Progresso de quem abre um arquivo grande na janela */
+.jv-p {
+    width: min(320px, 80%);
+    display: grid;
+    gap: 4px
+}
+
+.jv-p .jv-m {
+    padding: 0;
+    font-variant-numeric: tabular-nums
+}
+
+.jv-b {
+    height: 6px;
+    border-radius: 999px;
+    background: var(--ln);
+    overflow: hidden
+}
+
+.jv-b span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--ac);
+    transition: width .2s var(--ez)
+}
+
+/* Sem o tamanho total: um trecho corre de um lado ao outro */
+.jv-b.is-ind span {
+    width: 35%;
+    animation: jv-corre 1.2s var(--ez) infinite
+}
+
+@keyframes jv-corre {
+    from {
+        transform: translateX(-100%)
+    }
+
+    to {
+        transform: translateX(290%)
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .jv-b span {
+        transition: none
+    }
+
+    .jv-b.is-ind span {
+        width: 100%;
+        animation: none;
+        opacity: .5
+    }
 }
 
 /* Alertas com lista (ex.: arquivos que não foram enviados): uma linha por item. */

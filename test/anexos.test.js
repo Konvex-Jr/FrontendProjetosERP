@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict'
-import { test } from 'node:test'
+import { beforeEach, mock, test } from 'node:test'
+import { memoria } from '../src/lib/memoria.js'
+import { memoriaArquivos } from '../src/lib/memoriaArquivos.js'
 import {
   ACEITA,
   LIMITE_BYTES,
@@ -11,10 +13,17 @@ import {
   extensao,
   avisoEnviados,
   podeVer,
+  progressoVisivel,
   resumoFalhas,
   tamanhoLegivel,
   textoProgresso,
 } from '../src/services/anexos.js'
+
+beforeEach(() => {
+  memoria.definirPessoa(null)
+  memoria.definirPessoa('ana')
+  memoriaArquivos.limpar()
+})
 
 const arquivo = (name, size, type = 'application/pdf') => {
   const blob = new Blob([new Uint8Array(size)], { type })
@@ -53,6 +62,7 @@ test('adapta anexo da Biblioteca', () => {
     nome: 'Ata.pdf',
     ext: 'pdf',
     tamanho: '2 KB',
+    bytes: 2048,
     enviadoPor: 'Ana',
     data: '2026-11-09',
     podeExcluir: undefined,
@@ -180,4 +190,138 @@ test('resumoFalhas lista um arquivo por linha com o motivo', () => {
     ]),
     'a.exe: Tipo não aceito.\nb.pdf: Falhou',
   )
+})
+
+const MB = 1024 * 1024
+
+// fetch falso que conta as chamadas por caminho e devolve bytes do tamanho pedido.
+function fetchContando(bytes = 4) {
+  const chamadas = []
+  const original = globalThis.fetch
+  globalThis.fetch = async url => {
+    chamadas.push(String(url).replace(/^.*?(\/anexos\/)/, '$1'))
+    return {
+      ok: true,
+      status: 200,
+      headers: new Headers({ 'content-length': String(bytes) }),
+      blob: async () => new Blob([new Uint8Array(bytes)]),
+    }
+  }
+  return { chamadas, restaurar: () => (globalThis.fetch = original) }
+}
+
+test('antecipar busca PDF e imagem de até 5 MB, uma vez só', async () => {
+  const f = fetchContando()
+  try {
+    await Promise.all([
+      anexos.antecipar({ id: 'a1', nome: 'x.pdf', bytes: 5 * MB }),
+      anexos.antecipar({ id: 'a1', nome: 'x.pdf', bytes: 5 * MB }),
+    ])
+    await anexos.antecipar({ id: 'a1', nome: 'x.pdf', bytes: 5 * MB })
+    await anexos.antecipar({ id: 'a2', nome: 'foto.PNG', bytes: 10 })
+  } finally {
+    f.restaurar()
+  }
+  assert.deepEqual(f.chamadas, ['/anexos/a1', '/anexos/a2'])
+  assert.ok(memoriaArquivos.obter('a1'))
+})
+
+test('antecipar não busca PDF de 6 MB, .docx nem anexo sem tamanho', async () => {
+  const f = fetchContando()
+  try {
+    await anexos.antecipar({ id: 'a1', nome: 'x.pdf', bytes: 6 * MB })
+    await anexos.antecipar({ id: 'a2', nome: 'x.docx', bytes: 10 })
+    await anexos.antecipar({ id: 'a3', nome: 'x.pdf' })
+  } finally {
+    f.restaurar()
+  }
+  assert.deepEqual(f.chamadas, [])
+})
+
+test('antecipar ignora erro em silêncio', async () => {
+  const original = globalThis.fetch
+  globalThis.fetch = async () => ({ ok: false, status: 404, text: async () => '' })
+  try {
+    await assert.doesNotReject(anexos.antecipar({ id: 'a1', nome: 'x.pdf', bytes: 10 }))
+  } finally {
+    globalThis.fetch = original
+  }
+})
+
+test('abrir e baixar usam o arquivo guardado, sem buscar de novo', async () => {
+  const f = fetchContando()
+  const criar = URL.createObjectURL
+  const revogar = URL.revokeObjectURL
+  URL.createObjectURL = () => 'blob:x'
+  URL.revokeObjectURL = () => {}
+  const doc = globalThis.document
+  globalThis.document = { createElement: () => ({ click() {}, remove() {} }), body: { appendChild() {} } }
+  // A revogação do endereço do download espera 30 s: relógio falso para o teste não esperar.
+  mock.timers.enable({ apis: ['setTimeout'] })
+  try {
+    await anexos.antecipar({ id: 'a1', nome: 'x.pdf', bytes: 4 })
+    await anexos.abrir({ id: 'a1', nome: 'x.pdf' })
+    await anexos.baixar({ id: 'a1', nome: 'x.pdf' })
+  } finally {
+    f.restaurar()
+    URL.createObjectURL = criar
+    URL.revokeObjectURL = revogar
+    globalThis.document = doc
+    mock.timers.reset()
+  }
+  assert.deepEqual(f.chamadas, ['/anexos/a1'])
+})
+
+test('abrir repassa o progresso, inclusive entrando numa antecipação em andamento', async () => {
+  const original = globalThis.fetch
+  let liberar
+  const corpo = new ReadableStream({
+    start(c) {
+      c.enqueue(new Uint8Array(2))
+    },
+    pull(c) {
+      return new Promise(r => (liberar = r)).then(() => {
+        c.enqueue(new Uint8Array(2))
+        c.close()
+      })
+    },
+  })
+  globalThis.fetch = async () => ({ ok: true, status: 200, headers: new Headers({ 'content-length': '4' }), body: corpo })
+  const criar = URL.createObjectURL
+  URL.createObjectURL = () => 'blob:x'
+  const vistos = []
+  try {
+    const antecipada = anexos.antecipar({ id: 'a1', nome: 'x.pdf', bytes: 4 })
+    await new Promise(r => setTimeout(r, 0))
+    const aberta = anexos.abrir({ id: 'a1', nome: 'x.pdf' }, { aoProgresso: (r, t) => vistos.push([r, t]) })
+    liberar()
+    await Promise.all([antecipada, aberta])
+  } finally {
+    globalThis.fetch = original
+    URL.createObjectURL = criar
+  }
+  assert.deepEqual(vistos.at(-1), [4, 4])
+  assert.ok(vistos.length >= 2)
+})
+
+test('excluir tira o arquivo da memória', async () => {
+  await memoriaArquivos.buscar('a1', async () => new Blob(['x']))
+  const original = globalThis.fetch
+  globalThis.fetch = async () => ({ ok: true, status: 204, text: async () => '' })
+  try {
+    await anexos.excluir('a1')
+  } finally {
+    globalThis.fetch = original
+  }
+  assert.equal(memoriaArquivos.obter('a1'), undefined)
+})
+
+test('progresso só aparece acima de 1 MB e vira "Baixando…" sem o tamanho total', () => {
+  assert.equal(progressoVisivel(null, 5 * MB), null)
+  assert.equal(progressoVisivel({ recebidos: 10, total: MB }, MB), null)
+  assert.deepEqual(progressoVisivel({ recebidos: MB, total: 2 * MB }, 2 * MB), { pct: 50, texto: 'Baixando… 50%' })
+  assert.deepEqual(progressoVisivel({ recebidos: 3 * MB, total: 2 * MB }, 2 * MB), { pct: 100, texto: 'Baixando… 100%' })
+  assert.deepEqual(progressoVisivel({ recebidos: 10, total: null }, 3 * MB), { pct: null, texto: 'Baixando…' })
+  assert.deepEqual(progressoVisivel({ recebidos: 10, total: null }, undefined), { pct: null, texto: 'Baixando…' })
+  assert.equal(progressoVisivel({ recebidos: 10, total: null }, 500), null)
 })
