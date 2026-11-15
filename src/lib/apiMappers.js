@@ -72,6 +72,7 @@ export function adaptTask(task) {
     concluidaPor: task.concluidaPor ? task.concluidaPor.nomeExibicao || task.concluidaPor.nome : undefined,
     dependeDe: userCode(task.dependeDe) || undefined,
     responsaveis: (task.responsaveis || []).map(userCode),
+    quantidadeAnexos: task.quantidadeAnexos ?? 0,
     checklist: (task.checklist || []).map(item => ({
       id: item.codigo ?? item.id,
       texto: item.texto,

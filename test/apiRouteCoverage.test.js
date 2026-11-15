@@ -63,6 +63,8 @@ const routeContracts = [
   ['PUT', '/biblioteca/b-1'],
   ['DELETE', '/biblioteca/b-1'],
   ['POST', '/biblioteca/b-1/anexos'],
+  ['GET', '/tarefas/task-1/anexos'],
+  ['POST', '/tarefas/task-1/anexos'],
   ['GET', '/anexos/regras'],
   ['GET', '/anexos/a-1'],
   ['DELETE', '/anexos/a-1'],

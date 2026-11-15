@@ -1,6 +1,6 @@
 import { request } from './api.js'
 import { itemBibliotecaDaApi } from '../lib/apiMappers.js'
-import { anexos, conferirArquivo } from './anexos.js'
+import { conferirArquivo } from './anexos.js'
 
 /**
  * Biblioteca (sessão 17): substitui pastas/documentos, Base de Inteligência e iniciativas.
@@ -106,7 +106,7 @@ export const valoresBiblioteca = (item, inicial = {}) =>
       }
     : { titulo: '', codigoProjeto: '', sigilo: 'todos', conteudo: '', links: '', tags: '', arquivos: [], ...inicial }
 
-/** Formulário → dados de `criar`/`editar` (os arquivos vão depois, por `enviarArquivos`). */
+/** Formulário → dados de `criar`/`editar` (os arquivos vão depois, por `enviarVarios`). */
 export const dadosBiblioteca = v => ({
   titulo: (v.titulo || '').trim(),
   codigoProjeto: v.codigoProjeto || null,
@@ -136,17 +136,4 @@ export function problemaBiblioteca(v, original) {
   }
   const temConteudo = (v.conteudo || '').trim() || links.length || arquivos.length || original?.anexos?.length
   return temConteudo ? '' : SEM_CONTEUDO
-}
-
-/** Envia os arquivos ao item, um por vez, sem parar no primeiro erro. Devolve os que falharam. */
-export async function enviarArquivos(codigo, arquivos, enviar = anexos.enviar) {
-  const falhas = []
-  for (const arquivo of arquivos || []) {
-    try {
-      await enviar('biblioteca', codigo, arquivo)
-    } catch (error) {
-      falhas.push({ nome: arquivo.name, erro: error.message })
-    }
-  }
-  return falhas
 }

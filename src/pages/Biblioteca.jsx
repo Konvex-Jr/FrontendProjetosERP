@@ -12,16 +12,8 @@ import alerts from '../lib/alerts'
 import useCarregar from '../lib/useCarregar'
 import Esqueleto from '../components/Esqueleto'
 import { abrirCom, consumir } from '../lib/atalho'
-import { ACEITA, DICA } from '../services/anexos'
-import {
-  SIGILOS,
-  biblioteca,
-  dadosBiblioteca,
-  enviarArquivos,
-  problemaBiblioteca,
-  sigilosPermitidos,
-  valoresBiblioteca,
-} from '../services/biblioteca'
+import { ACEITA, DICA, enviarVarios } from '../services/anexos'
+import { SIGILOS, biblioteca, dadosBiblioteca, problemaBiblioteca, sigilosPermitidos, valoresBiblioteca } from '../services/biblioteca'
 
 /**
  * Biblioteca (sessão 17): substitui Gestão (pastas e documentos), Base de Inteligência e Iniciativas.
@@ -85,7 +77,7 @@ export function abrirFormBiblioteca({ form, projetos, gestor, item, inicial, aoS
         throw error
       }
       // O item fica salvo mesmo se um arquivo falhar; a pessoa sabe qual e pode anexar de novo na ficha.
-      const falhas = await enviarArquivos(salvo.codigo, v.arquivos)
+      const { falhas } = await enviarVarios('biblioteca', salvo.codigo, v.arquivos)
       if (falhas.length)
         await alerts.error(
           item ? 'Item salvo, mas um arquivo não foi enviado' : 'Item criado, mas um arquivo não foi enviado',

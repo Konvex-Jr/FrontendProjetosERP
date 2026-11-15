@@ -1,6 +1,17 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { ACEITA, LIMITE_BYTES, adaptAnexo, anexos, conferirArquivo, extensao, tamanhoLegivel } from '../src/services/anexos.js'
+import {
+  ACEITA,
+  LIMITE_BYTES,
+  acaoAoAbrir,
+  adaptAnexo,
+  anexos,
+  conferirArquivo,
+  enviarVarios,
+  extensao,
+  podeVer,
+  tamanhoLegivel,
+} from '../src/services/anexos.js'
 
 const arquivo = (name, size, type = 'application/pdf') => {
   const blob = new Blob([new Uint8Array(size)], { type })
@@ -34,7 +45,16 @@ test('adapta anexo da Biblioteca', () => {
     enviadoPor: { codigo: 'u', nome: 'Ana' },
     enviadoEm: '2026-11-09T15:00:00.000Z',
   }
-  assert.deepEqual(adaptAnexo(bruto), { id: 'a1', nome: 'Ata.pdf', tamanho: '2 KB', enviadoPor: 'Ana', data: '2026-11-09' })
+  assert.deepEqual(adaptAnexo(bruto), {
+    id: 'a1',
+    nome: 'Ata.pdf',
+    ext: 'pdf',
+    tamanho: '2 KB',
+    enviadoPor: 'Ana',
+    data: '2026-11-09',
+    podeExcluir: undefined,
+  })
+  assert.equal(adaptAnexo({ ...bruto, podeExcluir: true }).podeExcluir, true)
 })
 
 test('envia os bytes com o nome no cabeçalho e baixa pela API com a sessão', async () => {
@@ -58,4 +78,65 @@ test('envia os bytes com o nome no cabeçalho e baixa pela API com a sessão', a
   assert.ok(chamadas[0].init.body instanceof Blob)
   assert.match(chamadas[1].url, /\/anexos\/a1$/)
   assert.equal(chamadas[1].init.method, 'DELETE')
+})
+
+test('enviarVarios confere antes, envia um por vez e não para no primeiro erro', async () => {
+  const chamados = []
+  const enviar = async (dono, codigo, f) => {
+    chamados.push([dono, codigo, f.name])
+    if (f.name === 'd.pdf') throw new Error('Falhou')
+  }
+  const lista = [arquivo('a.pdf', 5), arquivo('b.exe', 5), { name: 'c.pdf', size: LIMITE_BYTES + 1 }, arquivo('d.pdf', 5)]
+  const r = await enviarVarios('tarefas', 't1', lista, enviar)
+  assert.deepEqual(chamados, [
+    ['tarefas', 't1', 'a.pdf'],
+    ['tarefas', 't1', 'd.pdf'],
+  ])
+  assert.equal(r.enviados, 1)
+  assert.deepEqual(
+    r.falhas.map(f => f.nome),
+    ['b.exe', 'c.pdf', 'd.pdf'],
+  )
+  assert.match(r.falhas[0].erro, /não aceito/)
+  assert.match(r.falhas[1].erro, /20 MB/)
+  assert.equal(r.falhas[2].erro, 'Falhou')
+  assert.deepEqual(await enviarVarios('tarefas', 't1', undefined, enviar), { enviados: 0, falhas: [] })
+})
+
+test('podeVer só para PDF e imagens raster', () => {
+  assert.equal(podeVer('Relatório 50%.PDF'), true)
+  assert.equal(podeVer('foto.jpeg'), true)
+  assert.equal(podeVer('a.svg'), false)
+  assert.equal(podeVer('a.docx'), false)
+  assert.equal(podeVer('semextensao'), false)
+})
+
+test('acaoAoAbrir: PDF no celular baixa; imagem abre em janela; resto baixa', () => {
+  assert.equal(acaoAoAbrir('a.pdf', false), 'janela')
+  assert.equal(acaoAoAbrir('a.pdf', true), 'baixar')
+  assert.equal(acaoAoAbrir('a.PNG', true), 'janela')
+  assert.equal(acaoAoAbrir('a.docx', false), 'baixar')
+  assert.equal(acaoAoAbrir('a.docx', true), 'baixar')
+})
+
+test('abrir usa o tipo da extensão, nunca o da resposta, e recusa o que não se vê', async () => {
+  const original = globalThis.fetch
+  const criar = URL.createObjectURL
+  let blobCriado
+  URL.createObjectURL = b => ((blobCriado = b), 'blob:x')
+  globalThis.fetch = async () => ({
+    ok: true,
+    status: 200,
+    headers: new Headers({ 'content-type': 'text/html' }),
+    blob: async () => new Blob(['<script>'], { type: 'text/html' }),
+  })
+  try {
+    const r = await anexos.abrir({ id: 'a1', nome: 'x.pdf' })
+    assert.deepEqual(r, { url: 'blob:x', tipo: 'application/pdf' })
+    assert.equal(blobCriado.type, 'application/pdf')
+    await assert.rejects(() => anexos.abrir({ id: 'a2', nome: 'x.svg' }))
+  } finally {
+    globalThis.fetch = original
+    URL.createObjectURL = criar
+  }
 })

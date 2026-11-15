@@ -60,6 +60,7 @@ export const tarefas = {
   excluir: codigo => send('DELETE', `/tarefas/${codigo}`),
   comentarios: codigo => get(`/tarefas/${codigo}/comentarios`),
   comentar: (codigo, texto) => send('POST', `/tarefas/${codigo}/comentarios`, { texto }),
+  anexos: codigo => get(`/tarefas/${codigo}/anexos`),
   apagarComentario: (codigo, codigoComentario) => send('DELETE', `/tarefas/${codigo}/comentarios/${codigoComentario}`),
   /** Salva usando PATCH quando só o status mudou; senão PUT. */
   salvar: (antes, depois) => (soMudouStatus(antes, depois) ? tarefas.alterarStatus(depois.id, depois.status) : tarefas.editar(depois)),

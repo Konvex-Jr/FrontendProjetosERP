@@ -32,6 +32,20 @@ export const DICA = 'Até 20 MB. PDF, Word, Excel, PowerPoint, OpenDocument, CSV
 
 export const extensao = nome => (/\.([A-Za-z0-9]{1,5})$/.exec(String(nome || '').trim())?.[1] || '').toLowerCase()
 
+/** Tipos que o navegador mostra sem baixar. O tipo do Blob vem daqui (pela extensão), nunca da resposta. */
+export const VISUALIZAVEIS = {
+  pdf: 'application/pdf',
+  png: 'image/png',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  webp: 'image/webp',
+  gif: 'image/gif',
+}
+export const podeVer = nome => Object.hasOwn(VISUALIZAVEIS, extensao(nome))
+
+/** O que fazer ao clicar em abrir: PDF no celular não abre bem em janela nova, então baixa. */
+export const acaoAoAbrir = (nome, celular) => (!podeVer(nome) || (celular && extensao(nome) === 'pdf') ? 'baixar' : 'janela')
+
 /** Mensagem do problema com o arquivo, ou '' se ele pode ser enviado. */
 export function conferirArquivo(arquivo) {
   if (!arquivo) return 'Escolha um arquivo.'
@@ -52,9 +66,11 @@ export function tamanhoLegivel(bytes) {
 export const adaptAnexo = a => ({
   id: a.codigo,
   nome: a.nome,
+  ext: extensao(a.nome),
   tamanho: tamanhoLegivel(a.tamanhoBytes),
   enviadoPor: a.enviadoPor?.nome || '—',
   data: String(a.enviadoEm || '').slice(0, 10),
+  podeExcluir: a.podeExcluir,
 })
 
 const enviarBytes = (path, arquivo) =>
@@ -66,9 +82,16 @@ const enviarBytes = (path, arquivo) =>
   })
 
 export const anexos = {
-  /** `dono`: 'biblioteca'. */
+  /** `dono`: 'biblioteca' ou 'tarefas'. */
   enviar: (dono, codigo, arquivo) => enviarBytes(`/${dono}/${codigo}/anexos`, arquivo),
   excluir: codigo => request(`/anexos/${codigo}`, { method: 'DELETE', auth: true }),
+  /** Baixa pela API e devolve um endereço local para abrir em janela; o chamador revoga com `URL.revokeObjectURL`. */
+  async abrir(anexo) {
+    if (!podeVer(anexo.nome)) throw new Error('Este tipo de arquivo não abre aqui. Baixe para ver.')
+    const tipo = VISUALIZAVEIS[extensao(anexo.nome)]
+    const blob = await baixar(`/anexos/${anexo.id}`)
+    return { url: URL.createObjectURL(new Blob([blob], { type: tipo })), tipo }
+  },
   /** Baixa pela API (o token vai no cabeçalho) e entrega ao navegador com o nome original. */
   async baixar(anexo) {
     const blob = await baixar(`/anexos/${anexo.id}`)
@@ -79,4 +102,24 @@ export const anexos = {
     a.remove()
     setTimeout(() => URL.revokeObjectURL(url), 30000)
   },
+}
+
+/** Envia os arquivos ao dono, um por vez, sem parar no primeiro erro; o que falha na conferência nem chama a API. */
+export async function enviarVarios(dono, codigo, arquivos, enviar = anexos.enviar) {
+  const falhas = []
+  let enviados = 0
+  for (const arquivo of arquivos || []) {
+    const problema = conferirArquivo(arquivo)
+    if (problema) {
+      falhas.push({ nome: arquivo?.name || '', erro: problema })
+      continue
+    }
+    try {
+      await enviar(dono, codigo, arquivo)
+      enviados++
+    } catch (error) {
+      falhas.push({ nome: arquivo.name, erro: error.message })
+    }
+  }
+  return { enviados, falhas }
 }

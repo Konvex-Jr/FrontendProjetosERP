@@ -7,7 +7,6 @@ import {
   corpoCriacao,
   corpoEdicao,
   dadosBiblioteca,
-  enviarArquivos,
   lerLinks,
   lerTags,
   problemaBiblioteca,
@@ -201,20 +200,4 @@ test('problemaBiblioteca confere título, sigilo de projeto e arquivos', () => {
   assert.equal(problemaBiblioteca({ ...ok, sigilo: 'projeto', codigoProjeto: '' }, { sigilo: 'projeto', projeto: null }), '')
   assert.match(problemaBiblioteca({ ...ok, arquivos: [arq('x.exe')] }), /^x\.exe: Tipo de arquivo não aceito/)
   assert.match(problemaBiblioteca({ ...ok, links: 'ftp://a.com' }), /http/)
-})
-
-test('enviarArquivos envia cada arquivo e devolve os que falharam, sem parar', async () => {
-  const enviados = []
-  const enviar = async (dono, codigo, arquivo) => {
-    enviados.push([dono, codigo, arquivo.name])
-    if (arquivo.name === 'b.pdf') throw new Error('Falhou')
-  }
-  const falhas = await enviarArquivos('b1', [arq('a.pdf'), arq('b.pdf'), arq('c.pdf')], enviar)
-  assert.deepEqual(enviados, [
-    ['biblioteca', 'b1', 'a.pdf'],
-    ['biblioteca', 'b1', 'b.pdf'],
-    ['biblioteca', 'b1', 'c.pdf'],
-  ])
-  assert.deepEqual(falhas, [{ nome: 'b.pdf', erro: 'Falhou' }])
-  assert.deepEqual(await enviarArquivos('b1', [], enviar), [])
 })
