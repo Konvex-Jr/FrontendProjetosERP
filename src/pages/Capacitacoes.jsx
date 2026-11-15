@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import { TIPO, chip, fd, iso } from '../lib/utils'
@@ -232,6 +232,14 @@ function Lista() {
   const [f, setF] = useState(ultimos)
   const set = (k, v) => setF(o => (ultimos = { ...o, [k]: v }))
   const acoes = useAcoes(recarregarCapacitacoes)
+  // A lista aparece na hora com D.k, mas ele só muda quando esta tela ou o refresh o recarregam:
+  // criar, editar, presença, avaliação e anexos (feitos na ficha) ou mudanças de outras pessoas.
+  // Por isso, ao abrir, busca de novo por trás, como as telas com chave.
+  useEffect(() => {
+    recarregarCapacitacoes().catch(() => {})
+    // Só ao abrir: a função muda a cada render do contexto e repetiria a busca sem parar.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   const abrir = id => go('capacitacoes', id)
   const todas = D.k || []
   const lista = todas.filter(c => (!f.tipo || c.tipo === f.tipo) && (!f.minhas || c.inscrito))
