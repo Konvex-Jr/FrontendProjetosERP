@@ -221,24 +221,42 @@ test('token vencido é renovado antes da chamada', async () => {
   }
 })
 
-test('renovação antecipada que falha limpa a sessão e não chama a rota', async () => {
+test('renovação antecipada recusada pela API encerra a sessão', async () => {
   const { request, sessao } = await import('../src/services/api.js')
   sessao.salvar({ token: jwtCom(Math.floor(Date.now() / 1000) - 60), refreshToken: 'revogado' })
   let avisado = false
   sessao.onExpirada = () => {
     avisado = true
   }
-  const chamadas = []
-  globalThis.fetch = async url => {
-    chamadas.push(String(url).replace(apiUrl, ''))
-    return response(401, '{"message":"Sessão inválida."}')
-  }
+  globalThis.fetch = async () => response(401, '{"message":"Sessão inválida."}')
   try {
     await assert.rejects(request('/projetos', { auth: true }), error => error instanceof ApiError && error.status === 401)
-    assert.deepEqual(chamadas, ['/auth/refresh'])
     assert.equal(sessao.ativa, false)
     assert.equal(avisado, true)
   } finally {
+    sessao.onExpirada = null
+    sessao.limpar()
+  }
+})
+
+test('renovação antecipada sem conexão mantém a sessão', async () => {
+  const { request, sessao } = await import('../src/services/api.js')
+  sessao.salvar({ token: jwtCom(Math.floor(Date.now() / 1000) - 60), refreshToken: 'refresh-1' })
+  let avisado = false
+  sessao.onExpirada = () => {
+    avisado = true
+  }
+  globalThis.fetch = async () => {
+    throw new TypeError('fetch failed')
+  }
+  const aviso = console.warn
+  console.warn = () => {}
+  try {
+    await assert.rejects(request('/projetos', { auth: true }), error => error instanceof ApiError && error.message === SEM_CONEXAO)
+    assert.equal(sessao.ativa, true)
+    assert.equal(avisado, false)
+  } finally {
+    console.warn = aviso
     sessao.onExpirada = null
     sessao.limpar()
   }
@@ -315,6 +333,26 @@ test('POST nunca é juntado', async () => {
       request('/tarefas', { method: 'POST', auth: true, body: {} }),
     ])
     assert.equal(chamadas, 2)
+  } finally {
+    sessao.limpar()
+  }
+})
+
+test('GETs iguais com tokens diferentes não são juntados', async () => {
+  const { request, sessao } = await import('../src/services/api.js')
+  sessao.salvar({ token: 'pessoa-a', refreshToken: '' })
+  const tokens = []
+  globalThis.fetch = async (_url, options) => {
+    tokens.push(options.headers['access-token'])
+    await new Promise(resolve => setTimeout(resolve, 10))
+    return response(200, '[]')
+  }
+  try {
+    const a = request('/projetos', { auth: true })
+    sessao.salvar({ token: 'pessoa-b', refreshToken: '' })
+    const b = request('/projetos', { auth: true })
+    await Promise.all([a, b])
+    assert.deepEqual(tokens, ['pessoa-a', 'pessoa-b'])
   } finally {
     sessao.limpar()
   }

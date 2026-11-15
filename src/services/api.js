@@ -164,14 +164,10 @@ function expirar() {
  */
 async function fetchAutenticado(path, { headers = {}, ...init } = {}) {
   const enviar = () => chamar(path, { ...init, headers: { ...headers, ...(sessao.token ? { 'access-token': sessao.token } : {}) } })
-  // Token já vencido: renova antes de chamar, em vez de gastar uma ida à API só para receber 401.
-  if (sessao.refreshToken && tokenVencido(sessao.token)) {
-    if (!(await renovarSessao())) {
-      expirar()
-      // Mesma resposta que um 401 daria, sem chamar a rota.
-      return { ok: false, status: 401, text: async () => '', blob: async () => new Blob() }
-    }
-  }
+  // Token já vencido: tenta renovar antes de chamar, em vez de gastar uma ida à API só para receber 401.
+  // Se falhar, segue para a chamada normal: sem internet vira "sem conexão" e a sessão é mantida;
+  // refresh recusado vira 401 da API e o fluxo abaixo encerra a sessão.
+  if (sessao.refreshToken && tokenVencido(sessao.token)) await renovarSessao()
   let response = await enviar()
   if (response.status === 401 && sessao.refreshToken) {
     if (await renovarSessao()) response = await enviar()
