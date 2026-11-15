@@ -266,6 +266,7 @@ export default function Projeto() {
           close={() => setTk(null)}
           del={acoes.del}
           tog={acoes.tog}
+          recarregar={aoSalvar}
         />
       )}
     </>

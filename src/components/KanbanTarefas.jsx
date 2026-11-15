@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { DAY, PC, chip, d, fm, hj, iso } from '../lib/utils'
+import { DAY, PC, chip, d, fm, hj, iso, rotuloArquivos } from '../lib/utils'
 import { origemTarefa } from '../services/tarefas'
 import Ic from './Icon'
 import ActionMenu from './ActionMenu'
@@ -122,6 +122,12 @@ export default function KanbanTarefas({ D, T, papelDe, acoes, abrir, adicionar, 
                       {t.dependeDe && (
                         <span className="bd" title="Depende de outra tarefa">
                           <Ic k="link" />
+                        </span>
+                      )}
+                      {t.quantidadeAnexos > 0 && (
+                        <span className="bd" title={rotuloArquivos(t.quantidadeAnexos)} aria-label={rotuloArquivos(t.quantidadeAnexos)}>
+                          <Ic k="clip" />
+                          {t.quantidadeAnexos}
                         </span>
                       )}
                       {t.descricao && (

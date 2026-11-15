@@ -253,6 +253,10 @@ export default function Tarefas() {
           close={() => setTk(null)}
           del={acoes.del}
           tog={acoes.tog}
+          recarregar={async () => {
+            await recarregar()
+            refresh().catch(() => {})
+          }}
         />
       )}
     </>
