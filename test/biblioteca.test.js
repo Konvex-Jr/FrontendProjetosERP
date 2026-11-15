@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { codigoDoPerfil } from '../src/lib/utils.js'
 import { test } from 'node:test'
 import {
   SIGILOS,
@@ -206,5 +207,10 @@ test('problemaBiblioteca confere título, sigilo de projeto e arquivos', () => {
 test('itens do perfil: chave usa o código da pessoa vista, nunca "eu"', () => {
   assert.equal(itensDoAutor('u1').chave, 'biblioteca:autor:u1')
   assert.notEqual(itensDoAutor('u1').chave, itensDoAutor('u2').chave)
-  assert.ok(!itensDoAutor('u1').chave.includes('eu'))
+  assert.equal(itensDoAutor('u2').chave, 'biblioteca:autor:u2')
+})
+
+test('itens do perfil: /perfil (me u1) e /perfil/u1 usam a mesma chave', () => {
+  assert.equal(itensDoAutor(codigoDoPerfil('u1', undefined)).chave, itensDoAutor(codigoDoPerfil('u1', 'u1')).chave)
+  assert.equal(itensDoAutor(codigoDoPerfil('u1', 'u2')).chave, 'biblioteca:autor:u2')
 })

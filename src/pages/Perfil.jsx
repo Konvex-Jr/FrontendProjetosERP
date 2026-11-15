@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
-import { chip, fd, ini } from '../lib/utils'
+import { chip, codigoDoPerfil, fd, ini } from '../lib/utils'
 import Ic from '../components/Icon'
 import { PageBar, Prog } from '../components/Ui'
 import alerts from '../lib/alerts'
@@ -167,13 +167,13 @@ export function dadosDaTela({ me }, outro) {
 export default function Perfil() {
   const { codigo: outro } = useParams()
   const { me, form, go, refresh } = useApp()
-  const codigo = outro || me
+  const codigo = codigoDoPerfil(me, outro)
   const meu = codigo === me
   const tela = dadosDaTela({ me }, outro)
   const { dados: perfil, carregando, recarregar } = useCarregar(tela.carregar, [codigo], { chave: tela.chave })
 
   const itens = itensDoAutor(codigo)
-  const { dados: itensBib } = useCarregar(itens.carregar, [codigo], { chave: itens.chave })
+  const { dados: itensBib, carregando: carregandoItens } = useCarregar(itens.carregar, [codigo], { chave: itens.chave })
 
   if (!perfil)
     return (
@@ -297,13 +297,12 @@ export default function Perfil() {
     </div>
   )
   const itemBiblioteca = x => (
-    <div className="ag" key={x.codigo} onClick={() => go('biblioteca', x.codigo)}>
+    <div className="ag" key={x.codigo}>
       <div>
         <a
           href={`#/biblioteca/${x.codigo}`}
           onClick={e => {
             e.preventDefault()
-            e.stopPropagation()
             go('biblioteca', x.codigo)
           }}
         >
@@ -407,7 +406,16 @@ export default function Perfil() {
           />
         </div>
         <div className="col-md-6">
-          <Lista titulo="Itens na Biblioteca" itens={itensBib || []} vazio="Nenhum item na Biblioteca." linha={itemBiblioteca} />
+          {itensBib ? (
+            <Lista titulo="Itens na Biblioteca" itens={itensBib} vazio="Nenhum item na Biblioteca." linha={itemBiblioteca} />
+          ) : (
+            carregandoItens && (
+              <div className="card card-body h-100">
+                <h2>Itens na Biblioteca</h2>
+                <Esqueleto />
+              </div>
+            )
+          )}
         </div>
         <div className="col-md-6">
           <Lista

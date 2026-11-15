@@ -81,3 +81,6 @@ export const sz = n => (n < 1024 ? n + ' B' : n < 1048576 ? Math.round(n / 1024)
 export const fd = s => (s ? new Date(s).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : '—')
 /** Quantidade de anexos → '1 arquivo' / '3 arquivos' (Kanban, listas). */
 export const rotuloArquivos = n => (n === 1 ? '1 arquivo' : n + ' arquivos')
+
+/** Código da pessoa vista no perfil: /perfil/:codigo é a outra pessoa; /perfil, a própria. */
+export const codigoDoPerfil = (me, outro) => outro || me
