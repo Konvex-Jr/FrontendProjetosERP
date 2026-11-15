@@ -66,7 +66,7 @@ const enviarBytes = (path, arquivo) =>
   })
 
 export const anexos = {
-  /** `dono`: 'conhecimento' ou 'iniciativas'. */
+  /** `dono`: 'biblioteca' (e, até saírem, 'conhecimento' ou 'iniciativas'). */
   enviar: (dono, codigo, arquivo) => enviarBytes(`/${dono}/${codigo}/anexos`, arquivo),
   /** Documento do tipo arquivo numa pasta (gestão). */
   enviarDocumento: (codigoPasta, arquivo) => enviarBytes(`/pastas/${codigoPasta}/documentos/arquivo`, arquivo),

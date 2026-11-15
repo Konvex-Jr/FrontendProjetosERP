@@ -10,9 +10,7 @@ const Projeto = carregarPagina(() => import('./pages/Projeto'))
 const Tarefas = carregarPagina(() => import('./pages/Tarefas'))
 const Capacitacoes = carregarPagina(() => import('./pages/Capacitacoes'))
 const Estrategia = carregarPagina(() => import('./pages/Estrategia'))
-const Gestao = carregarPagina(() => import('./pages/Gestao'))
-const Conhecimento = carregarPagina(() => import('./pages/Conhecimento'))
-const Iniciativas = carregarPagina(() => import('./pages/Iniciativas'))
+const Biblioteca = carregarPagina(() => import('./pages/Biblioteca'))
 const Precificacao = carregarPagina(() => import('./pages/Precificacao'))
 const Pessoas = carregarPagina(() => import('./pages/Pessoas'))
 const Perfil = carregarPagina(() => import('./pages/Perfil'))
@@ -28,6 +26,11 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      {/* Telas que viraram a Biblioteca (sessão 17), para não quebrar favoritos. Ficam fora do Layout:
+          ele manda para / qualquer seção que não está no menu antes de a rota filha abrir. */}
+      {['gestao', 'conhecimento', 'iniciativas'].map(antiga => (
+        <Route key={antiga} path={`/${antiga}/*`} element={<Navigate to="/biblioteca" replace />} />
+      ))}
       <Route element={<Layout />}>
         <Route index element={<Dashboard />} />
         <Route path="tarefas" element={<Tarefas />} />
@@ -35,12 +38,9 @@ export default function App() {
         <Route path="projetos/:id" element={<Projeto />} />
         <Route path="capacitacoes" element={<Capacitacoes />} />
         <Route path="capacitacoes/:id" element={<Capacitacoes />} />
-        <Route path="conhecimento" element={<Conhecimento />} />
-        <Route path="conhecimento/:id" element={<Conhecimento />} />
-        <Route path="iniciativas" element={<Iniciativas />} />
-        <Route path="iniciativas/:id" element={<Iniciativas />} />
+        <Route path="biblioteca" element={<Biblioteca />} />
+        <Route path="biblioteca/:id" element={<Biblioteca />} />
         <Route path="estrategia" element={<Estrategia />} />
-        <Route path="gestao" element={<Gestao />} />
         <Route path="precificacao" element={<Precificacao />} />
         <Route path="usuarios" element={<Pessoas />} />
         <Route path="perfil" element={<Perfil />} />

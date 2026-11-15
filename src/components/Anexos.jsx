@@ -46,8 +46,8 @@ export async function baixarAnexo(anexo) {
 }
 
 /**
- * Seção de anexos das fichas (Base e Iniciativas). `lista` vem da API (formato bruto);
- * `dono` é 'conhecimento' ou 'iniciativas'; quem pode alterar o item anexa e exclui.
+ * Seção de anexos das fichas (Biblioteca). `lista` vem da API (formato bruto);
+ * `dono` é o caminho do dono na API ('biblioteca'); quem pode alterar o item anexa e exclui.
  */
 export default function Anexos({ dono, codigo, lista, podeAlterar, aoMudar }) {
   const itens = (lista || []).map(adaptAnexo)

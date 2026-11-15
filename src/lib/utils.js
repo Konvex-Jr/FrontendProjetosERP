@@ -30,10 +30,8 @@ export const NAV = [
   ['tarefas', 'Tarefas', '/tarefas'],
   ['projetos', 'Projetos', '/projetos'],
   ['capacitacoes', 'Capacitações', '/capacitacoes'],
-  ['conhecimento', 'Base de Inteligência', '/conhecimento'],
-  ['iniciativas', 'Iniciativas', '/iniciativas'],
+  ['biblioteca', 'Biblioteca', '/biblioteca'],
   ['estrategia', 'Visão Estratégica', '/estrategia'],
-  ['gestao', 'Gestão', '/gestao'],
   ['precificacao', 'Simular precificação', '/precificacao'],
   ['usuarios', 'Pessoas', '/usuarios'],
   ['configuracoes', 'Configurações', '/configuracoes'],
@@ -45,7 +43,7 @@ export const path = (n, pid) =>
     ? '/projetos/' + pid
     : n === 'perfil' && pid
       ? '/perfil/' + pid
-      : (n === 'conhecimento' || n === 'iniciativas' || n === 'capacitacoes') && pid
+      : (n === 'biblioteca' || n === 'capacitacoes') && pid
         ? `/${n}/${pid}`
         : NAV.find(x => x[0] === n)?.[2] || '/'
 
