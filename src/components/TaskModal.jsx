@@ -154,9 +154,7 @@ export default function TaskModal({ D, salvar, t, p, T, close, del, tog, papel }
   const gente = t.avulsa
     ? D.u.filter(u => u.ativo !== false || (t.responsaveis || []).includes(u.id))
     : D.u.filter(u => (p?.membros || []).includes(u.id))
-  const origem = t.avulsa
-    ? 'Tarefa avulsa · ' + rotuloCategoria(t.categoria)
-    : 'em ' + (p?.nome || t.projetoNome || 'projeto')
+  const origem = t.avulsa ? 'Tarefa avulsa · ' + rotuloCategoria(t.categoria) : 'em ' + (p?.nome || t.projetoNome || 'projeto')
   const addI = () => {
     const v = nv.trim()
     if (!v) return

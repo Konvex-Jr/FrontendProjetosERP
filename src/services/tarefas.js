@@ -28,8 +28,7 @@ export const CATEGORIAS = [
 ]
 export const rotuloCategoria = c => CATEGORIAS.find(x => x[0] === c)?.[1] || c || ''
 /** De onde a tarefa é: nome do projeto ou categoria da avulsa. */
-export const origemTarefa = t =>
-  t.avulsa ? rotuloCategoria(t.categoria) : t.projetoNome || 'Projeto'
+export const origemTarefa = t => (t.avulsa ? rotuloCategoria(t.categoria) : t.projetoNome || 'Projeto')
 
 /** Corpo do POST /tarefas: com projeto, ou avulsa com `t.categoria`. */
 export const corpoNovaTarefa = (codigoProjeto, t) =>

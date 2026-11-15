@@ -29,7 +29,8 @@ import {
  */
 
 // Filtros ficam na memória ao abrir a ficha e voltar (recarregar a página zera).
-let ultimosFiltros = {}
+// Filtros lembrados por pessoa logada (não vazam entre contas na mesma aba).
+const ultimosFiltros = {}
 
 const MARKDOWN = 'Aceita Markdown simples: ## título, - lista, **negrito**, *itálico* e [texto](https://...).'
 const GERIR = 'biblioteca.gerir'
@@ -142,13 +143,13 @@ export default function Biblioteca() {
 }
 
 function Lista() {
-  const { DF, form, go, pode } = useApp()
+  const { DF, form, go, me, pode } = useApp()
   const gestor = pode(GERIR)
-  const [f, setF] = useState(() => ({ ...ultimosFiltros, ...(consumir('biblioteca') || {}) }))
+  const [f, setF] = useState(() => ({ ...ultimosFiltros[me], ...(consumir('biblioteca') || {}) }))
   const [texto, setTexto] = useState(f.q || '')
   useEffect(() => {
-    ultimosFiltros = f
-  }, [f])
+    ultimosFiltros[me] = f
+  }, [f, me])
   useEffect(() => {
     const t = setTimeout(() => setF(o => ((o.q || '') === texto.trim() ? o : { ...o, q: texto.trim() })), 300)
     return () => clearTimeout(t)
