@@ -3,6 +3,7 @@ import { codigoDoPerfil } from '../src/lib/utils.js'
 import { test } from 'node:test'
 import {
   SIGILOS,
+  avisoFalhasItem,
   biblioteca,
   consulta,
   itensDoAutor,
@@ -213,4 +214,19 @@ test('itens do perfil: chave usa o código da pessoa vista, nunca "eu"', () => {
 test('itens do perfil: /perfil (me u1) e /perfil/u1 usam a mesma chave', () => {
   assert.equal(itensDoAutor(codigoDoPerfil('u1', undefined)).chave, itensDoAutor(codigoDoPerfil('u1', 'u1')).chave)
   assert.equal(itensDoAutor(codigoDoPerfil('u1', 'u2')).chave, 'biblioteca:autor:u2')
+})
+
+test('avisoFalhasItem: título no singular ou plural e um arquivo por linha', () => {
+  const um = avisoFalhasItem([{ nome: 'a.pdf', erro: 'Falhou.' }], false)
+  assert.equal(um.titulo, 'Item criado, mas um arquivo não foi enviado')
+  assert.equal(um.texto, 'a.pdf: Falhou.\nAbra o item e use “Anexar arquivos” para tentar de novo.')
+  const dois = avisoFalhasItem(
+    [
+      { nome: 'a.pdf', erro: 'Falhou.' },
+      { nome: 'b.exe', erro: 'Tipo não aceito.' },
+    ],
+    true,
+  )
+  assert.equal(dois.titulo, 'Item salvo, mas 2 arquivos não foram enviados')
+  assert.equal(dois.texto, 'a.pdf: Falhou.\nb.exe: Tipo não aceito.\nAbra o item e use “Anexar arquivos” para tentar de novo.')
 })

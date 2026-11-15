@@ -1,6 +1,6 @@
 import { request } from './api.js'
 import { itemBibliotecaDaApi } from '../lib/apiMappers.js'
-import { conferirArquivo } from './anexos.js'
+import { conferirArquivo, resumoFalhas } from './anexos.js'
 
 /**
  * Biblioteca (sessão 17): substitui pastas/documentos, Base de Inteligência e iniciativas.
@@ -142,4 +142,14 @@ export function problemaBiblioteca(v, original) {
   }
   const temConteudo = (v.conteudo || '').trim() || links.length || arquivos.length || original?.anexos?.length
   return temConteudo ? '' : SEM_CONTEUDO
+}
+
+/**
+ * Alerta de quem salvou o item mas teve arquivos recusados: título no singular ou plural e
+ * a lista igual à da ficha (um arquivo por linha, resumoFalhas).
+ */
+export function avisoFalhasItem(falhas, editando) {
+  const inicio = editando ? 'Item salvo, mas ' : 'Item criado, mas '
+  const titulo = inicio + (falhas.length === 1 ? 'um arquivo não foi enviado' : `${falhas.length} arquivos não foram enviados`)
+  return { titulo, texto: `${resumoFalhas(falhas)}\nAbra o item e use “Anexar arquivos” para tentar de novo.` }
 }

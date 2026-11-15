@@ -14,7 +14,15 @@ import useCarregar from '../lib/useCarregar'
 import Esqueleto from '../components/Esqueleto'
 import { abrirCom, consumir } from '../lib/atalho'
 import { ACEITA, DICA, enviarVarios } from '../services/anexos'
-import { SIGILOS, biblioteca, dadosBiblioteca, problemaBiblioteca, sigilosPermitidos, valoresBiblioteca } from '../services/biblioteca'
+import {
+  SIGILOS,
+  avisoFalhasItem,
+  biblioteca,
+  dadosBiblioteca,
+  problemaBiblioteca,
+  sigilosPermitidos,
+  valoresBiblioteca,
+} from '../services/biblioteca'
 
 /**
  * Biblioteca (sessão 17): substitui Gestão (pastas e documentos), Base de Inteligência e Iniciativas.
@@ -79,12 +87,10 @@ export function abrirFormBiblioteca({ form, projetos, gestor, item, inicial, aoS
       }
       // O item fica salvo mesmo se um arquivo falhar; a pessoa sabe qual e pode anexar de novo na ficha.
       const { falhas } = await enviarVarios('biblioteca', salvo.codigo, v.arquivos)
-      if (falhas.length)
-        await alerts.error(
-          item ? 'Item salvo, mas um arquivo não foi enviado' : 'Item criado, mas um arquivo não foi enviado',
-          falhas.map(f => `${f.nome}: ${f.erro}`).join(' · ') + ' Abra o item e use “Anexar arquivo” para tentar de novo.',
-        )
-      else alerts.toastSuccess(item ? 'Item atualizado' : 'Item registrado na Biblioteca')
+      if (falhas.length) {
+        const { titulo, texto } = avisoFalhasItem(falhas, Boolean(item))
+        await alerts.error(titulo, texto)
+      } else alerts.toastSuccess(item ? 'Item atualizado' : 'Item registrado na Biblioteca')
       await aoSalvar?.(salvo)
     },
     { largo: true },

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import Multi from './Multi'
-import { ZonaEnvio } from './Anexos'
+import ZonaEnvio from './ZonaEnvio'
 import { valoresIniciais } from '../lib/formulario'
 
 /**
