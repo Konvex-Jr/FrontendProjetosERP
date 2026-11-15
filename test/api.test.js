@@ -357,3 +357,143 @@ test('GETs iguais com tokens diferentes não são juntados', async () => {
     sessao.limpar()
   }
 })
+
+// Promessa que o teste resolve quando quiser: simula uma resposta da API que demora.
+function adiada() {
+  let resolver
+  const promessa = new Promise(r => (resolver = r))
+  return { promessa, resolver }
+}
+const ateAgora = () => new Promise(r => setTimeout(r, 0))
+
+test('renovação que termina depois do logout não salva a sessão e revoga o refresh novo', async () => {
+  const { renovarSessao, sessao } = await import('../src/services/api.js')
+  sessao.salvar({ token: 'velho', refreshToken: 'refresh-a1' })
+  const refresh = adiada()
+  const chamadas = []
+  globalThis.fetch = async (url, options) => {
+    const caminho = String(url).replace(apiUrl, '')
+    chamadas.push([caminho, options.body])
+    if (caminho === '/auth/refresh') return refresh.promessa
+    return response(204)
+  }
+  try {
+    const renovacao = renovarSessao()
+    await ateAgora()
+    sessao.limpar()
+    refresh.resolver(response(200, '{"token":"novo-a","refreshToken":"refresh-a2"}'))
+    assert.equal(await renovacao, false)
+    await ateAgora()
+    assert.equal(sessao.ativa, false)
+    assert.equal(sessao.token, '')
+    assert.deepEqual(chamadas[1], ['/auth/logout', JSON.stringify({ refreshToken: 'refresh-a2' })])
+  } finally {
+    sessao.limpar()
+  }
+})
+
+test('renovação de A que termina depois do login de B mantém a sessão de B', async () => {
+  const { renovarSessao, sessao } = await import('../src/services/api.js')
+  sessao.salvar({ token: 'velho-a', refreshToken: 'refresh-a1' })
+  const refresh = adiada()
+  globalThis.fetch = async url => (String(url).endsWith('/auth/refresh') ? refresh.promessa : response(204))
+  try {
+    const renovacao = renovarSessao()
+    await ateAgora()
+    sessao.limpar()
+    sessao.salvar({ token: 'token-b', refreshToken: 'refresh-b' })
+    refresh.resolver(response(200, '{"token":"novo-a","refreshToken":"refresh-a2"}'))
+    assert.equal(await renovacao, false)
+    assert.equal(sessao.token, 'token-b')
+    assert.equal(sessao.refreshToken, 'refresh-b')
+  } finally {
+    sessao.limpar()
+  }
+})
+
+test('401 de A cuja renovação termina depois do login de B não encerra a sessão de B', async () => {
+  const { request, sessao } = await import('../src/services/api.js')
+  sessao.salvar({ token: 'velho-a', refreshToken: 'refresh-a1' })
+  let avisado = false
+  sessao.onExpirada = () => {
+    avisado = true
+  }
+  const refresh = adiada()
+  globalThis.fetch = async url => {
+    const caminho = String(url).replace(apiUrl, '')
+    if (caminho === '/auth/refresh') return refresh.promessa
+    if (caminho === '/auth/logout') return response(204)
+    return response(401, '{"message":"Token inválido ou expirado."}')
+  }
+  try {
+    const chamada = request('/projetos', { auth: true })
+    await ateAgora()
+    await ateAgora()
+    sessao.limpar()
+    sessao.salvar({ token: 'token-b', refreshToken: 'refresh-b' })
+    refresh.resolver(response(200, '{"token":"novo-a","refreshToken":"refresh-a2"}'))
+    await assert.rejects(chamada, error => error instanceof ApiError && error.status === 401)
+    assert.equal(sessao.token, 'token-b')
+    assert.equal(sessao.refreshToken, 'refresh-b')
+    assert.equal(avisado, false)
+  } finally {
+    sessao.onExpirada = null
+    sessao.limpar()
+  }
+})
+
+test('baixar renova o token vencido antes de chamar', async () => {
+  const { baixar, sessao } = await import('../src/services/api.js')
+  sessao.salvar({ token: jwtCom(Math.floor(Date.now() / 1000) - 60), refreshToken: 'refresh-1' })
+  const chamadas = []
+  globalThis.fetch = async (url, options) => {
+    chamadas.push([String(url).replace(apiUrl, ''), options.headers?.['access-token']])
+    if (String(url).endsWith('/auth/refresh')) return response(200, '{"token":"novo","refreshToken":"refresh-2"}')
+    return { ok: true, status: 200, blob: async () => 'arquivo' }
+  }
+  try {
+    assert.equal(await baixar('/biblioteca/b1/anexos/a1'), 'arquivo')
+    assert.deepEqual(chamadas, [
+      ['/auth/refresh', undefined],
+      ['/biblioteca/b1/anexos/a1', 'novo'],
+    ])
+  } finally {
+    sessao.limpar()
+  }
+})
+
+test('renovação antecipada e 401 de outra chamada ao mesmo tempo fazem uma só renovação', async () => {
+  const { request, sessao } = await import('../src/services/api.js')
+  const agoraReal = Date.now
+  sessao.salvar({ token: jwtCom(Math.floor(agoraReal() / 1000) + 600), refreshToken: 'refresh-1' })
+  const primeira = adiada()
+  const refresh = adiada()
+  let renovacoes = 0
+  globalThis.fetch = async (url, options) => {
+    const caminho = String(url).replace(apiUrl, '')
+    if (caminho === '/auth/refresh') {
+      renovacoes += 1
+      return refresh.promessa
+    }
+    if (options.headers['access-token'] === 'novo') return response(200, '[1]')
+    return primeira.promessa
+  }
+  try {
+    // /projetos sai com o token ainda válido e fica esperando a resposta.
+    const a = request('/projetos', { auth: true })
+    await ateAgora()
+    // O tempo passa: o token vence e /tarefas renova antes de chamar.
+    Date.now = () => agoraReal() + 3_600_000
+    const b = request('/tarefas', { auth: true })
+    await ateAgora()
+    // Agora /projetos recebe 401 com a renovação antecipada ainda em andamento.
+    primeira.resolver(response(401, '{"message":"Token inválido ou expirado."}'))
+    await ateAgora()
+    refresh.resolver(response(200, '{"token":"novo","refreshToken":"refresh-2"}'))
+    assert.deepEqual(await Promise.all([a, b]), [[1], [1]])
+    assert.equal(renovacoes, 1)
+  } finally {
+    Date.now = agoraReal
+    sessao.limpar()
+  }
+})
