@@ -19,18 +19,23 @@ const SIM_NAO = [
   ['false', 'Inativo'],
 ]
 
+/** Chave e busca da tela; o menu (src/lib/antecipar.js) usa as mesmas para buscar antes do clique. */
+export function dadosDaTela() {
+  return {
+    chave: 'configuracoes',
+    carregar: async () => {
+      const [areas, cargos, senioridades] = await Promise.all([configuracoes.areas(), configuracoes.cargos(), configuracoes.senioridades()])
+      return { areas, cargos, senioridades }
+    },
+  }
+}
+
 /** ADR-007: listas configuráveis (áreas, cargos, senioridades). Só diretores editam. */
 export default function Configuracoes() {
   const { form, refresh } = useApp()
   const [aba, setAba] = useState('areas')
-  const { dados, carregando, recarregar } = useCarregar(
-    async () => {
-      const [areas, cargos, senioridades] = await Promise.all([configuracoes.areas(), configuracoes.cargos(), configuracoes.senioridades()])
-      return { areas, cargos, senioridades }
-    },
-    [],
-    { chave: 'configuracoes' },
-  )
+  const tela = dadosDaTela()
+  const { dados, carregando, recarregar } = useCarregar(tela.carregar, [], { chave: tela.chave })
 
   if (!dados)
     return (

@@ -153,17 +153,22 @@ function Lista({ titulo, itens, vazio, linha }) {
   )
 }
 
+/**
+ * Chave e busca do perfil. Sem `outro` é o próprio perfil (o que o menu, src/lib/antecipar.js,
+ * busca antes do clique, com a mesma chave). `contexto` = { me } do useApp().
+ */
+export function dadosDaTela({ me }, outro) {
+  return { chave: `perfil:${outro || 'eu'}`, carregar: () => pessoas.perfil(outro || me) }
+}
+
 /** RF-013: perfil da pessoa. Em /perfil é o próprio; em /perfil/:codigo, o de outra pessoa. */
 export default function Perfil() {
   const { codigo: outro } = useParams()
   const { me, form, go, refresh } = useApp()
   const codigo = outro || me
   const meu = codigo === me
-  const {
-    dados: perfil,
-    carregando,
-    recarregar,
-  } = useCarregar(() => pessoas.perfil(codigo), [codigo], { chave: `perfil:${outro || 'eu'}` })
+  const tela = dadosDaTela({ me }, outro)
+  const { dados: perfil, carregando, recarregar } = useCarregar(tela.carregar, [codigo], { chave: tela.chave })
 
   if (!perfil)
     return (

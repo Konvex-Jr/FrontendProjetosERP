@@ -53,14 +53,15 @@ export function valoresProjeto(p) {
 
 export const StatusProjeto = ({ s }) => <span className={chip(COR_STATUS_PROJETO[s])}>{rotuloStatusProjeto(s)}</span>
 
-/** RF-020 e RF-021: lista de projetos. Equipe e tarefas ficam dentro de cada projeto. */
-export default function Projetos() {
-  const { D, me, mb, form, go, pode, refresh } = useApp()
-  const [pv, setPv] = useState('grid'),
-    [grupo, setGrupo] = useState(() => consumir('projetos') || '')
+/**
+ * Chave e busca da lista de projetos. A tela e o menu (src/lib/antecipar.js) usam as mesmas,
+ * para o dado buscado antes do clique ser o que a tela mostra. `contexto` = { me, mb, pode } do useApp().
+ */
+export function dadosDaTela({ me, mb, pode }) {
   const gestor = pode('projetos.editar')
-  const { dados, carregando, recarregar } = useCarregar(
-    async () => {
+  return {
+    chave: `projetos:${mb}:${gestor}`,
+    carregar: async () => {
       const [lista, gente, areas] = await Promise.all([
         projetos.listar(mb ? { codigoUsuario: me } : {}),
         gestor ? pessoas.listar() : [],
@@ -68,9 +69,17 @@ export default function Projetos() {
       ])
       return { lista, gente, areas }
     },
-    [mb, me, gestor],
-    { chave: `projetos:${mb}:${gestor}` },
-  )
+  }
+}
+
+/** RF-020 e RF-021: lista de projetos. Equipe e tarefas ficam dentro de cada projeto. */
+export default function Projetos() {
+  const { D, me, mb, form, go, pode, refresh } = useApp()
+  const [pv, setPv] = useState('grid'),
+    [grupo, setGrupo] = useState(() => consumir('projetos') || '')
+  const gestor = pode('projetos.editar')
+  const tela = dadosDaTela({ me, mb, pode })
+  const { dados, carregando, recarregar } = useCarregar(tela.carregar, [mb, me, gestor], { chave: tela.chave })
 
   if (!dados)
     return (

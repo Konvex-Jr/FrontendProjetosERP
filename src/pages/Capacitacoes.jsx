@@ -225,9 +225,18 @@ function Calendario({ lista, mes, setMes, abrir }) {
   )
 }
 
+/**
+ * Chave e busca das opções da lista (a lista em si vem dos dados globais). O menu
+ * (src/lib/antecipar.js) usa as mesmas para buscar antes do clique.
+ */
+export function dadosDaTela() {
+  return { chave: 'capacitacoes:opcoes', carregar: capacitacoes.opcoes }
+}
+
 function Lista() {
   const { D, form, go, recarregarCapacitacoes } = useApp()
-  const op = useCarregar(capacitacoes.opcoes, [], { chave: 'capacitacoes:opcoes' }).dados || { podeGerir: false }
+  const telaOpcoes = dadosDaTela()
+  const op = useCarregar(telaOpcoes.carregar, [], { chave: telaOpcoes.chave }).dados || { podeGerir: false }
   // A lista já vem nos dados globais (mesmo formato de capacitacoes.listar()); salvar recarrega pelo contexto.
   const [f, setF] = useState(ultimos)
   const set = (k, v) => setF(o => (ultimos = { ...o, [k]: v }))

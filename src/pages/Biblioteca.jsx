@@ -137,6 +137,14 @@ function TituloItem({ x }) {
   )
 }
 
+/**
+ * Chave e busca da lista completa (sem filtro), que monta as opções dos selects. O menu
+ * (src/lib/antecipar.js) usa as mesmas para buscar antes do clique.
+ */
+export function dadosDaTela() {
+  return { chave: 'biblioteca:todos', carregar: () => biblioteca.listar() }
+}
+
 /** /biblioteca mostra a lista; /biblioteca/:id, a ficha do item. */
 export default function Biblioteca() {
   const { id } = useParams()
@@ -158,7 +166,8 @@ function Lista() {
 
   const ativos = Object.values(f).some(Boolean)
   // Duas cargas: `todos` (sem filtro) monta as opções dos selects; `filtrados` vem da API só quando há filtro.
-  const todos = useCarregar(() => biblioteca.listar(), [], { chave: 'biblioteca:todos' })
+  const telaTodos = dadosDaTela()
+  const todos = useCarregar(telaTodos.carregar, [], { chave: telaTodos.chave })
   const chave = JSON.stringify(f)
   const filtrados = useCarregar(() => (ativos ? biblioteca.listar(f) : Promise.resolve(null)), [chave])
   const T = useMemo(() => todos.dados || [], [todos.dados])

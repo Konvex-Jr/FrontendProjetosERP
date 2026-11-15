@@ -19,12 +19,11 @@ const PERFIS = [
 ]
 const SAIDA = ['alumni', 'inativo']
 
-/** RF-010 a RF-016: cadastro e acompanhamento de pessoas (gestores). */
-export default function Pessoas() {
-  const { form, go, me, pode, refresh } = useApp()
-  const [filtros] = useState(() => consumir('usuarios'))
-  const { dados, carregando, recarregar } = useCarregar(
-    async () => {
+/** Chave e busca da tela; o menu (src/lib/antecipar.js) usa as mesmas para buscar antes do clique. */
+export function dadosDaTela() {
+  return {
+    chave: 'pessoas',
+    carregar: async () => {
       const [lista, areas, cargos, senioridades] = await Promise.all([
         pessoas.listar(),
         configuracoes.areas(),
@@ -33,9 +32,15 @@ export default function Pessoas() {
       ])
       return { lista, areas, cargos, senioridades }
     },
-    [],
-    { chave: 'pessoas' },
-  )
+  }
+}
+
+/** RF-010 a RF-016: cadastro e acompanhamento de pessoas (gestores). */
+export default function Pessoas() {
+  const { form, go, me, pode, refresh } = useApp()
+  const [filtros] = useState(() => consumir('usuarios'))
+  const tela = dadosDaTela()
+  const { dados, carregando, recarregar } = useCarregar(tela.carregar, [], { chave: tela.chave })
 
   if (!dados)
     return (

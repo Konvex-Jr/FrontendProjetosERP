@@ -21,9 +21,12 @@ const gravar = valor => {
  * lazy() que sobrevive a uma publicação nova: se o chunk da página sumiu do servidor
  * (o hash mudou depois que a aba foi aberta), recarrega a página uma vez para pegar
  * o index.html novo. A flag na sessionStorage evita recarregar em loop.
+ * `.precarregar` baixa o arquivo antes da visita (src/lib/antecipar.js) com a mesma importação:
+ * o navegador guarda o módulo e não baixa duas vezes. Ela não recarrega a página se falhar;
+ * a guarda acima só age quando a tela é aberta de fato.
  */
 export default function carregarPagina(importar) {
-  return lazy(() =>
+  const Pagina = lazy(() =>
     importar().then(
       modulo => {
         // Deu certo: libera um novo recarregamento automático na próxima publicação.
@@ -40,4 +43,6 @@ export default function carregarPagina(importar) {
       },
     ),
   )
+  Pagina.precarregar = importar
+  return Pagina
 }

@@ -46,6 +46,21 @@ export function filtroApi({ pessoa, origem, status }) {
 }
 
 /**
+ * Chave e busca do painel. A tela e o menu (src/lib/antecipar.js) usam as mesmas, para o dado
+ * buscado antes do clique ser o que a tela mostra. Sem `filtro`, vale o padrão com que a tela
+ * abre ("Minhas tarefas", sem origem nem situação). `contexto` = { me } do useApp().
+ */
+export function dadosDaTela({ me }, filtro = { pessoa: me, origem: '', status: '' }) {
+  return {
+    chave: `tarefas:${filtro.pessoa}:${filtro.origem}:${filtro.status}:${me}`,
+    carregar: async () => {
+      const [lista, todos] = await Promise.all([tarefas.listar(filtroApi(filtro)), projetos.listar()])
+      return { tarefas: lista.map(adaptTask), projetos: todos }
+    },
+  }
+}
+
+/**
  * Painel global de Tarefas (sessão 8c): tarefas de projetos e avulsas num lugar só.
  * Padrão "Minhas tarefas"; a gestão filtra por pessoa, origem (projeto ou categoria) e situação.
  */
@@ -58,14 +73,10 @@ export default function Tarefas() {
     [tk, setTk] = useState(null)
   const set = (k, v) => setFiltro(f => ({ ...f, [k]: v }))
 
-  const { dados, carregando, recarregar } = useCarregar(
-    async () => {
-      const [lista, todos] = await Promise.all([tarefas.listar(filtroApi(filtro)), projetos.listar()])
-      return { tarefas: lista.map(adaptTask), projetos: todos }
-    },
-    [filtro.pessoa, filtro.origem, filtro.status, me],
-    { chave: `tarefas:${filtro.pessoa}:${filtro.origem}:${filtro.status}:${me}` },
-  )
+  const tela = dadosDaTela({ me }, filtro)
+  const { dados, carregando, recarregar } = useCarregar(tela.carregar, [filtro.pessoa, filtro.origem, filtro.status, me], {
+    chave: tela.chave,
+  })
 
   const porCodigo = useMemo(() => new Map((dados?.projetos || []).map(p => [p.codigo, p])), [dados])
   const T = (dados?.tarefas || []).filter(t => noPrazo(t, filtro.prazo, hj(D)))
