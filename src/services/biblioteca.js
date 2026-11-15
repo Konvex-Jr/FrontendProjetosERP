@@ -1,6 +1,6 @@
 import { request } from './api.js'
 import { itemBibliotecaDaApi } from '../lib/apiMappers.js'
-import { anexos, conferirArquivo } from './anexos.js'
+import { conferirArquivo, resumoFalhas } from './anexos.js'
 
 /**
  * Biblioteca (sessão 17): substitui pastas/documentos, Base de Inteligência e iniciativas.
@@ -66,6 +66,12 @@ export const biblioteca = {
   excluir: codigo => send('DELETE', `/biblioteca/${codigo}`),
 }
 
+/**
+ * Itens que a pessoa cadastrou (seção do perfil). A chave leva o código da pessoa vista, nunca "eu":
+ * o mesmo perfil abre por /perfil e /perfil/:codigo e a memória da aba tem de ser a mesma.
+ */
+export const itensDoAutor = codigo => ({ chave: `biblioteca:autor:${codigo}`, carregar: () => biblioteca.listar({ autor: codigo }) })
+
 /* ---------- Formulário da tela (pages/Biblioteca.jsx) ---------- */
 
 export const LIMITE_TITULO = 160
@@ -106,7 +112,7 @@ export const valoresBiblioteca = (item, inicial = {}) =>
       }
     : { titulo: '', codigoProjeto: '', sigilo: 'todos', conteudo: '', links: '', tags: '', arquivos: [], ...inicial }
 
-/** Formulário → dados de `criar`/`editar` (os arquivos vão depois, por `enviarArquivos`). */
+/** Formulário → dados de `criar`/`editar` (os arquivos vão depois, por `enviarVarios`). */
 export const dadosBiblioteca = v => ({
   titulo: (v.titulo || '').trim(),
   codigoProjeto: v.codigoProjeto || null,
@@ -138,15 +144,12 @@ export function problemaBiblioteca(v, original) {
   return temConteudo ? '' : SEM_CONTEUDO
 }
 
-/** Envia os arquivos ao item, um por vez, sem parar no primeiro erro. Devolve os que falharam. */
-export async function enviarArquivos(codigo, arquivos, enviar = anexos.enviar) {
-  const falhas = []
-  for (const arquivo of arquivos || []) {
-    try {
-      await enviar('biblioteca', codigo, arquivo)
-    } catch (error) {
-      falhas.push({ nome: arquivo.name, erro: error.message })
-    }
-  }
-  return falhas
+/**
+ * Alerta de quem salvou o item mas teve arquivos recusados: título no singular ou plural e
+ * a lista igual à da ficha (um arquivo por linha, resumoFalhas).
+ */
+export function avisoFalhasItem(falhas, editando) {
+  const inicio = editando ? 'Item salvo, mas ' : 'Item criado, mas '
+  const titulo = inicio + (falhas.length === 1 ? 'um arquivo não foi enviado' : `${falhas.length} arquivos não foram enviados`)
+  return { titulo, texto: `${resumoFalhas(falhas)}\nAbra o item e use “Anexar arquivos” para tentar de novo.` }
 }

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import Ic from './Icon'
+import Anexos from './Anexos'
 import Multi from './Multi'
 import { Prog } from './Ui'
 import { ST, chip, fm } from '../lib/utils'
@@ -106,13 +107,48 @@ const crescer = el => {
   }
 }
 
+/** Anexos da tarefa: carrega a lista ao abrir; depois de mudar, recarrega a seção e a tela (clipe do Kanban). */
+function AnexosTarefa({ t, papel, aoMudar }) {
+  const [lista, setLista] = useState(null)
+  const carregar = () =>
+    tarefas
+      .anexos(t.id)
+      .then(setLista)
+      .catch(error => {
+        setLista([])
+        alerts.error('Não foi possível carregar os anexos', error.message)
+      })
+  useEffect(() => {
+    carregar()
+  }, [t.id])
+  if (lista !== null && !lista.length && !papel.participa) return null
+  return (
+    <div className="mt-4">
+      <h4 className="h6 fw-bold">
+        <Ic k="clip" />
+        Anexos{lista?.length > 0 && <span className={chip()}>{lista.length}</span>}
+      </h4>
+      <Anexos
+        dono="tarefas"
+        codigo={t.id}
+        lista={lista}
+        podeAlterar={papel.participa}
+        aoMudar={async () => {
+          await carregar()
+          await aoMudar?.()
+        }}
+      />
+    </div>
+  )
+}
+
 /**
  * Detalhes de uma tarefa (de projeto ou avulsa). Edita uma cópia (`draft`) e só envia ao salvar:
  * `salvar(antes, depois)` escolhe PATCH (só status) ou PUT (ver services/tarefas).
  * `papel` vem de papelNaTarefa/papelNasTarefas: sem `organiza`, os campos ficam travados.
  * `T` = tarefas carregadas na tela (para as dependências); `p` = projeto no formato do contexto.
  */
-export default function TaskModal({ D, salvar, t, p, T, close, del, tog, papel }) {
+export default function TaskModal({ D, salvar, t, p, T, close, del, tog, papel, recarregar }) {
   const [draft, setDraft] = useState({ ...t }),
     [nv, setNv] = useState('')
   const cl = draft.checklist || [],
@@ -331,6 +367,7 @@ export default function TaskModal({ D, salvar, t, p, T, close, del, tog, papel }
                   </div>
                 </div>
               </fieldset>
+              {t.id && <AnexosTarefa t={t} papel={papel} aoMudar={recarregar} />}
               <Comentarios t={t} papel={papel} />
               {papel.organiza ? (
                 <div className="d-flex flex-wrap justify-content-end gap-2 mt-4">

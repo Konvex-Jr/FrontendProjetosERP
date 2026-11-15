@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { DAY, PC, chip, d, fm, hj, iso } from '../lib/utils'
 import { origemTarefa } from '../services/tarefas'
+import Clipe from './Clipe'
 import Ic from './Icon'
 import ActionMenu from './ActionMenu'
 import alerts from '../lib/alerts'
@@ -124,6 +125,7 @@ export default function KanbanTarefas({ D, T, papelDe, acoes, abrir, adicionar, 
                           <Ic k="link" />
                         </span>
                       )}
+                      <Clipe n={t.quantidadeAnexos} />
                       {t.descricao && (
                         <span className="bd" title="Tem descrição">
                           <Ic k="list" />

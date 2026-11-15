@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
-import { chip, fd, ini } from '../lib/utils'
+import { chip, codigoDoPerfil, fd, ini } from '../lib/utils'
 import Ic from '../components/Icon'
 import { PageBar, Prog } from '../components/Ui'
 import alerts from '../lib/alerts'
@@ -9,6 +9,8 @@ import useCarregar from '../lib/useCarregar'
 import Esqueleto from '../components/Esqueleto'
 import { juntarTecnologia, minhaConta, pessoas, rotuloStatus, tecnologias, tecnologiasDe } from '../services/pessoas'
 import { horas } from '../services/capacitacoes'
+import { itensDoAutor } from '../services/biblioteca'
+import Clipe from '../components/Clipe'
 
 const COR_STATUS = { ativo: 'ok', trainee: '', alumni: 'wa', inativo: 'er' }
 const semProtocolo = url => url.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')
@@ -165,10 +167,13 @@ export function dadosDaTela({ me }, outro) {
 export default function Perfil() {
   const { codigo: outro } = useParams()
   const { me, form, go, refresh } = useApp()
-  const codigo = outro || me
+  const codigo = codigoDoPerfil(me, outro)
   const meu = codigo === me
   const tela = dadosDaTela({ me }, outro)
   const { dados: perfil, carregando, recarregar } = useCarregar(tela.carregar, [codigo], { chave: tela.chave })
+
+  const itens = itensDoAutor(codigo)
+  const { dados: itensBib, carregando: carregandoItens } = useCarregar(itens.carregar, [codigo], { chave: itens.chave })
 
   if (!perfil)
     return (
@@ -291,6 +296,24 @@ export default function Perfil() {
       <span className={chip()}>{fd(c.data)}</span>
     </div>
   )
+  const itemBiblioteca = x => (
+    <div className="ag" key={x.codigo}>
+      <div>
+        <a
+          href={`#/biblioteca/${x.codigo}`}
+          onClick={e => {
+            e.preventDefault()
+            go('biblioteca', x.codigo)
+          }}
+        >
+          <b>{x.titulo}</b>
+        </a>
+        {x.tags.length > 0 && <small>{x.tags.map(t => '#' + t).join(' ')}</small>}
+      </div>
+      <Clipe n={x.anexos.length} />
+      <span className={chip()}>{fd(x.atualizadoEm)}</span>
+    </div>
+  )
   const mudancas = [
     ...historico.cargos.map(m => ({ ...m, tipo: 'Cargo', de: m.cargoAnterior?.nome, para: m.cargoNovo?.nome })),
     ...historico.areas.map(m => ({ ...m, tipo: 'Área', de: m.areaAnterior?.nome, para: m.areaNova?.nome })),
@@ -381,6 +404,18 @@ export default function Perfil() {
             vazio="Nenhuma capacitação registrada."
             linha={capacitacao}
           />
+        </div>
+        <div className="col-md-6">
+          {itensBib ? (
+            <Lista titulo="Itens na Biblioteca" itens={itensBib} vazio="Nenhum item na Biblioteca." linha={itemBiblioteca} />
+          ) : (
+            carregandoItens && (
+              <div className="card card-body h-100">
+                <h2>Itens na Biblioteca</h2>
+                <Esqueleto />
+              </div>
+            )
+          )}
         </div>
         <div className="col-md-6">
           <Lista

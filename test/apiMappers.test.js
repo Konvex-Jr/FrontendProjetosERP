@@ -65,6 +65,8 @@ test('adaptProject and adaptTask normalize nested resource references and dates'
   assert.equal(task.dependeDe, 'task-0')
   assert.deepEqual(task.responsaveis, ['user-1'])
   assert.deepEqual(task.checklist, [{ id: 'item-1', texto: 'Cobrir 422', feito: true }])
+  assert.equal(task.quantidadeAnexos, 0)
+  assert.equal(adaptTask({ codigo: 't', quantidadeAnexos: 3 }).quantidadeAnexos, 3)
 })
 
 test('readConfig maps server seniority values without losing the hourly rate', () => {

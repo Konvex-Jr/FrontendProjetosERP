@@ -6,7 +6,7 @@ import alerts from '../lib/alerts'
 import { readConfig } from '../lib/apiMappers'
 import { capacitacoes } from '../services/capacitacoes'
 import { carregarAcesso, carregarDadosGlobais, carregarInicio } from '../services/inicio'
-import { memoria } from '../lib/memoria'
+import { apagarMemorias, definirPessoa } from '../lib/memoriasDaAba'
 import { EsqueletoApp } from '../components/Esqueleto'
 
 const Ctx = createContext(null)
@@ -58,15 +58,14 @@ export function AppProvider({ children }) {
         const { eu, dados: data, acesso: permissoes } = await carregarInicio()
         if (!active) return
         // A memória de dados passa a ser desta pessoa antes de qualquer tela montar e ler dela.
-        memoria.definirPessoa(eu.codigo)
+        definirPessoa(eu.codigo)
         setAcesso(permissoes)
         setMe(eu.codigo)
         setD({ ...data, c: readConfig(data.senioridades, false) })
       } catch (error) {
         console.error('Erro ao carregar dados da API:', error)
         sessao.limpar()
-        memoria.limpar()
-        memoria.definirPessoa(null)
+        apagarMemorias()
         setMe(null)
         setAcesso(SEM_ACESSO)
         setD({ c: defaultConfig, ...VAZIO })
@@ -121,8 +120,7 @@ export function AppProvider({ children }) {
   // Fim de sessão (sair, sessão expirada, login que falhou): apaga também a memória de dados,
   // para nada de uma pessoa aparecer para a próxima que entrar nesta aba.
   const limparEstado = () => {
-    memoria.limpar()
-    memoria.definirPessoa(null)
+    apagarMemorias()
     setMe(null)
     setMd(null)
     setAcesso(SEM_ACESSO)
@@ -136,7 +134,7 @@ export function AppProvider({ children }) {
       if (!result?.token || !result?.usuario?.codigo) throw new Error('A API não retornou uma sessão válida.')
       sessao.salvar({ token: result.token, refreshToken: result.refreshToken })
       // Troca a dona da memória antes de buscar dados: outra conta nesta aba apaga o que havia.
-      memoria.definirPessoa(result.usuario.codigo)
+      definirPessoa(result.usuario.codigo)
       const [data, permissoes] = await Promise.all([carregarDadosGlobais(), carregarAcesso()])
       setD({ ...data, c: readConfig(data.senioridades, false) })
       setAcesso(permissoes)

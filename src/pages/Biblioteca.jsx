@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import { chip, fd } from '../lib/utils'
+import Clipe from '../components/Clipe'
 import Ic from '../components/Icon'
 import ActionMenu from '../components/ActionMenu'
 import Table from '../components/Table'
@@ -12,12 +13,12 @@ import alerts from '../lib/alerts'
 import useCarregar from '../lib/useCarregar'
 import Esqueleto from '../components/Esqueleto'
 import { abrirCom, consumir } from '../lib/atalho'
-import { ACEITA, DICA } from '../services/anexos'
+import { ACEITA, DICA, enviarVarios } from '../services/anexos'
 import {
   SIGILOS,
+  avisoFalhasItem,
   biblioteca,
   dadosBiblioteca,
-  enviarArquivos,
   problemaBiblioteca,
   sigilosPermitidos,
   valoresBiblioteca,
@@ -85,13 +86,11 @@ export function abrirFormBiblioteca({ form, projetos, gestor, item, inicial, aoS
         throw error
       }
       // O item fica salvo mesmo se um arquivo falhar; a pessoa sabe qual e pode anexar de novo na ficha.
-      const falhas = await enviarArquivos(salvo.codigo, v.arquivos)
-      if (falhas.length)
-        await alerts.error(
-          item ? 'Item salvo, mas um arquivo não foi enviado' : 'Item criado, mas um arquivo não foi enviado',
-          falhas.map(f => `${f.nome}: ${f.erro}`).join(' · ') + ' Abra o item e use “Anexar arquivo” para tentar de novo.',
-        )
-      else alerts.toastSuccess(item ? 'Item atualizado' : 'Item registrado na Biblioteca')
+      const { falhas } = await enviarVarios('biblioteca', salvo.codigo, v.arquivos)
+      if (falhas.length) {
+        const { titulo, texto } = avisoFalhasItem(falhas, Boolean(item))
+        await alerts.error(titulo, texto)
+      } else alerts.toastSuccess(item ? 'Item atualizado' : 'Item registrado na Biblioteca')
       await aoSalvar?.(salvo)
     },
     { largo: true },
@@ -133,6 +132,7 @@ function TituloItem({ x }) {
     >
       <b>{x.titulo}</b>
       <small className="d-block">{resumo(x.conteudo) || (x.links.length ? x.links[0] : '')}</small>
+      <Clipe n={x.anexos.length} />
     </a>
   )
 }

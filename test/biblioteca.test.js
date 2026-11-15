@@ -1,13 +1,15 @@
 import assert from 'node:assert/strict'
+import { codigoDoPerfil } from '../src/lib/utils.js'
 import { test } from 'node:test'
 import {
   SIGILOS,
+  avisoFalhasItem,
   biblioteca,
   consulta,
+  itensDoAutor,
   corpoCriacao,
   corpoEdicao,
   dadosBiblioteca,
-  enviarArquivos,
   lerLinks,
   lerTags,
   problemaBiblioteca,
@@ -203,18 +205,28 @@ test('problemaBiblioteca confere título, sigilo de projeto e arquivos', () => {
   assert.match(problemaBiblioteca({ ...ok, links: 'ftp://a.com' }), /http/)
 })
 
-test('enviarArquivos envia cada arquivo e devolve os que falharam, sem parar', async () => {
-  const enviados = []
-  const enviar = async (dono, codigo, arquivo) => {
-    enviados.push([dono, codigo, arquivo.name])
-    if (arquivo.name === 'b.pdf') throw new Error('Falhou')
-  }
-  const falhas = await enviarArquivos('b1', [arq('a.pdf'), arq('b.pdf'), arq('c.pdf')], enviar)
-  assert.deepEqual(enviados, [
-    ['biblioteca', 'b1', 'a.pdf'],
-    ['biblioteca', 'b1', 'b.pdf'],
-    ['biblioteca', 'b1', 'c.pdf'],
-  ])
-  assert.deepEqual(falhas, [{ nome: 'b.pdf', erro: 'Falhou' }])
-  assert.deepEqual(await enviarArquivos('b1', [], enviar), [])
+test('itens do perfil: chave usa o código da pessoa vista, nunca "eu"', () => {
+  assert.equal(itensDoAutor('u1').chave, 'biblioteca:autor:u1')
+  assert.notEqual(itensDoAutor('u1').chave, itensDoAutor('u2').chave)
+  assert.equal(itensDoAutor('u2').chave, 'biblioteca:autor:u2')
+})
+
+test('itens do perfil: /perfil (me u1) e /perfil/u1 usam a mesma chave', () => {
+  assert.equal(itensDoAutor(codigoDoPerfil('u1', undefined)).chave, itensDoAutor(codigoDoPerfil('u1', 'u1')).chave)
+  assert.equal(itensDoAutor(codigoDoPerfil('u1', 'u2')).chave, 'biblioteca:autor:u2')
+})
+
+test('avisoFalhasItem: título no singular ou plural e um arquivo por linha', () => {
+  const um = avisoFalhasItem([{ nome: 'a.pdf', erro: 'Falhou.' }], false)
+  assert.equal(um.titulo, 'Item criado, mas um arquivo não foi enviado')
+  assert.equal(um.texto, 'a.pdf: Falhou.\nAbra o item e use “Anexar arquivos” para tentar de novo.')
+  const dois = avisoFalhasItem(
+    [
+      { nome: 'a.pdf', erro: 'Falhou.' },
+      { nome: 'b.exe', erro: 'Tipo não aceito.' },
+    ],
+    true,
+  )
+  assert.equal(dois.titulo, 'Item salvo, mas 2 arquivos não foram enviados')
+  assert.equal(dois.texto, 'a.pdf: Falhou.\nb.exe: Tipo não aceito.\nAbra o item e use “Anexar arquivos” para tentar de novo.')
 })

@@ -79,3 +79,8 @@ export const brl = n => (n || 0).toLocaleString('pt-BR', { style: 'currency', cu
 export const sz = n => (n < 1024 ? n + ' B' : n < 1048576 ? Math.round(n / 1024) + ' KB' : (n / 1048576).toFixed(1) + ' MB')
 // Data vinda da API (ISO, meia-noite UTC) para dd/mm/aaaa.
 export const fd = s => (s ? new Date(s).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : '—')
+/** Quantidade de anexos → '1 arquivo' / '3 arquivos' (Kanban, listas). */
+export const rotuloArquivos = n => (n === 1 ? '1 arquivo' : n + ' arquivos')
+
+/** Código da pessoa vista no perfil: /perfil/:codigo é a outra pessoa; /perfil, a própria. */
+export const codigoDoPerfil = (me, outro) => outro || me

@@ -1387,6 +1387,172 @@ button.kc-tag {
     margin-left: auto
 }
 
+/* Botão "Baixar" com download em andamento (sessão 19): o fundo enche até --p */
+.btn-prog {
+    background-image: linear-gradient(to right, color-mix(in srgb, var(--ac) 22%, transparent) var(--p, 0%), transparent var(--p, 0%));
+    cursor: progress
+}
+
+.btn-prog:disabled {
+    opacity: 1
+}
+
+.btn-prog-t {
+    display: inline-block;
+    min-width: 3ch;
+    font-size: .75rem;
+    font-variant-numeric: tabular-nums;
+    text-align: center
+}
+
+/* Zona de envio (sessão 19): botão + área que aceita arquivos soltos */
+.ze {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 12px;
+    padding: 12px 14px;
+    border: 2px dashed var(--ln);
+    border-radius: var(--rd);
+    background: var(--c);
+    color: var(--mu);
+    transition: border-color .2s, background-color .2s
+}
+
+.ze.is-over {
+    border-color: var(--ac);
+    background: color-mix(in srgb, var(--ac) 8%, var(--c))
+}
+
+.ze.is-busy {
+    cursor: progress
+}
+
+.ze-t {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: .875rem
+}
+
+.ze-t svg {
+    width: 15px;
+    height: 15px
+}
+
+.ze-d {
+    flex-basis: 100%;
+    color: var(--mu)
+}
+
+/* Janela de visualização de anexo (PDF ou imagem) */
+.jv .modal-content {
+    overflow: hidden
+}
+
+.jv-h {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 12px;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--ln)
+}
+
+.jv-h h3 {
+    min-width: 0;
+    overflow-wrap: anywhere
+}
+
+.jv-c {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 78vh;
+    background: var(--col)
+}
+
+.jv-c iframe {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    background: #fff
+}
+
+.jv-c img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain
+}
+
+.jv-m {
+    margin: 0;
+    padding: 24px;
+    color: var(--mu);
+    text-align: center
+}
+
+/* Progresso de quem abre um arquivo grande na janela */
+.jv-p {
+    width: min(320px, 80%);
+    display: grid;
+    gap: 4px
+}
+
+.jv-p .jv-m {
+    padding: 0;
+    font-variant-numeric: tabular-nums
+}
+
+.jv-b {
+    height: 6px;
+    border-radius: 999px;
+    background: var(--ln);
+    overflow: hidden
+}
+
+.jv-b span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--ac);
+    transition: width .2s var(--ez)
+}
+
+/* Sem o tamanho total: um trecho corre de um lado ao outro */
+.jv-b.is-ind span {
+    width: 35%;
+    animation: jv-corre 1.2s var(--ez) infinite
+}
+
+@keyframes jv-corre {
+    from {
+        transform: translateX(-100%)
+    }
+
+    to {
+        transform: translateX(290%)
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .jv-b span {
+        transition: none
+    }
+
+    .jv-b.is-ind span {
+        width: 100%;
+        animation: none;
+        opacity: .5
+    }
+}
+
+/* Alertas com lista (ex.: arquivos que não foram enviados): uma linha por item. */
+.konvex-alert .swal2-html-container {
+    white-space: pre-line
+}
+
 /* Calendário interno de capacitações (sessão 13). No celular vira agenda (responsive.css). */
 .cal {
     display: grid;

@@ -248,15 +248,43 @@ async function executar(path, { method = 'GET', body, token, auth = false, heade
 
 export const apiUrl = API_URL
 
+export const DOWNLOAD_INTERROMPIDO = 'O download parou no meio. Confira a internet e tente de novo.'
+
+/** `Content-Length` como número, ou null quando falta (ex.: resposta comprimida). */
+function tamanhoDaResposta(response) {
+  const n = Number(response.headers?.get?.('content-length'))
+  return Number.isFinite(n) && n > 0 ? n : null
+}
+
 /**
  * Baixa um arquivo da API (sessão 12c) com a sessão do usuário. Devolve o Blob;
  * erro vira ApiError com a mesma mensagem das outras chamadas.
+ * Com `aoProgresso(recebidos, total)` lê o corpo em pedaços e avisa a cada um
+ * (total null sem `Content-Length`). Queda no meio vira ApiError com status 0.
  */
-export async function baixar(path) {
+export async function baixar(path, { aoProgresso } = {}) {
   const response = await fetchAutenticado(path, { method: 'GET' })
   if (!response.ok) {
     const data = await lerCorpo(response)
     throw new ApiError(mensagemDeErro(response.status, data), response.status, data?.codigo || '')
   }
-  return response.blob()
+  try {
+    if (!aoProgresso || !response.body?.getReader) return await response.blob()
+    const total = tamanhoDaResposta(response)
+    const leitor = response.body.getReader()
+    const pedacos = []
+    let recebidos = 0
+    aoProgresso(0, total)
+    for (;;) {
+      const { done, value } = await leitor.read()
+      if (done) break
+      pedacos.push(value)
+      recebidos += value.byteLength
+      aoProgresso(recebidos, total)
+    }
+    return new Blob(pedacos, { type: response.headers?.get?.('content-type') || '' })
+  } catch (erro) {
+    if (erro instanceof ApiError) throw erro
+    throw new ApiError(DOWNLOAD_INTERROMPIDO)
+  }
 }

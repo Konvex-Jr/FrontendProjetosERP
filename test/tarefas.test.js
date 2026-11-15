@@ -69,6 +69,7 @@ test('salvar usa PATCH quando só o status muda e PUT no resto', async () => {
     await tarefas.salvar(tarefa, { ...tarefa, status: 'concluida' })
     await tarefas.salvar(tarefa, { ...tarefa, titulo: 'Outra' })
     await tarefas.excluir('t1')
+    await tarefas.anexos('t1')
   })
   sessao.limpar()
 
@@ -80,6 +81,7 @@ test('salvar usa PATCH quando só o status muda e PUT no resto', async () => {
       ['PATCH', '/tarefas/t1/status'],
       ['PUT', '/tarefas/t1'],
       ['DELETE', '/tarefas/t1'],
+      ['GET', '/tarefas/t1/anexos'],
     ],
   )
   assert.deepEqual(chamadas[2].body, { status: 'concluida' })

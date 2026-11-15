@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { NAV, path, prog } from '../src/lib/utils.js'
+import { NAV, path, prog, rotuloArquivos } from '../src/lib/utils.js'
 
 // Revisão de 12/11/2026: o membro recebe só as próprias tarefas em D.t; o % vinha diferente do da gestão.
 test('prog usa a contagem de todas as tarefas que vem da API', () => {
@@ -41,4 +41,9 @@ test('NAV tem a Biblioteca e não tem mais Base, Iniciativas nem Gestão', () =>
 test('path leva à lista e à ficha da Biblioteca', () => {
   assert.equal(path('biblioteca'), '/biblioteca')
   assert.equal(path('biblioteca', 'b1'), '/biblioteca/b1')
+})
+
+test('rotuloArquivos usa singular para 1 e plural para o resto', () => {
+  assert.equal(rotuloArquivos(1), '1 arquivo')
+  assert.equal(rotuloArquivos(3), '3 arquivos')
 })
