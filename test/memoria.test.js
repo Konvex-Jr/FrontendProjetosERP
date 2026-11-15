@@ -236,3 +236,38 @@ test('ouvinte que lança não impede os demais avisos nem derruba limpar e busca
     erros.mock.restore()
   }
 })
+
+test('recarregar grava na memória: outra leitura da mesma chave vê o valor novo', async () => {
+  await memoria.buscar('item', async () => 'velho')
+  const avisos = []
+  memoria.ouvir('item', valor => avisos.push(valor))
+
+  const novo = await memoria.buscar('item', async () => 'novo', { forcar: true })
+
+  assert.equal(novo, 'novo')
+  assert.equal(memoria.obter('item'), 'novo')
+  assert.deepEqual(avisos, ['novo'])
+})
+
+test('forcar busca de novo mesmo com busca em andamento', async () => {
+  let liberar
+  const lenta = memoria.buscar('item', () => new Promise(r => (liberar = () => r('lenta'))))
+  const forcada = await memoria.buscar('item', async () => 'forcada', { forcar: true })
+  assert.equal(forcada, 'forcada')
+
+  // a busca antiga termina depois e não pode sobrescrever o valor mais novo
+  liberar()
+  assert.equal(await lenta, 'lenta')
+  assert.equal(memoria.obter('item'), 'forcada')
+})
+
+test('forcar descarta resultado de geração anterior (troca de pessoa)', async () => {
+  let liberar
+  const p = memoria.buscar('item', () => new Promise(r => (liberar = () => r('x'))), {
+    forcar: true,
+  })
+  memoria.definirPessoa('bia')
+  liberar()
+  await p
+  assert.equal(memoria.obter('item'), undefined)
+})

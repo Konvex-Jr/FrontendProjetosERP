@@ -10,6 +10,9 @@ const STATUS_QUE_APAGAM = new Set([401, 403, 404])
 const dados = new Map()
 const emAndamento = new Map()
 const ouvintes = new Map()
+// Ordem de início das buscas de cada chave: só a busca mais recente grava, para
+// uma resposta lenta e antiga não sobrescrever uma mais nova.
+const ultimaBusca = new Map()
 let pessoaAtual = null
 // Muda a cada troca de pessoa ou limpeza: uma resposta que começou numa
 // geração anterior pertence a outra sessão e é descartada.
@@ -30,6 +33,7 @@ function avisar(chave, valor) {
 function apagarTudo() {
   geracao += 1
   emAndamento.clear()
+  ultimaBusca.clear()
   const chaves = [...dados.keys()]
   dados.clear()
   for (const chave of chaves) avisar(chave, undefined)
@@ -51,21 +55,25 @@ export const memoria = {
     return dados.get(chave)
   },
 
-  buscar(chave, carregar) {
+  // `forcar` (usado por recarregar depois de salvar) ignora a busca em andamento:
+  // ela pode ter começado antes da gravação e trazer o dado velho.
+  buscar(chave, carregar, { forcar = false } = {}) {
     const existente = emAndamento.get(chave)
-    if (existente) return existente
+    if (existente && !forcar) return existente
 
     const minhaGeracao = geracao
+    const minhaOrdem = (ultimaBusca.get(chave) ?? 0) + 1
+    ultimaBusca.set(chave, minhaOrdem)
     const promessa = (async () => {
       try {
         const valor = await carregar()
-        if (minhaGeracao === geracao) {
+        if (minhaGeracao === geracao && minhaOrdem === ultimaBusca.get(chave)) {
           dados.set(chave, valor)
           avisar(chave, valor)
         }
         return valor
       } catch (erro) {
-        if (minhaGeracao === geracao && STATUS_QUE_APAGAM.has(erro?.status)) apagarChave(chave)
+        if (minhaGeracao === geracao && minhaOrdem === ultimaBusca.get(chave) && STATUS_QUE_APAGAM.has(erro?.status)) apagarChave(chave)
         throw erro
       } finally {
         if (emAndamento.get(chave) === promessa) emAndamento.delete(chave)
