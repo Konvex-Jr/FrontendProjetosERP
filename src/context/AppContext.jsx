@@ -70,7 +70,7 @@ export function AppProvider({ children }) {
         setMe(null)
         setAcesso(SEM_ACESSO)
         setD({ c: defaultConfig, ...VAZIO })
-        // 401 = sessão vencida: só cai no login, sem alerta.
+        // 401 = sessão vencida: quem avisa é o onExpirada ("Sessão expirada"), se havia sessão; outro alerta aqui o repetiria.
         if (error.status !== 401) alerts.error('Falha ao conectar com a API', error.message)
       }
     }
@@ -176,7 +176,8 @@ export function AppProvider({ children }) {
     }
   }, [])
 
-  // A tela de Capacitações chama depois de inscrever, cancelar ou editar, para o Dashboard ficar em dia.
+  // A tela de Capacitações chama ao abrir a lista e depois de inscrever, cancelar, editar ou excluir,
+  // para a lista e o Dashboard ficarem em dia.
   const recarregarCapacitacoes = async () => {
     const k = await capacitacoes.listar()
     setD(current => (current ? { ...current, k } : current))

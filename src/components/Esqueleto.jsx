@@ -37,7 +37,9 @@ export function EsqueletoApp() {
           <span key={i} className="esq-b esq-icone" />
         ))}
       </nav>
-      <main className="app-main">
+      {/* Escondido do leitor de tela: o aviso "Carregando" já está na moldura, e o esqueleto de
+          dentro tem o próprio role="status", que faria o aviso sair duas vezes. */}
+      <main className="app-main" aria-hidden="true">
         <Esqueleto linhas={5} />
       </main>
     </div>
