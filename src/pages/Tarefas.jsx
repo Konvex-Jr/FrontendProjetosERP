@@ -10,6 +10,7 @@ import KanbanTarefas, { semanas } from '../components/KanbanTarefas'
 import { PageBar, Seg } from '../components/Ui'
 import alerts from '../lib/alerts'
 import useCarregar from '../lib/useCarregar'
+import Esqueleto from '../components/Esqueleto'
 import { adaptTask } from '../lib/apiMappers'
 import { STATUS_ATIVOS, projetos } from '../services/projetos'
 import { CATEGORIAS, acoesTarefa, origemTarefa, papelNaTarefa, tarefas } from '../services/tarefas'
@@ -57,10 +58,14 @@ export default function Tarefas() {
     [tk, setTk] = useState(null)
   const set = (k, v) => setFiltro(f => ({ ...f, [k]: v }))
 
-  const { dados, carregando, recarregar } = useCarregar(async () => {
-    const [lista, todos] = await Promise.all([tarefas.listar(filtroApi(filtro)), projetos.listar()])
-    return { tarefas: lista.map(adaptTask), projetos: todos }
-  }, [filtro.pessoa, filtro.origem, filtro.status, me])
+  const { dados, carregando, recarregar } = useCarregar(
+    async () => {
+      const [lista, todos] = await Promise.all([tarefas.listar(filtroApi(filtro)), projetos.listar()])
+      return { tarefas: lista.map(adaptTask), projetos: todos }
+    },
+    [filtro.pessoa, filtro.origem, filtro.status, me],
+    { chave: `tarefas:${filtro.pessoa}:${filtro.origem}:${filtro.status}:${me}` },
+  )
 
   const porCodigo = useMemo(() => new Map((dados?.projetos || []).map(p => [p.codigo, p])), [dados])
   const T = (dados?.tarefas || []).filter(t => noPrazo(t, filtro.prazo, hj(D)))
@@ -180,7 +185,7 @@ export default function Tarefas() {
   const projetoAberto = aberta && !aberta.avulsa ? porCodigo.get(aberta.projetoId) : null
   return (
     <>
-      <PageBar title="Tarefas" sub={carregando && !dados ? 'Carregando…' : `${T.length} ${T.length == 1 ? 'tarefa' : 'tarefas'}`}>
+      <PageBar title="Tarefas" sub={carregando && !dados ? '' : `${T.length} ${T.length == 1 ? 'tarefa' : 'tarefas'}`}>
         <Seg items={VISOES} value={visao} onChange={setVisao} />
         {podeCriar && (
           <button className="btn btn-primary" onClick={() => nova()}>
@@ -216,7 +221,9 @@ export default function Tarefas() {
           </small>
         </div>
       )}
-      {visao == 'kanban' ? (
+      {carregando && !dados ? (
+        <Esqueleto />
+      ) : visao == 'kanban' ? (
         <KanbanTarefas D={D} T={T} papelDe={papelDe} acoes={acoes} abrir={setTk} adicionar={podeCriar ? nova : null} origem />
       ) : (
         <div className="card card-body">

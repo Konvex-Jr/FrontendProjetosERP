@@ -6,6 +6,7 @@ import Ic from '../components/Icon'
 import { PageBar, Prog } from '../components/Ui'
 import alerts from '../lib/alerts'
 import useCarregar from '../lib/useCarregar'
+import Esqueleto from '../components/Esqueleto'
 import { juntarTecnologia, minhaConta, pessoas, rotuloStatus, tecnologias, tecnologiasDe } from '../services/pessoas'
 import { horas } from '../services/capacitacoes'
 
@@ -158,9 +159,19 @@ export default function Perfil() {
   const { me, form, go, refresh } = useApp()
   const codigo = outro || me
   const meu = codigo === me
-  const { dados: perfil, carregando, recarregar } = useCarregar(() => pessoas.perfil(codigo), [codigo])
+  const {
+    dados: perfil,
+    carregando,
+    recarregar,
+  } = useCarregar(() => pessoas.perfil(codigo), [codigo], { chave: `perfil:${outro || 'eu'}` })
 
-  if (!perfil) return <PageBar title={meu ? 'Meu perfil' : 'Perfil'} sub={carregando ? 'Carregando…' : 'Não foi possível carregar.'} />
+  if (!perfil)
+    return (
+      <>
+        <PageBar title={meu ? 'Meu perfil' : 'Perfil'} sub={carregando ? '' : 'Não foi possível carregar.'} />
+        {carregando && <Esqueleto />}
+      </>
+    )
 
   const { usuario: u, projetosAtuais, projetosAnteriores, historico, capacitacoes, alocacao } = perfil
 

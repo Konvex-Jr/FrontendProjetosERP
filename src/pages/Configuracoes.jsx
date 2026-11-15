@@ -6,6 +6,7 @@ import Table from '../components/Table'
 import { PageBar, Seg } from '../components/Ui'
 import alerts from '../lib/alerts'
 import useCarregar from '../lib/useCarregar'
+import Esqueleto from '../components/Esqueleto'
 import { configuracoes } from '../services/pessoas'
 
 const ABAS = [
@@ -22,12 +23,22 @@ const SIM_NAO = [
 export default function Configuracoes() {
   const { form, refresh } = useApp()
   const [aba, setAba] = useState('areas')
-  const { dados, carregando, recarregar } = useCarregar(async () => {
-    const [areas, cargos, senioridades] = await Promise.all([configuracoes.areas(), configuracoes.cargos(), configuracoes.senioridades()])
-    return { areas, cargos, senioridades }
-  })
+  const { dados, carregando, recarregar } = useCarregar(
+    async () => {
+      const [areas, cargos, senioridades] = await Promise.all([configuracoes.areas(), configuracoes.cargos(), configuracoes.senioridades()])
+      return { areas, cargos, senioridades }
+    },
+    [],
+    { chave: 'configuracoes' },
+  )
 
-  if (!dados) return <PageBar title="Configurações" sub={carregando ? 'Carregando…' : 'Não foi possível carregar.'} />
+  if (!dados)
+    return (
+      <>
+        <PageBar title="Configurações" sub={carregando ? '' : 'Não foi possível carregar.'} />
+        {carregando && <Esqueleto />}
+      </>
+    )
 
   const { areas, cargos, senioridades } = dados
   const nomeArea = codigo => areas.find(a => a.codigo === codigo)?.nome || '—'

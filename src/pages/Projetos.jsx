@@ -7,6 +7,7 @@ import Table from '../components/Table'
 import { Av, PageBar, Prog } from '../components/Ui'
 import alerts from '../lib/alerts'
 import useCarregar from '../lib/useCarregar'
+import Esqueleto from '../components/Esqueleto'
 import { consumir } from '../lib/atalho'
 import { GRUPOS_PROJETO } from '../lib/indicadores'
 import { configuracoes, pessoas } from '../services/pessoas'
@@ -58,16 +59,26 @@ export default function Projetos() {
   const [pv, setPv] = useState('grid'),
     [grupo, setGrupo] = useState(() => consumir('projetos') || '')
   const gestor = pode('projetos.editar')
-  const { dados, carregando, recarregar } = useCarregar(async () => {
-    const [lista, gente, areas] = await Promise.all([
-      projetos.listar(mb ? { codigoUsuario: me } : {}),
-      gestor ? pessoas.listar() : [],
-      gestor ? configuracoes.areas() : [],
-    ])
-    return { lista, gente, areas }
-  }, [mb, me, gestor])
+  const { dados, carregando, recarregar } = useCarregar(
+    async () => {
+      const [lista, gente, areas] = await Promise.all([
+        projetos.listar(mb ? { codigoUsuario: me } : {}),
+        gestor ? pessoas.listar() : [],
+        gestor ? configuracoes.areas() : [],
+      ])
+      return { lista, gente, areas }
+    },
+    [mb, me, gestor],
+    { chave: `projetos:${mb}:${gestor}` },
+  )
 
-  if (!dados) return <PageBar title="Projetos" sub={carregando ? 'Carregando…' : 'Não foi possível carregar.'} />
+  if (!dados)
+    return (
+      <>
+        <PageBar title="Projetos" sub={carregando ? '' : 'Não foi possível carregar.'} />
+        {carregando && <Esqueleto />}
+      </>
+    )
   const { lista, gente, areas } = dados
 
   const executar = async (acao, sucesso) => {

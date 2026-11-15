@@ -8,6 +8,7 @@ import ActionMenu from '../components/ActionMenu'
 import { PageBar } from '../components/Ui'
 import alerts from '../lib/alerts'
 import useCarregar from '../lib/useCarregar'
+import Esqueleto from '../components/Esqueleto'
 import { configuracoes, pessoas, rotuloStatus, STATUS_PESSOA, tecnologiasDe } from '../services/pessoas'
 
 const COR_STATUS = { ativo: 'ok', trainee: '', alumni: 'wa', inativo: 'er' }
@@ -22,17 +23,27 @@ const SAIDA = ['alumni', 'inativo']
 export default function Pessoas() {
   const { form, go, me, pode, refresh } = useApp()
   const [filtros] = useState(() => consumir('usuarios'))
-  const { dados, carregando, recarregar } = useCarregar(async () => {
-    const [lista, areas, cargos, senioridades] = await Promise.all([
-      pessoas.listar(),
-      configuracoes.areas(),
-      configuracoes.cargos(),
-      configuracoes.senioridades(),
-    ])
-    return { lista, areas, cargos, senioridades }
-  })
+  const { dados, carregando, recarregar } = useCarregar(
+    async () => {
+      const [lista, areas, cargos, senioridades] = await Promise.all([
+        pessoas.listar(),
+        configuracoes.areas(),
+        configuracoes.cargos(),
+        configuracoes.senioridades(),
+      ])
+      return { lista, areas, cargos, senioridades }
+    },
+    [],
+    { chave: 'pessoas' },
+  )
 
-  if (!dados) return <PageBar title="Pessoas" sub={carregando ? 'Carregando…' : 'Não foi possível carregar.'} />
+  if (!dados)
+    return (
+      <>
+        <PageBar title="Pessoas" sub={carregando ? '' : 'Não foi possível carregar.'} />
+        {carregando && <Esqueleto />}
+      </>
+    )
 
   const { lista, areas, cargos, senioridades } = dados
   const gereDiretores = pode('pessoas.gerirDiretores')

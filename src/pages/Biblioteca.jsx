@@ -10,6 +10,7 @@ import Anexos from '../components/Anexos'
 import { PageBar } from '../components/Ui'
 import alerts from '../lib/alerts'
 import useCarregar from '../lib/useCarregar'
+import Esqueleto from '../components/Esqueleto'
 import { abrirCom, consumir } from '../lib/atalho'
 import { ACEITA, DICA } from '../services/anexos'
 import {
@@ -157,7 +158,7 @@ function Lista() {
 
   const ativos = Object.values(f).some(Boolean)
   // Duas cargas: `todos` (sem filtro) monta as opções dos selects; `filtrados` vem da API só quando há filtro.
-  const todos = useCarregar(() => biblioteca.listar(), [])
+  const todos = useCarregar(() => biblioteca.listar(), [], { chave: 'biblioteca:todos' })
   const chave = JSON.stringify(f)
   const filtrados = useCarregar(() => (ativos ? biblioteca.listar(f) : Promise.resolve(null)), [chave])
   const T = useMemo(() => todos.dados || [], [todos.dados])
@@ -281,9 +282,7 @@ function Lista() {
         )}
       </div>
       {carregando && !lista.length ? (
-        <div className="card card-body">
-          <small>Carregando…</small>
-        </div>
+        <Esqueleto />
       ) : (
         <Table
           busca={false}
@@ -302,7 +301,7 @@ function Lista() {
 
 function Ficha({ id }) {
   const { DF, form, go, pode } = useApp()
-  const { dados: item, carregando, recarregar } = useCarregar(() => biblioteca.obter(id), [id])
+  const { dados: item, carregando, recarregar } = useCarregar(() => biblioteca.obter(id), [id], { chave: `biblioteca:item:${id}` })
   const voltar = (
     <button className="btn btn-g" onClick={() => go('biblioteca')}>
       <Ic k="back" />
@@ -311,9 +310,12 @@ function Ficha({ id }) {
   )
   if (!item)
     return (
-      <PageBar title="Biblioteca" sub={carregando ? 'Carregando…' : 'Item não encontrado. Ele pode ter sido excluído.'}>
-        {voltar}
-      </PageBar>
+      <>
+        <PageBar title="Biblioteca" sub={carregando ? '' : 'Item não encontrado. Ele pode ter sido excluído.'}>
+          {voltar}
+        </PageBar>
+        {carregando && <Esqueleto />}
+      </>
     )
 
   const visiveis = new Set((DF?.p || []).map(p => p.id))
@@ -411,7 +413,9 @@ function Ficha({ id }) {
 /** Aba "Biblioteca" da ficha do projeto: itens ligados a ele que a pessoa vê (a API filtra pelo sigilo). */
 export function ItensDoProjeto({ projeto }) {
   const { DF, form, go, pode } = useApp()
-  const { dados, carregando, recarregar } = useCarregar(() => biblioteca.listar({ projeto: projeto.codigo }), [projeto.codigo])
+  const { dados, carregando, recarregar } = useCarregar(() => biblioteca.listar({ projeto: projeto.codigo }), [projeto.codigo], {
+    chave: `biblioteca:projeto:${projeto.codigo}`,
+  })
   const L = dados || []
   // O próprio projeto entra nas opções mesmo se não estiver em DF.p.
   const projetos = [...(DF?.p || []).filter(p => p.id !== projeto.codigo), { id: projeto.codigo, nome: projeto.nome }]
@@ -434,9 +438,7 @@ export function ItensDoProjeto({ projeto }) {
         </button>
       </div>
       {carregando && !L.length ? (
-        <div className="card card-body">
-          <small>Carregando…</small>
-        </div>
+        <Esqueleto />
       ) : (
         <Table
           cols={cols}
