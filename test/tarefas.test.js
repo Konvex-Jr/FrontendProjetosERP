@@ -117,12 +117,15 @@ test('tarefa avulsa (8c): corpo com categoria e regras de quem organiza', () => 
   const nova = corpoNovaTarefa(null, {
     titulo: 'Pesquisa',
     categoria: 'inovacao',
+    iniciativaId: 'ini-1',
     inicio: '2026-11-03',
     fim: '2026-11-07',
     responsaveis: ['u2'],
   })
   assert.equal(nova.codigoProjeto, undefined)
   assert.equal(nova.categoria, 'inovacao')
+  assert.equal('codigoIniciativa' in nova, false)
+  assert.equal('codigoIniciativa' in corpoTarefa({ ...tarefa, avulsa: true, categoria: 'inovacao', iniciativaId: 'ini-1' }), false)
   assert.deepEqual(nova.codigosResponsaveis, ['u2'])
   assert.equal(corpoTarefa({ ...tarefa, avulsa: true, categoria: 'execucao' }).categoria, 'execucao')
   assert.equal(corpoTarefa(tarefa).categoria, undefined)

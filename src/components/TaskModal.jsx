@@ -112,7 +112,7 @@ const crescer = el => {
  * `papel` vem de papelNaTarefa/papelNasTarefas: sem `organiza`, os campos ficam travados.
  * `T` = tarefas carregadas na tela (para as dependências); `p` = projeto no formato do contexto.
  */
-export default function TaskModal({ D, salvar, t, p, T, close, del, tog, papel, iniciativas }) {
+export default function TaskModal({ D, salvar, t, p, T, close, del, tog, papel }) {
   const [draft, setDraft] = useState({ ...t }),
     [nv, setNv] = useState('')
   const cl = draft.checklist || [],
@@ -155,11 +155,8 @@ export default function TaskModal({ D, salvar, t, p, T, close, del, tog, papel, 
     ? D.u.filter(u => u.ativo !== false || (t.responsaveis || []).includes(u.id))
     : D.u.filter(u => (p?.membros || []).includes(u.id))
   const origem = t.avulsa
-    ? 'Tarefa avulsa · ' + rotuloCategoria(t.categoria) + (t.iniciativaNome ? ' · Iniciativa: ' + t.iniciativaNome : '')
+    ? 'Tarefa avulsa · ' + rotuloCategoria(t.categoria)
     : 'em ' + (p?.nome || t.projetoNome || 'projeto')
-  // Tarefa de Inovação pode ser ligada a uma iniciativa (sessão 12b); a iniciativa atual continua na lista.
-  const opsIniciativa = [...(iniciativas || [])]
-  if (t.iniciativaId && !opsIniciativa.some(o => o[0] === t.iniciativaId)) opsIniciativa.push([t.iniciativaId, t.iniciativaNome])
   const addI = () => {
     const v = nv.trim()
     if (!v) return
@@ -269,21 +266,6 @@ export default function TaskModal({ D, salvar, t, p, T, close, del, tog, papel, 
                       <L l="Categoria">
                         <select className="form-select mt-1" value={draft.categoria} onChange={e => patch({ categoria: e.target.value })}>
                           {CATEGORIAS.map(([k, l]) => (
-                            <option key={k} value={k}>
-                              {l}
-                            </option>
-                          ))}
-                        </select>
-                      </L>
-                    )}
-                    {t.avulsa && draft.categoria == 'inovacao' && iniciativas && (
-                      <L l="Iniciativa">
-                        <select
-                          className="form-select mt-1"
-                          value={draft.iniciativaId || ''}
-                          onChange={e => patch({ iniciativaId: e.target.value || undefined })}
-                        >
-                          {opsIniciativa.map(([k, l]) => (
                             <option key={k} value={k}>
                               {l}
                             </option>

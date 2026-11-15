@@ -7,7 +7,7 @@ import alerts from './alerts'
  * `carregar` devolve uma Promise; `deps` funciona como no useEffect (mudou, carrega de novo).
  * `dados` começa null (a tela mostra "Carregando…"); num erro, os dados anteriores ficam.
  * Depois de salvar, use `await recarregar()`.
- * Se `deps` mudar rápido (filtros da Base, das Iniciativas), só a resposta da chamada mais nova
+ * Se `deps` mudar rápido (filtros da Biblioteca), só a resposta da chamada mais nova
  * vale: uma resposta lenta de um filtro antigo é descartada.
  */
 export default function useCarregar(carregar, deps = []) {

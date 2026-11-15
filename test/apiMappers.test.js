@@ -47,6 +47,7 @@ test('adaptProject and adaptTask normalize nested resource references and dates'
   const task = adaptTask({
     codigo: 'task-1',
     projeto: { codigo: 'project-1' },
+    iniciativa: { codigo: 'ini-1', nome: 'Antiga' },
     titulo: 'Testar API',
     dataInicio: '2026-10-02',
     dataFim: '2026-10-03',
@@ -60,6 +61,7 @@ test('adaptProject and adaptTask normalize nested resource references and dates'
   assert.deepEqual(project.membros, ['user-1', 'user-2'])
   assert.equal(project.inicio, '2026-10-01')
   assert.equal(task.projetoId, 'project-1')
+  assert.equal('iniciativaId' in task || 'iniciativaNome' in task, false)
   assert.equal(task.dependeDe, 'task-0')
   assert.deepEqual(task.responsaveis, ['user-1'])
   assert.deepEqual(task.checklist, [{ id: 'item-1', texto: 'Cobrir 422', feito: true }])

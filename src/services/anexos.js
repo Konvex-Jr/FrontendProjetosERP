@@ -66,10 +66,8 @@ const enviarBytes = (path, arquivo) =>
   })
 
 export const anexos = {
-  /** `dono`: 'biblioteca' (e, até saírem, 'conhecimento' ou 'iniciativas'). */
+  /** `dono`: 'biblioteca'. */
   enviar: (dono, codigo, arquivo) => enviarBytes(`/${dono}/${codigo}/anexos`, arquivo),
-  /** Documento do tipo arquivo numa pasta (gestão). */
-  enviarDocumento: (codigoPasta, arquivo) => enviarBytes(`/pastas/${codigoPasta}/documentos/arquivo`, arquivo),
   excluir: codigo => request(`/anexos/${codigo}`, { method: 'DELETE', auth: true }),
   /** Baixa pela API (o token vai no cabeçalho) e entrega ao navegador com o nome original. */
   async baixar(anexo) {

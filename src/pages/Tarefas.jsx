@@ -13,7 +13,6 @@ import useCarregar from '../lib/useCarregar'
 import { adaptTask } from '../lib/apiMappers'
 import { STATUS_ATIVOS, projetos } from '../services/projetos'
 import { CATEGORIAS, acoesTarefa, origemTarefa, papelNaTarefa, tarefas } from '../services/tarefas'
-import { iniciativas } from '../services/iniciativas'
 
 const VISOES = [
   ['kanban', 'Kanban'],
@@ -62,10 +61,6 @@ export default function Tarefas() {
     const [lista, todos] = await Promise.all([tarefas.listar(filtroApi(filtro)), projetos.listar()])
     return { tarefas: lista.map(adaptTask), projetos: todos }
   }, [filtro.pessoa, filtro.origem, filtro.status, me])
-
-  // Iniciativas para ligar tarefas de Inovação (sessão 12b); só quem organiza avulsas precisa da lista.
-  const inis = useCarregar(() => (atribui ? iniciativas.listar() : Promise.resolve([])), [atribui]).dados || []
-  const opcoesIniciativa = [['', 'Nenhuma'], ...inis.map(i => [i.id, i.titulo])]
 
   const porCodigo = useMemo(() => new Map((dados?.projetos || []).map(p => [p.codigo, p])), [dados])
   const T = (dados?.tarefas || []).filter(t => noPrazo(t, filtro.prazo, hj(D)))
@@ -118,13 +113,6 @@ export default function Tarefas() {
         },
         { k: 'titulo', l: 'Título' },
         { k: 'prioridade', l: 'Prioridade', o: ['P1', 'P2', 'P3', 'P4'].map(x => [x, x]) },
-        {
-          k: 'iniciativaId',
-          l: 'Iniciativa',
-          o: opcoesIniciativa,
-          s: v => v.tipo === 'cat:inovacao',
-          h: 'Opcional: liga a tarefa a uma iniciativa de inovação.',
-        },
         { k: 'responsaveis', l: 'Responsáveis', c: v => genteDe(v.tipo), s: v => organizaEm(v.tipo) },
         { k: 'inicio', l: 'Início', t: 'date' },
         { k: 'fim', l: 'Fim', t: 'date' },
@@ -242,7 +230,6 @@ export default function Tarefas() {
           me={me}
           t={aberta}
           T={T}
-          iniciativas={opcoesIniciativa}
           p={projetoAberto ? { id: projetoAberto.codigo, nome: projetoAberto.nome, membros: equipeAtual(projetoAberto) } : null}
           salvar={(antes, depois) => acoes.salvar(antes, depois, 'Tarefa salva')}
           close={() => setTk(null)}
