@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useApp } from '../context/AppContext'
-import { chip, fm, prog } from '../lib/utils'
+import { fm, prog } from '../lib/utils'
 import Ic from '../components/Icon'
 import ActionMenu from '../components/ActionMenu'
 import Table from '../components/Table'
@@ -8,17 +8,26 @@ import { Av, PageBar, Prog } from '../components/Ui'
 import alerts from '../lib/alerts'
 import useCarregar from '../lib/useCarregar'
 import Esqueleto from '../components/Esqueleto'
+import { SeloSigiloso, StatusProjeto } from '../components/SeloProjeto'
+import { ErroAcessoParcial, acessoComLogin, gravarProjeto } from '../lib/gravarProjeto'
 import { consumir } from '../lib/atalho'
 import { GRUPOS_PROJETO } from '../lib/indicadores'
 import { configuracoes, pessoas } from '../services/pessoas'
-import { COR_STATUS_PROJETO, PRIORIDADE_PROJETO, STATUS_PROJETO, projetos, rotuloStatusProjeto } from '../services/projetos'
+import { PRIORIDADE_PROJETO, STATUS_PROJETO, projetos, rotuloStatusProjeto } from '../services/projetos'
 
 const dia = s => (s ? String(s).slice(0, 10) : '')
 const membrosAtivos = p => (p.participacoes || []).filter(x => !x.dataSaida).map(x => x.usuario.codigo)
 
+const VISIBILIDADE = [
+  ['normal', 'Normal'],
+  ['sigiloso', 'Sigiloso'],
+]
+
 /** Campos do formulário do projeto, usados aqui e na Visão geral do projeto. */
-export function camposProjeto({ lista, areas, novo }) {
+export function camposProjeto({ lista, areas, novo, podeGerirAcesso }) {
   const opcoes = (itens, ok) => [['', '—'], ...itens.filter(ok).map(i => [i.codigo, i.nome])]
+  // Visibilidade e lista de acesso: na criação sempre; na edição só quem gere o acesso (senão a API recusa com 403).
+  const gereAcesso = novo || podeGerirAcesso
   return [
     { k: 'nome', l: 'Nome' },
     { k: 'referencia', l: 'Referência', opt: true, h: 'Código curto do projeto, ex.: PRJ-2026-01.' },
@@ -31,11 +40,21 @@ export function camposProjeto({ lista, areas, novo }) {
     { k: 'prioridade', l: 'Prioridade', o: PRIORIDADE_PROJETO },
     { k: 'codigoResponsavel', l: 'Responsável', o: opcoes(lista, u => u.naEj), opt: true },
     { k: 'codigoArea', l: 'Área', o: opcoes(areas, a => a.ativa), opt: true },
+    { k: 'visibilidade', l: 'Visibilidade', o: VISIBILIDADE, s: () => gereAcesso },
+    {
+      k: 'acesso',
+      l: 'Quem mais pode ver o projeto',
+      // Só pessoas com login (ativas): a API recusa as outras com ACESSO_PESSOA_SEM_LOGIN.
+      c: lista.filter(u => u.ativo).map(u => ({ id: u.codigo, nome: u.nome, perfil: u.perfil })),
+      s: v => gereAcesso && v.visibilidade === 'sigiloso',
+      h: 'Diretores, quem criou e a equipe já veem o projeto.',
+    },
   ]
 }
 
-export function valoresProjeto(p) {
-  if (!p) return { prioridade: 'media', codigoResponsavel: '', codigoArea: '' }
+/** `pessoas`: a mesma lista do seletor de acesso (só os códigos com login entram no formulário). */
+export function valoresProjeto(p, pessoas = []) {
+  if (!p) return { prioridade: 'media', codigoResponsavel: '', codigoArea: '', visibilidade: 'normal', acesso: [] }
   return {
     nome: p.nome,
     referencia: p.referencia || '',
@@ -48,10 +67,10 @@ export function valoresProjeto(p) {
     prioridade: p.prioridade || 'media',
     codigoResponsavel: p.responsavel?.codigo || '',
     codigoArea: p.area?.codigo || '',
+    visibilidade: p.sigiloso ? 'sigiloso' : 'normal',
+    acesso: acessoComLogin(p.acesso, pessoas),
   }
 }
-
-export const StatusProjeto = ({ s }) => <span className={chip(COR_STATUS_PROJETO[s])}>{rotuloStatusProjeto(s)}</span>
 
 /**
  * Chave e busca da lista de projetos. A tela e o menu (src/lib/antecipar.js) usam as mesmas,
@@ -98,17 +117,29 @@ export default function Projetos() {
       refresh().catch(() => {})
       return r
     } catch (error) {
+      if (error instanceof ErroAcessoParcial) {
+        // O projeto já foi salvo: recarrega para a tela mostrar o que o servidor tem e fecha o formulário.
+        await recarregar()
+        refresh().catch(() => {})
+        alerts.error('Salvo pela metade', 'Projeto salvo, mas a lista de acesso não: ' + error.message)
+        return undefined
+      }
       alerts.error('Não foi possível salvar', error.message)
       return false
     }
   }
 
   const editar = p =>
-    form(p ? 'Editar projeto' : 'Novo projeto', camposProjeto({ lista: gente, areas, novo: !p }), valoresProjeto(p), async v => {
-      const r = await executar(() => (p ? projetos.editar(p.codigo, v) : projetos.criar(v)), p ? 'Projeto atualizado' : 'Projeto criado')
-      if (r && !p) go('projeto', r.codigo)
-      return r === false ? false : undefined
-    })
+    form(
+      p ? 'Editar projeto' : 'Novo projeto',
+      camposProjeto({ lista: gente, areas, novo: !p, podeGerirAcesso: p?.podeGerirAcesso }),
+      valoresProjeto(p, gente),
+      async v => {
+        const r = await executar(() => gravarProjeto(p, v), p ? 'Projeto atualizado' : 'Projeto criado')
+        if (r && !p) go('projeto', r.codigo)
+        return r === false ? false : undefined
+      },
+    )
   const mudarStatus = p =>
     form(
       'Mudar status',
@@ -126,24 +157,39 @@ export default function Projetos() {
     if (ok) await executar(() => projetos.excluir(p.codigo), 'Projeto excluído')
   }
 
-  const Ac = ({ p }) => (
-    <ActionMenu
-      items={[
-        ['open', 'Abrir', () => go('projeto', p.codigo)],
-        ...(gestor
-          ? [
-              ['edit', 'Editar', () => editar(p)],
-              ['check', 'Mudar status', () => mudarStatus(p)],
-            ]
-          : []),
-        ...(pode('projetos.excluir') ? [['trash', 'Excluir', () => excluir(p), 1]] : []),
-      ]}
-    />
-  )
+  const Ac = ({ p }) =>
+    p.resumo ? null : (
+      <ActionMenu
+        items={[
+          ['open', 'Abrir', () => go('projeto', p.codigo)],
+          ...(gestor
+            ? [
+                ['edit', 'Editar', () => editar(p)],
+                ['check', 'Mudar status', () => mudarStatus(p)],
+              ]
+            : []),
+          ...(pode('projetos.excluir') ? [['trash', 'Excluir', () => excluir(p), 1]] : []),
+        ]}
+      />
+    )
   const pg = p => prog(D, { id: p.codigo, tarefas: p.tarefas })
   const periodo = p => fm(dia(p.dataInicio)) + ' a ' + fm(dia(p.dataFim))
   const cols = [
-    { k: 'nome', l: 'Projeto' },
+    {
+      k: 'nome',
+      l: 'Projeto',
+      render: p => (
+        <>
+          {p.nome}
+          {p.sigiloso && (
+            <>
+              {' '}
+              <SeloSigiloso />
+            </>
+          )}
+        </>
+      ),
+    },
     { k: 'st', l: 'Status', filter: 1, get: p => rotuloStatusProjeto(p.status), render: p => <StatusProjeto s={p.status} /> },
     { k: 'resp', l: 'Responsável', filter: 1, get: p => p.responsavel?.nome || '—' },
     { k: 'fim', l: 'Período', get: p => dia(p.dataFim), render: periodo },
@@ -202,27 +248,35 @@ export default function Projetos() {
           )}
           {linhas.map(p => (
             <div className="col-md-6 col-xl-4" key={p.id}>
-              <div className="card card-body pj hoverable h-100" onClick={() => go('projeto', p.codigo)}>
-                <div className="d-flex justify-content-between align-items-center">
-                  <StatusProjeto s={p.status} />
+              <div
+                className={'card card-body pj h-100' + (p.resumo ? ' resumo-sigilo' : ' hoverable')}
+                onClick={p.resumo ? undefined : () => go('projeto', p.codigo)}
+              >
+                <div className="d-flex justify-content-between align-items-center gap-2">
+                  <span className="d-flex flex-wrap gap-1">
+                    <StatusProjeto s={p.status} />
+                    {p.sigiloso && <SeloSigiloso />}
+                  </span>
                   <Av D={D} ids={membrosAtivos(p)} />
                 </div>
                 <h2 className="mt-3">{p.nome}</h2>
-                <p className="text-mu m-0">{p.descricao}</p>
+                <p className="text-mu m-0">{p.resumo ? 'Projeto sigiloso: só o resumo.' : p.descricao}</p>
                 <Prog v={pg(p)} />
                 <small>
                   {pg(p)}% · {periodo(p)}
                   {p.clienteNome ? ' · ' + p.clienteNome : ''}
                 </small>
-                <span className="cm" onClick={e => e.stopPropagation()}>
-                  <Ac p={p} />
-                </span>
+                {!p.resumo && (
+                  <span className="cm" onClick={e => e.stopPropagation()}>
+                    <Ac p={p} />
+                  </span>
+                )}
               </div>
             </div>
           ))}
         </div>
       ) : (
-        <Table cols={cols} rows={linhas} vazio={vazio} />
+        <Table cols={cols} rows={linhas} vazio={vazio} linhaCls={p => (p.resumo ? 'resumo-sigilo' : undefined)} />
       )}
     </>
   )

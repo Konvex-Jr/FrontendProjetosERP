@@ -64,6 +64,7 @@ export default function FormModal({ t, fs, init, save, close, largo }) {
                     <div className="mb-3" key={x.k}>
                       <div className="form-label">{x.l}</div>
                       <Multi opts={typeof x.c === 'function' ? x.c(v) : x.c} value={v[x.k] || []} onChange={z => set(x.k, z)} />
+                      {x.h && <small className="d-block mt-1">{x.h}</small>}
                     </div>
                   ) : x.t === 'file' ? (
                     // Fora de <label>: a zona tem o próprio botão e a área de soltar. O formulário guarda os arquivos.

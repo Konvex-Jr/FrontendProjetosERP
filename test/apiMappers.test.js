@@ -102,3 +102,41 @@ test('normalizeSenioridades preserves database codes and handles an empty databa
   assert.deepEqual(normalizeSenioridades([]), [])
   assert.deepEqual(readConfig([], false).senioridades, {})
 })
+
+test('adaptProject marca sigilo e acesso do projeto completo', () => {
+  const p = adaptProject({
+    codigo: 'p1',
+    nome: 'X',
+    sigiloso: true,
+    acesso: ['u1', 'u2'],
+    podeGerirAcesso: true,
+    tarefas: { total: 3, concluidas: 1, atrasadas: 1, semana: 0 },
+  })
+  assert.equal(p.sigiloso, true)
+  assert.equal(p.resumo, false)
+  assert.deepEqual(p.acesso, ['u1', 'u2'])
+  assert.equal(p.podeGerirAcesso, true)
+  assert.equal(p.tarefasResumo, undefined)
+  const normal = adaptProject({ codigo: 'p2', nome: 'Y' })
+  assert.deepEqual([normal.sigiloso, normal.resumo, normal.podeGerirAcesso, normal.acesso], [false, false, false, []])
+})
+
+test('adaptProject mapeia o resumo com campos vazios seguros', () => {
+  const p = adaptProject({
+    codigo: 'p1',
+    nome: 'Sigiloso',
+    sigiloso: true,
+    resumo: true,
+    status: 'em_execucao',
+    dataInicio: '2026-10-01T00:00:00.000Z',
+    dataFim: '2026-10-31',
+    tarefas: { total: 5, concluidas: 2, atrasadas: 2, semana: 1 },
+    participacoes: [],
+  })
+  assert.equal(p.resumo, true)
+  assert.deepEqual(p.tarefasResumo, { total: 5, concluidas: 2, atrasadas: 2, semana: 1 })
+  assert.equal(p.descricao, '')
+  assert.deepEqual(p.membros, [])
+  assert.deepEqual(p.acesso, [])
+  assert.equal(p.inicio, '2026-10-01')
+})

@@ -11,6 +11,7 @@ import { juntarTecnologia, minhaConta, pessoas, rotuloStatus, tecnologias, tecno
 import { horas } from '../services/capacitacoes'
 import { itensDoAutor } from '../services/biblioteca'
 import Clipe from '../components/Clipe'
+import { SeloSigiloso } from '../components/SeloProjeto'
 
 const COR_STATUS = { ativo: 'ok', trainee: '', alumni: 'wa', inativo: 'er' }
 const semProtocolo = url => url.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')
@@ -166,14 +167,20 @@ export function dadosDaTela({ me }, outro) {
 /** RF-013: perfil da pessoa. Em /perfil é o próprio; em /perfil/:codigo, o de outra pessoa. */
 export default function Perfil() {
   const { codigo: outro } = useParams()
-  const { me, form, go, refresh } = useApp()
+  const { me, form, go, refresh, nav } = useApp()
   const codigo = codigoDoPerfil(me, outro)
   const meu = codigo === me
   const tela = dadosDaTela({ me }, outro)
   const { dados: perfil, carregando, recarregar } = useCarregar(tela.carregar, [codigo], { chave: tela.chave })
 
+  // Quem não tem Biblioteca no menu (trainee) levaria 403 da API: nem busca, nem mostra a seção.
+  const temBiblioteca = nav.some(([chave]) => chave === 'biblioteca')
   const itens = itensDoAutor(codigo)
-  const { dados: itensBib, carregando: carregandoItens } = useCarregar(itens.carregar, [codigo], { chave: itens.chave })
+  const { dados: itensBib, carregando: carregandoItens } = useCarregar(
+    temBiblioteca ? itens.carregar : () => Promise.resolve(null),
+    [codigo, temBiblioteca],
+    { chave: temBiblioteca ? itens.chave : `${itens.chave}:sem` },
+  )
 
   if (!perfil)
     return (
@@ -270,15 +277,21 @@ export default function Perfil() {
   ].filter(([, v]) => v)
 
   const projeto = p => (
-    <div className="ag" key={p.codigo + p.dataEntrada} onClick={() => go('projeto', p.codigo)}>
+    <div
+      className={'ag' + (p.restrito ? ' resumo-sigilo' : '')}
+      key={p.codigo + p.dataEntrada}
+      onClick={p.restrito ? undefined : () => go('projeto', p.codigo)}
+    >
       <span className={chip()}>{p.alocacao}%</span>
       <div>
         <b>{p.nome}</b>
         <small>
-          {p.funcao || 'Sem função definida'} · desde {fd(p.dataEntrada)}
+          {/* Projeto sigiloso que quem olha não pode abrir: sem função e sem link. */}
+          {p.restrito ? 'Detalhes restritos' : p.funcao || 'Sem função definida'} · desde {fd(p.dataEntrada)}
           {p.dataSaida ? ` até ${fd(p.dataSaida)}` : ''}
         </small>
       </div>
+      {p.sigiloso && <SeloSigiloso />}
       <span className={chip()}>{p.status}</span>
     </div>
   )

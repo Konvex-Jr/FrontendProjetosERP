@@ -11,9 +11,9 @@ import { useState } from 'react'
  * - `get(linha)`: valor usado na busca, na ordenação e no filtro (padrão: linha[k]). Use para texto, não para JSX;
  * - `render(linha)`: o que aparece na célula (padrão: o valor);
  * - `filter`: cria um select com os valores distintos da coluna; `fl`: rótulo desse select.
- * A primeira coluna é o título do cartão no celular. Cada linha precisa de `id` (key do React).
+ * `linhaCls(linha)`: classe extra da linha (ex.: esmaecer). A primeira coluna é o título do cartão no celular. Cada linha precisa de `id` (key do React).
  */
-export default function Table({ cols, rows, vazio, filtros, busca = true }) {
+export default function Table({ cols, rows, vazio, filtros, busca = true, linhaCls }) {
   const [q, setQ] = useState(''),
     [s, setS] = useState({ k: null, dir: 1 }),
     [f, setF] = useState(filtros || {})
@@ -83,7 +83,7 @@ export default function Table({ cols, rows, vazio, filtros, busca = true }) {
           <tbody>
             {/* data-l e as classes permitem virar cartão no celular (ver .tc em components.css). */}
             {R.map(r => (
-              <tr key={r.id}>
+              <tr key={r.id} className={linhaCls ? linhaCls(r) : undefined}>
                 {cols.map((c, i) => (
                   <td key={i} data-l={c.l} className={c.l === 'Ações' ? 'tc-a' : i === 0 ? 'tc-t' : ''}>
                     {c.render ? c.render(r) : val(r, c)}

@@ -44,13 +44,28 @@ export function adaptProject(project) {
   return {
     id: project.codigo,
     nome: project.nome,
-    descricao: project.descricao,
+    descricao: project.descricao ?? '',
     inicio: dateOnly(project.dataInicio),
     fim: dateOnly(project.dataFim),
     status: project.status,
     membros: (project.membros || []).map(userCode),
     // Contagem de todas as tarefas do projeto (para o progresso; ver prog em lib/utils.js).
     tarefas: project.tarefas,
+    // Sigilo: o resumo (gerente fora da lista) só traz nome, status, datas, contagens e equipe.
+    sigiloso: !!project.sigiloso,
+    resumo: !!project.resumo,
+    acesso: project.acesso || [],
+    podeGerirAcesso: !!project.podeGerirAcesso,
+    ...(project.resumo
+      ? {
+          tarefasResumo: {
+            total: project.tarefas?.total || 0,
+            concluidas: project.tarefas?.concluidas || 0,
+            atrasadas: project.tarefas?.atrasadas || 0,
+            semana: project.tarefas?.semana || 0,
+          },
+        }
+      : {}),
   }
 }
 

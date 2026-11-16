@@ -10,11 +10,13 @@ import { Av, PageBar, Seg } from '../components/Ui'
 import alerts from '../lib/alerts'
 import useCarregar from '../lib/useCarregar'
 import Esqueleto from '../components/Esqueleto'
-import { configuracoes, pessoas } from '../services/pessoas'
-import { projetos, rotuloPrioridade } from '../services/projetos'
+import { rotuloPrioridade } from '../services/projetos'
 import { acoesTarefa, papelNasTarefas, tarefas } from '../services/tarefas'
-import { adaptTask } from '../lib/apiMappers'
-import { StatusProjeto, camposProjeto, valoresProjeto } from './Projetos'
+import { ErroAcessoParcial, gravarProjeto } from '../lib/gravarProjeto'
+import { carregarProjeto } from '../lib/carregarProjeto'
+import Table from '../components/Table'
+import { camposProjeto, valoresProjeto } from './Projetos'
+import { SeloSigiloso, StatusProjeto } from '../components/SeloProjeto'
 import { ItensDoProjeto } from './Biblioteca'
 
 const ABAS = [
@@ -24,32 +26,71 @@ const ABAS = [
   ['biblioteca', 'Biblioteca'],
 ]
 
+const dia = s => (s ? String(s).slice(0, 10) : '')
+
+/** Gerente fora da lista do projeto sigiloso: só nome, status, datas, contagens e equipe com alocação. */
+function ResumoSigiloso({ projeto, voltar }) {
+  const t = projeto.tarefas || {}
+  const pessoas = projeto.participacoes.map(x => ({ ...x, id: x.codigo ?? x.usuario.codigo + dia(x.dataEntrada) }))
+  const dados = [
+    ['Status', <StatusProjeto key="status" s={projeto.status} />],
+    ['Período', fm(dia(projeto.dataInicio)) + ' a ' + fm(dia(projeto.dataFim))],
+    ['Tarefas', `${t.concluidas || 0} de ${t.total || 0} concluídas`],
+    ['Atrasadas', t.atrasadas || 0],
+    ['Na semana', t.semana || 0],
+  ]
+  return (
+    <>
+      <div className="cab d-flex flex-wrap align-items-center gap-2 mb-3">
+        {voltar}
+        <h1>{projeto.nome}</h1>
+        <SeloSigiloso />
+      </div>
+      <p className="text-mu">Projeto sigiloso: você vê só o resumo.</p>
+      <div className="card card-body mb-3">
+        <div className="row g-3">
+          {dados.map(([l, v]) => (
+            <div className="col-6 col-lg-3" key={l}>
+              <small className="d-block">{l}</small>
+              <div className="fw-semibold">{v}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <h2 className="h6 fw-bold">Equipe</h2>
+      <Table
+        busca={false}
+        rows={pessoas}
+        vazio="Ninguém na equipe."
+        cols={[
+          { k: 'p', l: 'Pessoa', get: x => x.usuario.nome },
+          { k: 'a', l: 'Alocação', get: x => x.alocacao, render: x => x.alocacao + '%' },
+          { k: 'e', l: 'Entrada', get: x => dia(x.dataEntrada), render: x => fm(dia(x.dataEntrada)) },
+          { k: 's', l: 'Saída', get: x => dia(x.dataSaida), render: x => (x.dataSaida ? fm(dia(x.dataSaida)) : 'Em andamento') },
+        ]}
+      />
+    </>
+  )
+}
+
 /**
  * Página de um projeto (/projetos/:id), com as abas Tarefas (kanban ou Gantt), Visão geral, Equipe e Biblioteca.
  * Nas tarefas, gestão e líder organizam; quem está na equipe atual cria e conclui as suas (papelNasTarefas).
  */
 export default function Projeto() {
-  const { D, form, go, me, pode, refresh } = useApp(),
+  const { D, form, go, me, nav, pode, refresh } = useApp(),
     { id } = useParams(),
     pid = id
   const [pt, setPt] = useState('kanban'),
     [tk, setTk] = useState(null)
   const [aba, setAba] = useState('tarefas')
+  // Quem não tem Biblioteca no menu (trainee) levaria 403 da API: a aba nem aparece (mesma regra do Perfil).
+  const temBiblioteca = nav.some(([chave]) => chave === 'biblioteca')
+  const abas = temBiblioteca ? ABAS : ABAS.filter(([k]) => k !== 'biblioteca')
   const gestor = pode('projetos.editar')
-  const { dados, carregando, recarregar } = useCarregar(
-    async () => {
-      const [projeto, todos, gente, areas, lista] = await Promise.all([
-        projetos.buscar(pid),
-        projetos.listar(),
-        gestor ? pessoas.listar() : [],
-        gestor ? configuracoes.areas() : [],
-        tarefas.listar({ codigoProjeto: pid }),
-      ])
-      return { projeto, todos, gente, areas, tarefas: lista.map(adaptTask) }
-    },
-    [pid, gestor],
-    { chave: `projeto:${pid}` },
-  )
+  const { dados, carregando, recarregar } = useCarregar(() => carregarProjeto(pid, gestor), [pid, gestor], {
+    chave: `projeto:${pid}:${gestor}`,
+  })
   const voltar = (
     <button className="btn btn-g" onClick={() => go('projetos')}>
       <Ic k="back" />
@@ -66,6 +107,7 @@ export default function Projeto() {
       </>
     )
   const { projeto, todos, gente, areas } = dados
+  if (projeto.resumo) return <ResumoSigiloso projeto={projeto} voltar={voltar} />
   // Depois de salvar: recarrega o projeto e os dados compartilhados (tarefas, avatares, painel).
   const aoSalvar = async () => {
     await recarregar()
@@ -166,18 +208,28 @@ export default function Projeto() {
     )
 
   const editarProjeto = () =>
-    form('Editar projeto', camposProjeto({ lista: gente, areas }), valoresProjeto(projeto), async v => {
-      try {
-        await projetos.editar(projeto.codigo, v)
-        alerts.toastSuccess('Projeto atualizado')
-        await aoSalvar()
-      } catch (error) {
-        alerts.error('Não foi possível salvar', error.message)
-        return false
-      }
-    })
+    form(
+      'Editar projeto',
+      camposProjeto({ lista: gente, areas, podeGerirAcesso: projeto.podeGerirAcesso }),
+      valoresProjeto(projeto, gente),
+      async v => {
+        try {
+          await gravarProjeto(projeto, v)
+          alerts.toastSuccess('Projeto atualizado')
+          await aoSalvar()
+        } catch (error) {
+          if (error instanceof ErroAcessoParcial) {
+            // O projeto já foi salvo: recarrega e fecha o formulário, para a tela mostrar o que o servidor tem.
+            await aoSalvar()
+            alerts.error('Salvo pela metade', 'Projeto salvo, mas a lista de acesso não: ' + error.message)
+            return undefined
+          }
+          alerts.error('Não foi possível salvar', error.message)
+          return false
+        }
+      },
+    )
 
-  const dia = s => (s ? String(s).slice(0, 10) : '')
   const info = [
     ['Status', <StatusProjeto key="status" s={projeto.status} />],
     ['Referência', projeto.referencia || '—'],
@@ -188,6 +240,12 @@ export default function Projeto() {
     ['Líder', projeto.lider?.nome || '—'],
     ['Área', projeto.area?.nome || '—'],
     ['Equipe', <Av key="equipe" D={D} ids={p.membros} />],
+    ...(projeto.sigiloso
+      ? [
+          ['Visibilidade', <SeloSigiloso key="sigilo" />],
+          ['Quem mais vê', projeto.acesso.length ? projeto.acesso.map(c => nm(D, [c])).join(', ') : 'Só diretores, quem criou e a equipe'],
+        ]
+      : []),
   ]
   const geral = () => (
     <div className="card card-body">
@@ -228,7 +286,11 @@ export default function Projeto() {
         <div className="cab d-flex align-items-center gap-2">
           {voltar}
           <h1>{projeto.nome}</h1>
-          <StatusProjeto s={projeto.status} />
+          {/* Um filho só depois do título: o CSS do celular (.cab) conta com isso. */}
+          <span className="d-flex flex-wrap gap-1">
+            <StatusProjeto s={projeto.status} />
+            {projeto.sigiloso && <SeloSigiloso />}
+          </span>
         </div>
         {aba == 'tarefas' && (
           <div className="d-flex flex-wrap gap-2">
@@ -248,11 +310,11 @@ export default function Projeto() {
         )}
       </div>
       <div className="mb-3">
-        <Seg items={ABAS} value={aba} onChange={setAba} />
+        <Seg items={abas} value={aba} onChange={setAba} />
       </div>
       {aba == 'tarefas' && (pt == 'kanban' ? kanban() : gantt())}
       {aba == 'geral' && geral()}
-      {aba == 'biblioteca' && <ItensDoProjeto projeto={projeto} />}
+      {aba == 'biblioteca' && temBiblioteca && <ItensDoProjeto projeto={projeto} />}
       {aba == 'equipe' && <EquipeProjeto projeto={projeto} todos={todos} gente={gente} gestor={gestor} aoSalvar={aoSalvar} />}
       {tk && T.find(x => x.id == tk) && (
         <TaskModal

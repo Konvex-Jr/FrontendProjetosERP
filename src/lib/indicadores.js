@@ -32,8 +32,10 @@ export function indicadores(D, hoje) {
   const abertas = tarefas.filter(t => t.status != 'concluida')
   const domingo = fimDaSemana(hoje),
     em30 = somarDias(hoje, 30)
-  const atrasadas = abertas.filter(t => dia(t.fim) < hoje).length
-  const semana = abertas.filter(t => dia(t.fim) >= hoje && dia(t.fim) <= domingo).length
+  // Tarefas de projeto sigiloso em resumo não vêm na lista: entram pelas contagens do resumo.
+  const doResumo = campo => projetos.reduce((soma, p) => soma + (p.resumo ? p.tarefasResumo?.[campo] || 0 : 0), 0)
+  const atrasadas = abertas.filter(t => dia(t.fim) < hoje).length + doResumo('atrasadas')
+  const semana = abertas.filter(t => dia(t.fim) >= hoje && dia(t.fim) <= domingo).length + doResumo('semana')
   const proximas = caps.filter(c => dia(c.data) >= hoje && dia(c.data) <= em30).length
   const membros = pessoas.filter(u => (u.status ? u.status === 'ativo' : u.ativo !== false)).length
   return [
@@ -83,4 +85,20 @@ export function indicadores(D, hoje) {
       destino: ['tarefas', { pessoa: '', prazo: 'atrasadas' }],
     },
   ]
+}
+
+/**
+ * Cartões da Visão Estratégica: { total, late, and, done } (chaves das abas da tela).
+ * Projeto sigiloso em resumo não manda as tarefas, só as contagens: elas entram aqui, mas não na lista
+ * nem no burndown. Na parte do resumo, "em andamento" = total - concluídas - atrasadas.
+ */
+export function contagemTarefas(D, hoje) {
+  const tarefas = D.t || [],
+    resumos = (D.p || []).filter(p => p.resumo)
+  const doResumo = campo => resumos.reduce((soma, p) => soma + (p.tarefasResumo?.[campo] || 0), 0)
+  const atrasada = t => t.status != 'concluida' && dia(t.fim) < hoje
+  const total = tarefas.length + doResumo('total')
+  const done = tarefas.filter(t => t.status == 'concluida').length + doResumo('concluidas')
+  const late = tarefas.filter(atrasada).length + doResumo('atrasadas')
+  return { total, late, and: Math.max(0, total - done - late), done }
 }

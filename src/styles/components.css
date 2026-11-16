@@ -199,6 +199,24 @@ svg.i {
     padding-bottom: 56px
 }
 
+/* Projeto sigiloso visto só em resumo: esmaecido e sem clique. */
+.resumo-sigilo,
+.ag.resumo-sigilo {
+    opacity: .6;
+    cursor: default
+}
+
+.selo-sigilo {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px
+}
+
+.selo-sigilo .i {
+    width: 12px;
+    height: 12px
+}
+
 .stat b {
     font-size: 34px;
     display: block;
