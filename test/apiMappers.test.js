@@ -140,3 +140,19 @@ test('adaptProject mapeia o resumo com campos vazios seguros', () => {
   assert.deepEqual(p.acesso, [])
   assert.equal(p.inicio, '2026-10-01')
 })
+
+test('adaptTask traz a coluna (ou null) e adaptProject as colunas', () => {
+  const col = { codigo: 'c1', nome: 'A fazer', cor: 'cinza', papel: 'entrada' }
+  assert.deepEqual(adaptTask({ codigo: 't', projeto: { codigo: 'p' }, coluna: col }).coluna, {
+    id: 'c1',
+    nome: 'A fazer',
+    cor: 'cinza',
+    papel: 'entrada',
+  })
+  assert.equal(adaptTask({ codigo: 't', coluna: null }).coluna, null)
+  assert.equal(adaptTask({ codigo: 't' }).coluna, null)
+  assert.deepEqual(adaptProject({ codigo: 'p', nome: 'X', colunas: [col] }).colunas, [
+    { id: 'c1', nome: 'A fazer', cor: 'cinza', papel: 'entrada' },
+  ])
+  assert.deepEqual(adaptProject({ codigo: 'p', nome: 'X', resumo: true }).colunas, [])
+})

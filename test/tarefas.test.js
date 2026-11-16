@@ -6,6 +6,7 @@ import {
   origemTarefa,
   papelNaTarefa,
   papelNasTarefas,
+  soMudouEtapa,
   soMudouStatus,
   tarefas,
 } from '../src/services/tarefas.js'
@@ -148,4 +149,42 @@ test('tarefa avulsa (8c): corpo com categoria e regras de quem organiza', () => 
   assert.equal(papelNaTarefa({ me: 'u1', projeto, tarefa }).organiza, false)
   assert.equal(origemTarefa(avulsa), 'Inovação')
   assert.equal(origemTarefa({ ...tarefa, projetoNome: 'Site' }), 'Site')
+})
+
+const entrada = { id: 'c1', nome: 'A fazer', cor: 'cinza', papel: 'entrada' }
+const fazendo = { id: 'c2', nome: 'Fazendo', cor: 'azul', papel: 'meio' }
+
+test('soMudouEtapa só vale quando a coluna muda e o resto fica igual', () => {
+  const a = { ...tarefa, coluna: entrada }
+  assert.equal(soMudouEtapa(a, { ...a, coluna: fazendo }), true)
+  assert.equal(soMudouEtapa(a, { ...a, coluna: fazendo, titulo: 'Outra' }), false)
+  assert.equal(soMudouEtapa(a, { ...a, coluna: fazendo, status: 'concluida' }), false)
+  assert.equal(soMudouEtapa(a, a), false)
+  assert.equal(soMudouStatus(a, { ...a, status: 'concluida', coluna: fazendo }), true)
+})
+
+test('salvar escolhe mover, status ou editar; corpos levam a coluna', async () => {
+  const a = { ...tarefa, coluna: entrada }
+  sessao.salvar({ token: 'tk', refreshToken: 'rt' })
+  const chamadas = await capturar(async () => {
+    await tarefas.salvar(a, { ...a, coluna: fazendo })
+    await tarefas.salvar(a, { ...a, status: 'concluida' })
+    await tarefas.salvar(a, { ...a, coluna: fazendo, titulo: 'Outra' })
+    await tarefas.mover('t1', 'c2')
+  })
+  sessao.limpar()
+  assert.deepEqual(
+    chamadas.map(c => [c.method, c.url]),
+    [
+      ['PATCH', '/tarefas/t1/coluna'],
+      ['PATCH', '/tarefas/t1/status'],
+      ['PUT', '/tarefas/t1'],
+      ['PATCH', '/tarefas/t1/coluna'],
+    ],
+  )
+  assert.deepEqual(chamadas[0].body, { codigoColuna: 'c2' })
+  assert.equal(chamadas[2].body.codigoColuna, 'c2')
+  assert.equal(corpoTarefa(tarefa).codigoColuna, undefined)
+  assert.equal(corpoNovaTarefa('p1', { titulo: 'X', colunaId: 'c2' }).codigoColuna, 'c2')
+  assert.equal('codigoColuna' in corpoNovaTarefa('p1', { titulo: 'X' }), false)
 })
