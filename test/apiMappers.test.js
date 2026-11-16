@@ -134,7 +134,7 @@ test('adaptProject mapeia o resumo com campos vazios seguros', () => {
     participacoes: [],
   })
   assert.equal(p.resumo, true)
-  assert.deepEqual(p.tarefasResumo, { atrasadas: 2, semana: 1 })
+  assert.deepEqual(p.tarefasResumo, { total: 5, concluidas: 2, atrasadas: 2, semana: 1 })
   assert.equal(p.descricao, '')
   assert.deepEqual(p.membros, [])
   assert.deepEqual(p.acesso, [])

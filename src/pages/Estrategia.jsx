@@ -4,6 +4,7 @@ import { DAY, PC, chip, d, fm, hj, nm, prog } from '../lib/utils'
 import Burn from '../components/Burn'
 import Table from '../components/Table'
 import { PageBar, Prog } from '../components/Ui'
+import { contagemTarefas } from '../lib/indicadores'
 
 const TB = { late: ['Atrasadas', 'er'], and: ['Em andamento', 'an'], done: ['Concluídas', 'ok'] }
 
@@ -20,6 +21,8 @@ export default function Estrategia() {
   const late = t => t.status != 'concluida' && d(t.fim) < h,
     pn = id => D.p.find(p => p.id == id)?.nome || 'Tarefa avulsa'
   const G = { late: T.filter(late), and: T.filter(t => t.status != 'concluida' && !late(t)), done: T.filter(t => t.status == 'concluida') }
+  // Cartões somam as contagens dos resumos de sigiloso; a lista e o burndown ficam só com as tarefas vistas.
+  const N = contagemTarefas(D, h)
 
   // Projeto sigiloso em resumo não tem tarefas na lista nem detalhe: fica fora de "Tarefas por projeto" e dos críticos.
   const projetos = D.p.filter(p => !p.resumo)
@@ -63,14 +66,14 @@ export default function Estrategia() {
       <div className="row g-3 mb-3">
         <div className="col-6 col-lg-3">
           <div className="card card-body stat">
-            <b>{T.length}</b>
+            <b>{N.total}</b>
             <span>Tarefas no total</span>
           </div>
         </div>
         {Object.keys(TB).map(k => (
           <div className="col-6 col-lg-3" key={k}>
             <div className="card card-body stat">
-              <b>{G[k].length}</b>
+              <b>{N[k]}</b>
               <span>
                 <i className={'dt ' + TB[k][1]} />
                 {TB[k][0]}

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { fimDaSemana, indicadores } from '../src/lib/indicadores.js'
+import { contagemTarefas, fimDaSemana, indicadores } from '../src/lib/indicadores.js'
 
 // Quarta-feira, 04/11/2026.
 const hoje = new Date('2026-11-04T00:00')
@@ -45,4 +45,20 @@ test('projeto em resumo entra nos grupos e soma as tarefas do resumo', () => {
   assert.equal(n.ativos, 2)
   assert.equal(n.atrasadas, 3)
   assert.equal(n.semana, 2)
+})
+
+test('contagemTarefas soma as contagens dos resumos de sigiloso nos cartões', () => {
+  const D = {
+    t: [
+      { status: 'concluida', fim: '2026-11-01' },
+      { status: 'a_fazer', fim: '2026-11-01' },
+      { status: 'a_fazer', fim: '2026-11-10' },
+    ],
+    p: [
+      { status: 'em_execucao' },
+      { status: 'em_execucao', resumo: true, tarefasResumo: { total: 6, concluidas: 2, atrasadas: 1, semana: 1 } },
+    ],
+  }
+  assert.deepEqual(contagemTarefas(D, hoje), { total: 9, late: 2, and: 4, done: 3 })
+  assert.deepEqual(contagemTarefas({ t: [], p: [] }, hoje), { total: 0, late: 0, and: 0, done: 0 })
 })

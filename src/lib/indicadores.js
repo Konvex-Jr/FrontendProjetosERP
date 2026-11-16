@@ -86,3 +86,19 @@ export function indicadores(D, hoje) {
     },
   ]
 }
+
+/**
+ * Cartões da Visão Estratégica: { total, late, and, done } (chaves das abas da tela).
+ * Projeto sigiloso em resumo não manda as tarefas, só as contagens: elas entram aqui, mas não na lista
+ * nem no burndown. Na parte do resumo, "em andamento" = total - concluídas - atrasadas.
+ */
+export function contagemTarefas(D, hoje) {
+  const tarefas = D.t || [],
+    resumos = (D.p || []).filter(p => p.resumo)
+  const doResumo = campo => resumos.reduce((soma, p) => soma + (p.tarefasResumo?.[campo] || 0), 0)
+  const atrasada = t => t.status != 'concluida' && dia(t.fim) < hoje
+  const total = tarefas.length + doResumo('total')
+  const done = tarefas.filter(t => t.status == 'concluida').length + doResumo('concluidas')
+  const late = tarefas.filter(atrasada).length + doResumo('atrasadas')
+  return { total, late, and: Math.max(0, total - done - late), done }
+}

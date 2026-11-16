@@ -56,7 +56,16 @@ export function adaptProject(project) {
     resumo: !!project.resumo,
     acesso: project.acesso || [],
     podeGerirAcesso: !!project.podeGerirAcesso,
-    ...(project.resumo ? { tarefasResumo: { atrasadas: project.tarefas?.atrasadas || 0, semana: project.tarefas?.semana || 0 } } : {}),
+    ...(project.resumo
+      ? {
+          tarefasResumo: {
+            total: project.tarefas?.total || 0,
+            concluidas: project.tarefas?.concluidas || 0,
+            atrasadas: project.tarefas?.atrasadas || 0,
+            semana: project.tarefas?.semana || 0,
+          },
+        }
+      : {}),
   }
 }
 
