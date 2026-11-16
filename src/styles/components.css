@@ -200,7 +200,8 @@ svg.i {
 }
 
 /* Projeto sigiloso visto só em resumo: esmaecido e sem clique. */
-.resumo-sigilo {
+.resumo-sigilo,
+.ag.resumo-sigilo {
     opacity: .6;
     cursor: default
 }

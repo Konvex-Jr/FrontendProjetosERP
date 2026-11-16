@@ -23,6 +23,7 @@ const CONTAS = [
   ['diretora', process.env.ADMIN_EMAIL || 'dev@konvexjr.com.br', process.env.ADMIN_PASSWORD || 'konvex-dev'],
   ['gerente', 'ines@dev.konvex', 'Konvex123'],
   ['membro', 'bia@dev.konvex', 'Konvex123'],
+  ['trainee', 'davi@dev.konvex', 'Konvex123'],
 ]
 const TELAS = [
   ['desktop', { viewport: { width: 1366, height: 900 } }],

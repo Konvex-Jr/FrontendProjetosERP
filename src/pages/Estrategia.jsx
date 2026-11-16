@@ -21,7 +21,9 @@ export default function Estrategia() {
     pn = id => D.p.find(p => p.id == id)?.nome || 'Tarefa avulsa'
   const G = { late: T.filter(late), and: T.filter(t => t.status != 'concluida' && !late(t)), done: T.filter(t => t.status == 'concluida') }
 
-  const crit = D.p
+  // Projeto sigiloso em resumo não tem tarefas na lista nem detalhe: fica fora de "Tarefas por projeto" e dos críticos.
+  const projetos = D.p.filter(p => !p.resumo)
+  const crit = projetos
     .filter(p => p.status == 'em_execucao')
     .map(p => {
       const n = G.late.filter(t => t.projetoId == p.id).length,
@@ -124,7 +126,7 @@ export default function Estrategia() {
         <div className="col-lg-8">
           <div className="card card-body h-100">
             <h2>Tarefas por projeto</h2>
-            {D.p.map(p => {
+            {projetos.map(p => {
               const L = T.filter(t => t.projetoId == p.id),
                 c = L.filter(t => t.status == 'concluida').length,
                 a = L.filter(late).length,
