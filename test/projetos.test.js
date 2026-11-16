@@ -1,6 +1,14 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { alocacaoPorPessoa, corpoParticipacao, corpoProjeto, equipe, projetos, rotuloStatusProjeto } from '../src/services/projetos.js'
+import {
+  alocacaoPorPessoa,
+  corpoParticipacao,
+  corpoProjeto,
+  equipe,
+  mesmaLista,
+  projetos,
+  rotuloStatusProjeto,
+} from '../src/services/projetos.js'
 import { sessao } from '../src/services/api.js'
 
 const capturar = async fn => {
@@ -90,4 +98,17 @@ test('definirAcesso manda PUT com codigos', async () => {
   assert.equal(chamadas[0].url, '/projetos/p1/acesso')
   assert.equal(chamadas[0].method, 'PUT')
   assert.deepEqual(chamadas[0].body, { codigos: ['u1'] })
+})
+
+test('corpoProjeto traduz Visibilidade em sigiloso e só manda acesso em array', () => {
+  assert.deepEqual(corpoProjeto({ nome: 'A', visibilidade: 'sigiloso', acesso: ['u1'] }), { nome: 'A', sigiloso: true, acesso: ['u1'] })
+  assert.deepEqual(corpoProjeto({ nome: 'A', visibilidade: 'normal', acesso: ['u1'] }), { nome: 'A', sigiloso: false })
+  // Sem o campo (edição sem permissão de acesso), o sigilo não vai no corpo: a API daria 403.
+  assert.deepEqual(corpoProjeto({ nome: 'A' }), { nome: 'A' })
+})
+
+test('mesmaLista compara códigos sem ligar para a ordem', () => {
+  assert.equal(mesmaLista(['a', 'b'], ['b', 'a']), true)
+  assert.equal(mesmaLista(['a'], ['a', 'b']), false)
+  assert.equal(mesmaLista(undefined, []), true)
 })
