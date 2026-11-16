@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { afterEach, beforeEach, test } from 'node:test'
-import { ErroAcessoParcial, gravarProjeto } from '../src/lib/gravarProjeto.js'
+import { ErroAcessoParcial, acessoComLogin, gravarProjeto } from '../src/lib/gravarProjeto.js'
 import { sessao } from '../src/services/api.js'
 
 const original = globalThis.fetch
@@ -73,4 +73,21 @@ test('definirAcesso falha depois do PUT: ErroAcessoParcial com a mensagem da API
 test('falha do PUT sobe como erro comum', async () => {
   simular({ 'PUT /projetos/p1': [403, { message: 'Sem permissão' }] })
   await assert.rejects(gravarProjeto(projeto(), form()), e => !(e instanceof ErroAcessoParcial) && e.message === 'Sem permissão')
+})
+
+test('acessoComLogin: o formulário perde o código de quem não tem mais login', () => {
+  const pessoas = [
+    { codigo: 'a', ativo: true },
+    { codigo: 'b', ativo: false },
+  ]
+  assert.deepEqual(acessoComLogin(['a', 'b', 'sumiu'], pessoas), ['a'])
+  assert.deepEqual(acessoComLogin(undefined, pessoas), [])
+})
+
+test('lista limpa pelo formulário vai ao definirAcesso e destrava o salvamento', async () => {
+  simular()
+  const p = projeto({ acesso: ['a', 'b'] })
+  await gravarProjeto(p, form({ acesso: acessoComLogin(p.acesso, [{ codigo: 'a', ativo: true }]) }))
+  assert.deepEqual(rotas(), ['PUT /projetos/p1', 'PUT /projetos/p1/acesso'])
+  assert.deepEqual(chamadas[1].body, { codigos: ['a'] })
 })

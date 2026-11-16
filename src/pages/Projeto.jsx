@@ -15,7 +15,8 @@ import { acoesTarefa, papelNasTarefas, tarefas } from '../services/tarefas'
 import { ErroAcessoParcial, gravarProjeto } from '../lib/gravarProjeto'
 import { carregarProjeto } from '../lib/carregarProjeto'
 import Table from '../components/Table'
-import { SeloSigiloso, StatusProjeto, camposProjeto, valoresProjeto } from './Projetos'
+import { camposProjeto, valoresProjeto } from './Projetos'
+import { SeloSigiloso, StatusProjeto } from '../components/SeloProjeto'
 import { ItensDoProjeto } from './Biblioteca'
 
 const ABAS = [
@@ -77,12 +78,15 @@ function ResumoSigiloso({ projeto, voltar }) {
  * Nas tarefas, gestão e líder organizam; quem está na equipe atual cria e conclui as suas (papelNasTarefas).
  */
 export default function Projeto() {
-  const { D, form, go, me, pode, refresh } = useApp(),
+  const { D, form, go, me, nav, pode, refresh } = useApp(),
     { id } = useParams(),
     pid = id
   const [pt, setPt] = useState('kanban'),
     [tk, setTk] = useState(null)
   const [aba, setAba] = useState('tarefas')
+  // Quem não tem Biblioteca no menu (trainee) levaria 403 da API: a aba nem aparece (mesma regra do Perfil).
+  const temBiblioteca = nav.some(([chave]) => chave === 'biblioteca')
+  const abas = temBiblioteca ? ABAS : ABAS.filter(([k]) => k !== 'biblioteca')
   const gestor = pode('projetos.editar')
   const { dados, carregando, recarregar } = useCarregar(() => carregarProjeto(pid, gestor), [pid, gestor], {
     chave: `projeto:${pid}:${gestor}`,
@@ -207,7 +211,7 @@ export default function Projeto() {
     form(
       'Editar projeto',
       camposProjeto({ lista: gente, areas, podeGerirAcesso: projeto.podeGerirAcesso }),
-      valoresProjeto(projeto),
+      valoresProjeto(projeto, gente),
       async v => {
         try {
           await gravarProjeto(projeto, v)
@@ -239,7 +243,7 @@ export default function Projeto() {
     ...(projeto.sigiloso
       ? [
           ['Visibilidade', <SeloSigiloso key="sigilo" />],
-          ['Quem mais vê', projeto.acesso.length ? projeto.acesso.map(c => nm(D, [c])).join(', ') : 'Só diretores e a equipe'],
+          ['Quem mais vê', projeto.acesso.length ? projeto.acesso.map(c => nm(D, [c])).join(', ') : 'Só diretores, quem criou e a equipe'],
         ]
       : []),
   ]
@@ -306,11 +310,11 @@ export default function Projeto() {
         )}
       </div>
       <div className="mb-3">
-        <Seg items={ABAS} value={aba} onChange={setAba} />
+        <Seg items={abas} value={aba} onChange={setAba} />
       </div>
       {aba == 'tarefas' && (pt == 'kanban' ? kanban() : gantt())}
       {aba == 'geral' && geral()}
-      {aba == 'biblioteca' && <ItensDoProjeto projeto={projeto} />}
+      {aba == 'biblioteca' && temBiblioteca && <ItensDoProjeto projeto={projeto} />}
       {aba == 'equipe' && <EquipeProjeto projeto={projeto} todos={todos} gente={gente} gestor={gestor} aoSalvar={aoSalvar} />}
       {tk && T.find(x => x.id == tk) && (
         <TaskModal

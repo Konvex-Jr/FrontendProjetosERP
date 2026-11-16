@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useApp } from '../context/AppContext'
-import { chip, fm, prog } from '../lib/utils'
+import { fm, prog } from '../lib/utils'
 import Ic from '../components/Icon'
 import ActionMenu from '../components/ActionMenu'
 import Table from '../components/Table'
@@ -8,11 +8,12 @@ import { Av, PageBar, Prog } from '../components/Ui'
 import alerts from '../lib/alerts'
 import useCarregar from '../lib/useCarregar'
 import Esqueleto from '../components/Esqueleto'
-import { ErroAcessoParcial, gravarProjeto } from '../lib/gravarProjeto'
+import { SeloSigiloso, StatusProjeto } from '../components/SeloProjeto'
+import { ErroAcessoParcial, acessoComLogin, gravarProjeto } from '../lib/gravarProjeto'
 import { consumir } from '../lib/atalho'
 import { GRUPOS_PROJETO } from '../lib/indicadores'
 import { configuracoes, pessoas } from '../services/pessoas'
-import { COR_STATUS_PROJETO, PRIORIDADE_PROJETO, STATUS_PROJETO, projetos, rotuloStatusProjeto } from '../services/projetos'
+import { PRIORIDADE_PROJETO, STATUS_PROJETO, projetos, rotuloStatusProjeto } from '../services/projetos'
 
 const dia = s => (s ? String(s).slice(0, 10) : '')
 const membrosAtivos = p => (p.participacoes || []).filter(x => !x.dataSaida).map(x => x.usuario.codigo)
@@ -46,12 +47,13 @@ export function camposProjeto({ lista, areas, novo, podeGerirAcesso }) {
       // Só pessoas com login (ativas): a API recusa as outras com ACESSO_PESSOA_SEM_LOGIN.
       c: lista.filter(u => u.ativo).map(u => ({ id: u.codigo, nome: u.nome, perfil: u.perfil })),
       s: v => gereAcesso && v.visibilidade === 'sigiloso',
-      h: 'Diretores e a equipe já veem o projeto.',
+      h: 'Diretores, quem criou e a equipe já veem o projeto.',
     },
   ]
 }
 
-export function valoresProjeto(p) {
+/** `pessoas`: a mesma lista do seletor de acesso (só os códigos com login entram no formulário). */
+export function valoresProjeto(p, pessoas = []) {
   if (!p) return { prioridade: 'media', codigoResponsavel: '', codigoArea: '', visibilidade: 'normal', acesso: [] }
   return {
     nome: p.nome,
@@ -66,19 +68,9 @@ export function valoresProjeto(p) {
     codigoResponsavel: p.responsavel?.codigo || '',
     codigoArea: p.area?.codigo || '',
     visibilidade: p.sigiloso ? 'sigiloso' : 'normal',
-    acesso: p.acesso || [],
+    acesso: acessoComLogin(p.acesso, pessoas),
   }
 }
-
-/** Selo dos projetos sigilosos. */
-export const SeloSigiloso = () => (
-  <span className={chip() + ' selo-sigilo'} title="Projeto sigiloso">
-    <Ic k="lock" />
-    Sigiloso
-  </span>
-)
-
-export const StatusProjeto = ({ s }) => <span className={chip(COR_STATUS_PROJETO[s])}>{rotuloStatusProjeto(s)}</span>
 
 /**
  * Chave e busca da lista de projetos. A tela e o menu (src/lib/antecipar.js) usam as mesmas,
@@ -141,7 +133,7 @@ export default function Projetos() {
     form(
       p ? 'Editar projeto' : 'Novo projeto',
       camposProjeto({ lista: gente, areas, novo: !p, podeGerirAcesso: p?.podeGerirAcesso }),
-      valoresProjeto(p),
+      valoresProjeto(p, gente),
       async v => {
         const r = await executar(() => gravarProjeto(p, v), p ? 'Projeto atualizado' : 'Projeto criado')
         if (r && !p) go('projeto', r.codigo)

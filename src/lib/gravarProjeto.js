@@ -1,5 +1,15 @@
 import { mesmaLista, projetos } from '../services/projetos.js'
 
+/**
+ * Lista de acesso que o formulário mostra: só quem tem login (`ativo`). A API recusa a lista inteira
+ * com ACESSO_PESSOA_SEM_LOGIN se sobrar o código de quem perdeu o login, e ele nem aparece no seletor;
+ * tirado aqui, o primeiro salvamento grava a lista limpa.
+ */
+export const acessoComLogin = (acesso, pessoas) => {
+  const comLogin = new Set(pessoas.filter(u => u.ativo).map(u => u.codigo))
+  return (acesso || []).filter(c => comLogin.has(c))
+}
+
 /** O projeto foi salvo, mas a lista de acesso não: a tela recarrega e avisa. */
 export class ErroAcessoParcial extends Error {}
 

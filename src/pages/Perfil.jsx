@@ -11,7 +11,7 @@ import { juntarTecnologia, minhaConta, pessoas, rotuloStatus, tecnologias, tecno
 import { horas } from '../services/capacitacoes'
 import { itensDoAutor } from '../services/biblioteca'
 import Clipe from '../components/Clipe'
-import { SeloSigiloso } from './Projetos'
+import { SeloSigiloso } from '../components/SeloProjeto'
 
 const COR_STATUS = { ativo: 'ok', trainee: '', alumni: 'wa', inativo: 'er' }
 const semProtocolo = url => url.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')
