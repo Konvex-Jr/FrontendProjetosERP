@@ -74,3 +74,20 @@ test('corpos e rótulos', () => {
   assert.equal(rotuloStatusProjeto('em_execucao'), 'Em andamento')
   assert.equal(rotuloStatusProjeto(undefined), '—')
 })
+
+test('resumo conta na alocação e corpoProjeto envia sigiloso', () => {
+  const lista = [
+    { status: 'em_execucao', resumo: true, participacoes: [{ usuario: { codigo: 'u1' }, alocacao: 40 }] },
+    { status: 'em_execucao', participacoes: [{ usuario: { codigo: 'u1' }, alocacao: 30 }] },
+  ]
+  assert.deepEqual(alocacaoPorPessoa(lista), { u1: 70 })
+  assert.deepEqual(corpoProjeto({ nome: 'A', sigiloso: true, acesso: ['u1'] }), { nome: 'A', sigiloso: true, acesso: ['u1'] })
+  assert.equal('acesso' in corpoProjeto({ nome: 'A', acesso: null }), false)
+})
+
+test('definirAcesso manda PUT com codigos', async () => {
+  const chamadas = await capturar(() => projetos.definirAcesso('p1', ['u1']))
+  assert.equal(chamadas[0].url, '/projetos/p1/acesso')
+  assert.equal(chamadas[0].method, 'PUT')
+  assert.deepEqual(chamadas[0].body, { codigos: ['u1'] })
+})

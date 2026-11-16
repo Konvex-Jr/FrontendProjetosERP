@@ -32,8 +32,10 @@ export function indicadores(D, hoje) {
   const abertas = tarefas.filter(t => t.status != 'concluida')
   const domingo = fimDaSemana(hoje),
     em30 = somarDias(hoje, 30)
-  const atrasadas = abertas.filter(t => dia(t.fim) < hoje).length
-  const semana = abertas.filter(t => dia(t.fim) >= hoje && dia(t.fim) <= domingo).length
+  // Tarefas de projeto sigiloso em resumo não vêm na lista: entram pelas contagens do resumo.
+  const doResumo = campo => projetos.reduce((soma, p) => soma + (p.resumo ? p.tarefasResumo?.[campo] || 0 : 0), 0)
+  const atrasadas = abertas.filter(t => dia(t.fim) < hoje).length + doResumo('atrasadas')
+  const semana = abertas.filter(t => dia(t.fim) >= hoje && dia(t.fim) <= domingo).length + doResumo('semana')
   const proximas = caps.filter(c => dia(c.data) >= hoje && dia(c.data) <= em30).length
   const membros = pessoas.filter(u => (u.status ? u.status === 'ativo' : u.ativo !== false)).length
   return [

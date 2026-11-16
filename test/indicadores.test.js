@@ -32,3 +32,17 @@ test('os sete indicadores contam projetos, pessoas, capacitações e tarefas', (
 test('indicadores aguentam dados vazios', () => {
   assert.ok(indicadores({}, hoje).every(i => i.numero === 0))
 })
+
+test('projeto em resumo entra nos grupos e soma as tarefas do resumo', () => {
+  const D = {
+    p: [{ status: 'em_execucao' }, { status: 'em_execucao', resumo: true, tarefasResumo: { atrasadas: 2, semana: 1 } }],
+    t: [
+      { status: 'pendente', fim: '2026-11-03' },
+      { status: 'pendente', fim: '2026-11-05' },
+    ],
+  }
+  const n = Object.fromEntries(indicadores(D, hoje).map(i => [i.chave, i.numero]))
+  assert.equal(n.ativos, 2)
+  assert.equal(n.atrasadas, 3)
+  assert.equal(n.semana, 2)
+})

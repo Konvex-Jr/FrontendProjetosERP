@@ -51,8 +51,13 @@ export function alocacaoPorPessoa(lista) {
 
 /** Converte o formulário do projeto no corpo da API. */
 export function corpoProjeto(dados) {
-  const { progresso, ...resto } = vazioComoNull(dados)
-  return { ...resto, ...(numeroOuNada(progresso) !== undefined ? { progresso: Number(progresso) } : {}) }
+  const { progresso, acesso, ...resto } = vazioComoNull(dados)
+  return {
+    ...resto,
+    ...(numeroOuNada(progresso) !== undefined ? { progresso: Number(progresso) } : {}),
+    // Lista de quem acessa o sigiloso: só array (a API recusa null com 400).
+    ...(Array.isArray(acesso) ? { acesso } : {}),
+  }
 }
 
 /** Converte o formulário da participação no corpo da API. */
@@ -72,6 +77,8 @@ export const projetos = {
   alterarStatus: (codigo, status) => send('PATCH', `/projetos/${codigo}/status`, { status }),
   excluir: codigo => send('DELETE', `/projetos/${codigo}`),
   /** Líder do projeto: código de alguém da equipe atual, ou null para tirar. */
+  /** Lista de acesso do projeto sigiloso (só diretor e criador): códigos de pessoas com login. */
+  definirAcesso: (codigo, codigos) => send('PUT', `/projetos/${codigo}/acesso`, { codigos }),
   definirLider: (codigo, codigoUsuario) => send('PUT', `/projetos/${codigo}/lider`, { codigoUsuario: codigoUsuario || null }),
 }
 
