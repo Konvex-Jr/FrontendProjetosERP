@@ -10,6 +10,7 @@ import alerts from '../lib/alerts'
 import useCarregar from '../lib/useCarregar'
 import Esqueleto from '../components/Esqueleto'
 import { configuracoes, pessoas, rotuloStatus, STATUS_PESSOA, tecnologiasDe } from '../services/pessoas'
+import { corpoNovaPessoa, opcoesMudarStatus, podeRedefinirSenha } from '../lib/cadastroPessoa'
 
 const COR_STATUS = { ativo: 'ok', trainee: '', alumni: 'wa', inativo: 'er' }
 const PERFIS = [
@@ -80,16 +81,17 @@ export default function Pessoas() {
           l: 'Status',
           o: STATUS_PESSOA.slice(0, 2),
           s: () => !p,
-          h: 'Trainee fica cadastrado e entra em projetos, mas ainda não acessa o sistema.',
+          h: 'Trainee entra no sistema com acesso de membro e não lidera projetos. Só se entra como trainee no cadastro.',
         },
         {
           k: 'senha',
           l: 'Senha inicial',
           t: 'password',
-          s: v => !p && v.status === 'ativo',
+          s: () => !p,
           h: 'Mínimo de 8 caracteres. A pessoa pode trocar depois em Meu perfil.',
         },
-        { k: 'perfil', l: 'Perfil de acesso', o: perfis },
+        // Trainee é sempre membro: o campo some e o corpo vai com perfil membro (lib/cadastroPessoa.js).
+        { k: 'perfil', l: 'Perfil de acesso', o: perfis, s: v => (p ? p.status : v.status) !== 'trainee' },
         { k: 'codigoSenioridade', l: 'Senioridade', o: senioridades.map(s => [s.codigo, s.nome]) },
         { k: 'codigoArea', l: 'Área', o: opcoes(areas, a => a.ativa || a.codigo === p?.area?.codigo), opt: true },
         { k: 'codigoCargo', l: 'Cargo', o: opcoes(cargos, c => c.ativo || c.codigo === p?.cargo?.codigo), opt: true },
@@ -114,12 +116,12 @@ export default function Pessoas() {
             dataEntrada: '',
           },
       v => {
-        const { senha, status, dataEntrada, ...resto } = v
-        const corpo = { ...resto, ...(dataEntrada ? { dataEntrada } : {}) }
-        if (p) return executar(() => pessoas.editar(p.codigo, corpo), 'Pessoa atualizada')
-        // Trainee não entra no sistema; a senha é sorteada e o gestor define outra ao torná-lo membro.
-        const senhaInicial = status === 'ativo' ? senha : crypto.randomUUID()
-        return executar(() => pessoas.criar({ ...corpo, status, senha: senhaInicial }), 'Pessoa cadastrada')
+        if (p) {
+          const { senha: _senha, status: _status, dataEntrada, ...resto } = v
+          return executar(() => pessoas.editar(p.codigo, { ...resto, ...(dataEntrada ? { dataEntrada } : {}) }), 'Pessoa atualizada')
+        }
+        // Ativo e trainee entram no sistema com a senha que a gestão digitou.
+        return executar(() => pessoas.criar(corpoNovaPessoa(v)), 'Pessoa cadastrada')
       },
     )
 
@@ -127,7 +129,7 @@ export default function Pessoas() {
     form(
       `Status de ${p.nome}`,
       [
-        { k: 'status', l: 'Status', o: STATUS_PESSOA },
+        { k: 'status', l: 'Status', o: opcoesMudarStatus(p.status) },
         {
           k: 'dataSaida',
           l: 'Data de saída',
@@ -150,11 +152,7 @@ export default function Pessoas() {
           }))
         )
           return false
-        const r = await executar(() => pessoas.alterarStatus(p.codigo, v.status, v.dataSaida), 'Status atualizado')
-        if (r !== false && p.status === 'trainee' && v.status === 'ativo') {
-          await alerts.info('Defina uma senha', `${p.nome} agora é membro. Use "Redefinir senha" para liberar o acesso.`)
-        }
-        return r
+        return executar(() => pessoas.alterarStatus(p.codigo, v.status, v.dataSaida), 'Status atualizado')
       },
     )
 
@@ -202,7 +200,7 @@ export default function Pessoas() {
               ? [
                   ['edit', 'Editar', () => editar(p)],
                   ...(p.codigo !== me ? [['userok', 'Mudar status', () => mudarStatus(p)]] : []),
-                  ...(p.status === 'ativo' && p.codigo !== me ? [['key', 'Redefinir senha', () => redefinirSenha(p)]] : []),
+                  ...(podeRedefinirSenha(p.status) && p.codigo !== me ? [['key', 'Redefinir senha', () => redefinirSenha(p)]] : []),
                 ]
               : []),
           ]}
