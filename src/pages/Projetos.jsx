@@ -8,10 +8,11 @@ import { Av, PageBar, Prog } from '../components/Ui'
 import alerts from '../lib/alerts'
 import useCarregar from '../lib/useCarregar'
 import Esqueleto from '../components/Esqueleto'
+import { ErroAcessoParcial, gravarProjeto } from '../lib/gravarProjeto'
 import { consumir } from '../lib/atalho'
 import { GRUPOS_PROJETO } from '../lib/indicadores'
 import { configuracoes, pessoas } from '../services/pessoas'
-import { COR_STATUS_PROJETO, PRIORIDADE_PROJETO, STATUS_PROJETO, mesmaLista, projetos, rotuloStatusProjeto } from '../services/projetos'
+import { COR_STATUS_PROJETO, PRIORIDADE_PROJETO, STATUS_PROJETO, projetos, rotuloStatusProjeto } from '../services/projetos'
 
 const dia = s => (s ? String(s).slice(0, 10) : '')
 const membrosAtivos = p => (p.participacoes || []).filter(x => !x.dataSaida).map(x => x.usuario.codigo)
@@ -69,19 +70,6 @@ export function valoresProjeto(p) {
   }
 }
 
-/**
- * Grava o formulário: cria, ou edita. O PUT ignora a lista de acesso, então, na edição, quem gere o acesso
- * (diretor e criador) manda a lista à parte, e só se ela mudou.
- */
-export async function gravarProjeto(p, v) {
-  if (!p) return projetos.criar(v)
-  const r = await projetos.editar(p.codigo, v)
-  if (p.podeGerirAcesso && v.visibilidade === 'sigiloso' && Array.isArray(v.acesso) && !mesmaLista(v.acesso, p.acesso)) {
-    await projetos.definirAcesso(p.codigo, v.acesso)
-  }
-  return r
-}
-
 /** Selo dos projetos sigilosos. */
 export const SeloSigiloso = () => (
   <span className={chip() + ' selo-sigilo'} title="Projeto sigiloso">
@@ -137,6 +125,13 @@ export default function Projetos() {
       refresh().catch(() => {})
       return r
     } catch (error) {
+      if (error instanceof ErroAcessoParcial) {
+        // O projeto já foi salvo: recarrega para a tela mostrar o que o servidor tem e fecha o formulário.
+        await recarregar()
+        refresh().catch(() => {})
+        alerts.error('Salvo pela metade', 'Projeto salvo, mas a lista de acesso não: ' + error.message)
+        return undefined
+      }
       alerts.error('Não foi possível salvar', error.message)
       return false
     }

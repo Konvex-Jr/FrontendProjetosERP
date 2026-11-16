@@ -103,7 +103,7 @@ test('definirAcesso manda PUT com codigos', async () => {
 test('corpoProjeto traduz Visibilidade em sigiloso e só manda acesso em array', () => {
   assert.deepEqual(corpoProjeto({ nome: 'A', visibilidade: 'sigiloso', acesso: ['u1'] }), { nome: 'A', sigiloso: true, acesso: ['u1'] })
   assert.deepEqual(corpoProjeto({ nome: 'A', visibilidade: 'normal', acesso: ['u1'] }), { nome: 'A', sigiloso: false })
-  // Sem o campo (edição sem permissão de acesso), o sigilo não vai no corpo: a API daria 403.
+  // Sem o campo, o sigilo não vai no corpo (gravarProjeto tira o campo de quem não gere o acesso).
   assert.deepEqual(corpoProjeto({ nome: 'A' }), { nome: 'A' })
 })
 

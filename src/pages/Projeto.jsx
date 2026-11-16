@@ -12,9 +12,10 @@ import useCarregar from '../lib/useCarregar'
 import Esqueleto from '../components/Esqueleto'
 import { rotuloPrioridade } from '../services/projetos'
 import { acoesTarefa, papelNasTarefas, tarefas } from '../services/tarefas'
+import { ErroAcessoParcial, gravarProjeto } from '../lib/gravarProjeto'
 import { carregarProjeto } from '../lib/carregarProjeto'
 import Table from '../components/Table'
-import { SeloSigiloso, StatusProjeto, camposProjeto, gravarProjeto, valoresProjeto } from './Projetos'
+import { SeloSigiloso, StatusProjeto, camposProjeto, valoresProjeto } from './Projetos'
 import { ItensDoProjeto } from './Biblioteca'
 
 const ABAS = [
@@ -213,6 +214,12 @@ export default function Projeto() {
           alerts.toastSuccess('Projeto atualizado')
           await aoSalvar()
         } catch (error) {
+          if (error instanceof ErroAcessoParcial) {
+            // O projeto já foi salvo: recarrega e fecha o formulário, para a tela mostrar o que o servidor tem.
+            await aoSalvar()
+            alerts.error('Salvo pela metade', 'Projeto salvo, mas a lista de acesso não: ' + error.message)
+            return undefined
+          }
           alerts.error('Não foi possível salvar', error.message)
           return false
         }
