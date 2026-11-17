@@ -1876,3 +1876,7 @@ button.kc-tag {
     font-size: 13px;
     font-weight: 600
 }
+
+:root[data-theme=dark] .cl-erro {
+    color: var(--er)
+}

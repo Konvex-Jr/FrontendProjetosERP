@@ -158,15 +158,16 @@ export default function Projeto() {
     pc = x => ((x - a) / L) * 100,
     hp = pc(+h)
 
-  // Grava as colunas e recarrega. Se o quadro mudou enquanto a janela estava aberta (409), recarrega mesmo assim.
+  // Grava as colunas e recarrega. A gravação que deu certo continua certa mesmo se a recarga falhar;
+  // no 409 o erro devolvido é o do 409 (a janela recomeça do quadro recarregado).
   const gravarColunas = async corpo => {
     try {
       await projetos.gravarColunas(pid, corpo)
     } catch (e) {
-      if (e.status === 409) await aoSalvar()
+      if (e.status === 409) await aoSalvar().catch(() => {})
       throw e
     }
-    await aoSalvar()
+    await aoSalvar().catch(() => {})
   }
 
   const kanban = () => (

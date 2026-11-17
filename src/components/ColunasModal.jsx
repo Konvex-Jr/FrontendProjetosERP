@@ -4,6 +4,7 @@ import alerts from '../lib/alerts'
 import Ic from './Icon'
 
 const rotuloCor = cor => cor.charAt(0).toUpperCase() + cor.slice(1)
+const assinatura = (colunas, tarefas) => JSON.stringify([colunas, (tarefas || []).map(t => [t.id, t.coluna?.id])])
 const igual = (a, b) => JSON.stringify(a) === JSON.stringify(b)
 
 /**
@@ -12,16 +13,25 @@ const igual = (a, b) => JSON.stringify(a) === JSON.stringify(b)
  * enquanto a janela estava aberta): o rascunho recomeça das colunas já recarregadas.
  * Coluna excluída que tem tarefas sai da lista e vira uma linha "Mover N tarefas para", com o destino obrigatório.
  */
-export default function ColunasModal({ colunas, tarefas, aoSalvar, aoFechar }) {
+export default function ColunasModal({ colunas: colunasAtuais, tarefas: tarefasAtuais, aoSalvar, aoFechar }) {
+  // Retrato do quadro na abertura: base do "alterado", das contagens e do efeito na conclusão.
+  // O projeto pode recarregar com a janela aberta; só o 409 do servidor manda recomeçar (ver `resincronizar`).
+  const [base, setBase] = useState({ colunas: colunasAtuais, tarefas: tarefasAtuais })
+  const { colunas, tarefas } = base
+  const [resincronizar, setResincronizar] = useState(false)
   const [rascunho, setRascunho] = useState(() => novoRascunho(colunas))
   const [destinos, setDestinos] = useState({})
   const [salvando, setSalvando] = useState(false)
   const contador = useRef(0)
   const foco = useRef(null)
-  const ultimas = useRef(colunas)
-  useEffect(() => {
-    ultimas.current = colunas
-  }, [colunas])
+
+  // Depois de um 409: assim que o quadro recarregado chegar (diferente do retrato), o rascunho recomeça dele.
+  if (resincronizar && assinatura(colunasAtuais, tarefasAtuais) !== assinatura(colunas, tarefas)) {
+    setBase({ colunas: colunasAtuais, tarefas: tarefasAtuais })
+    setRascunho(novoRascunho(colunasAtuais))
+    setDestinos({})
+    setResincronizar(false)
+  }
 
   const excluidas = excluidasComTarefas(colunas, rascunho, tarefas)
   const faltaDestino = excluidas.find(x => !rascunho.some(r => !r.nova && r.id === destinos[x.coluna.id]))
@@ -103,10 +113,7 @@ export default function ColunasModal({ colunas, tarefas, aoSalvar, aoFechar }) {
       await aoSalvar(corpoColunas(rascunho, usados))
       aoFechar()
     } catch (e) {
-      if (e.status === 409) {
-        setRascunho(novoRascunho(ultimas.current))
-        setDestinos({})
-      }
+      if (e.status === 409) setResincronizar(true)
       await alerts.error('Não foi possível salvar', e.message)
     } finally {
       setSalvando(false)
