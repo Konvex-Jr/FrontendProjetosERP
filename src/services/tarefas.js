@@ -32,21 +32,41 @@ export const origemTarefa = t => (t.avulsa ? rotuloCategoria(t.categoria) : t.pr
 
 /** Corpo do POST /tarefas: com projeto, ou avulsa com `t.categoria`. */
 export const corpoNovaTarefa = (codigoProjeto, t) =>
-  codigoProjeto ? { codigoProjeto, ...base(t) } : { categoria: t.categoria, ...base(t) }
+  codigoProjeto
+    ? { codigoProjeto, ...base(t), ...(t.colunaId ? { codigoColuna: t.colunaId } : {}) }
+    : { categoria: t.categoria, ...base(t) }
 
-/** Corpo do PUT /tarefas/:codigo (envia tudo; a API ignora responsáveis quando quem edita é membro). */
-export const corpoTarefa = t => ({
+/**
+ * Corpo do PUT /tarefas/:codigo (envia tudo; a API ignora responsáveis quando quem edita é membro).
+ * `codigoColuna` só vai quando a etapa muda em relação a `antes`: na API ele vence o status, e mandar a
+ * coluna atual prenderia a tarefa nela (ex.: reabrir arrastando a concluída para uma semana na tela Tarefas).
+ * Sem `codigoColuna`, a API leva a tarefa para a coluna do status.
+ */
+export const corpoTarefa = (t, antes) => ({
   ...base(t),
   ...(t.avulsa ? { categoria: t.categoria } : {}),
   status: t.status,
+  ...(t.coluna && t.coluna.id !== antes?.coluna?.id ? { codigoColuna: t.coluna.id } : {}),
   codigoDependencia: t.dependeDe || null,
   checklist: (t.checklist || []).map(i => ({ codigo: i.id, texto: i.texto, feito: Boolean(i.feito) })),
 })
 
-/** Só o status mudou? Então basta o PATCH. */
+/**
+ * Erro de quadro desatualizado: a coluna sumiu (`COLUNA_DE_OUTRO_PROJETO`) ou o quadro mudou durante
+ * a gravação (409 `QUADRO_MUDOU`). A tela mostra `error.message` e recarrega.
+ */
+export const quadroDesatualizado = error => ['COLUNA_DE_OUTRO_PROJETO', 'QUADRO_MUDOU'].includes(error?.codigo)
+
+/** Só o status mudou (mesma etapa)? Então basta o PATCH. Etapa junto vai pela edição. */
 export function soMudouStatus(antes, depois) {
-  const semStatus = t => JSON.stringify({ ...t, status: undefined, conclusao: undefined })
-  return antes.status !== depois.status && semStatus(antes) === semStatus(depois)
+  const semStatus = t => JSON.stringify({ ...t, status: undefined, conclusao: undefined, coluna: undefined })
+  return antes.status !== depois.status && antes.coluna?.id === depois.coluna?.id && semStatus(antes) === semStatus(depois)
+}
+
+/** Só a etapa (coluna) mudou? Então basta o PATCH da coluna. */
+export function soMudouEtapa(antes, depois) {
+  const semEtapa = t => JSON.stringify({ ...t, coluna: undefined })
+  return antes.coluna?.id !== depois.coluna?.id && Boolean(depois.coluna) && semEtapa(antes) === semEtapa(depois)
 }
 
 export const tarefas = {
@@ -55,15 +75,21 @@ export const tarefas = {
     return get('/tarefas' + (qs ? '?' + qs : ''))
   },
   criar: (codigoProjeto, t) => send('POST', '/tarefas', corpoNovaTarefa(codigoProjeto, t)),
-  editar: t => send('PUT', `/tarefas/${t.id}`, corpoTarefa(t)),
+  editar: (t, antes) => send('PUT', `/tarefas/${t.id}`, corpoTarefa(t, antes)),
   alterarStatus: (codigo, status) => send('PATCH', `/tarefas/${codigo}/status`, { status }),
+  mover: (codigo, codigoColuna) => send('PATCH', `/tarefas/${codigo}/coluna`, { codigoColuna }),
   excluir: codigo => send('DELETE', `/tarefas/${codigo}`),
   comentarios: codigo => get(`/tarefas/${codigo}/comentarios`),
   comentar: (codigo, texto) => send('POST', `/tarefas/${codigo}/comentarios`, { texto }),
   anexos: codigo => get(`/tarefas/${codigo}/anexos`),
   apagarComentario: (codigo, codigoComentario) => send('DELETE', `/tarefas/${codigo}/comentarios/${codigoComentario}`),
-  /** Salva usando PATCH quando só o status mudou; senão PUT. */
-  salvar: (antes, depois) => (soMudouStatus(antes, depois) ? tarefas.alterarStatus(depois.id, depois.status) : tarefas.editar(depois)),
+  /** Salva usando PATCH quando só a etapa ou só o status mudou; senão PUT. */
+  salvar: (antes, depois) =>
+    soMudouEtapa(antes, depois)
+      ? tarefas.mover(depois.id, depois.coluna.id)
+      : soMudouStatus(antes, depois)
+        ? tarefas.alterarStatus(depois.id, depois.status)
+        : tarefas.editar(depois, antes),
 }
 
 /**
@@ -110,5 +136,6 @@ export function papelNaTarefa({ me, gestao, atribui, projeto, tarefa }) {
 export const acoesTarefa = salvarTarefa => ({
   tog: t => salvarTarefa(() => tarefas.alterarStatus(t.id, t.status == 'concluida' ? 'andamento' : 'concluida')),
   del: codigo => salvarTarefa(() => tarefas.excluir(codigo), 'Tarefa excluída'),
+  mover: (t, colunaId) => salvarTarefa(() => tarefas.mover(t.id, colunaId)),
   salvar: (antes, depois, ok) => salvarTarefa(() => tarefas.salvar(antes, depois), ok),
 })

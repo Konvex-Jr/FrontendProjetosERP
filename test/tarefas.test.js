@@ -6,6 +6,8 @@ import {
   origemTarefa,
   papelNaTarefa,
   papelNasTarefas,
+  quadroDesatualizado,
+  soMudouEtapa,
   soMudouStatus,
   tarefas,
 } from '../src/services/tarefas.js'
@@ -148,4 +150,81 @@ test('tarefa avulsa (8c): corpo com categoria e regras de quem organiza', () => 
   assert.equal(papelNaTarefa({ me: 'u1', projeto, tarefa }).organiza, false)
   assert.equal(origemTarefa(avulsa), 'Inovação')
   assert.equal(origemTarefa({ ...tarefa, projetoNome: 'Site' }), 'Site')
+})
+
+const entrada = { id: 'c1', nome: 'A fazer', cor: 'cinza', papel: 'entrada' }
+const fazendo = { id: 'c2', nome: 'Fazendo', cor: 'azul', papel: 'meio' }
+
+test('soMudouEtapa só vale quando a coluna muda e o resto fica igual', () => {
+  const a = { ...tarefa, coluna: entrada }
+  assert.equal(soMudouEtapa(a, { ...a, coluna: fazendo }), true)
+  assert.equal(soMudouEtapa(a, { ...a, coluna: fazendo, titulo: 'Outra' }), false)
+  assert.equal(soMudouEtapa(a, { ...a, coluna: fazendo, status: 'concluida' }), false)
+  assert.equal(soMudouEtapa(a, a), false)
+  assert.equal(soMudouStatus(a, { ...a, status: 'concluida', coluna: fazendo }), false)
+  assert.equal(soMudouStatus(a, { ...a, status: 'concluida', coluna: { ...entrada } }), true)
+})
+
+test('salvar escolhe mover, status ou editar; corpos levam a coluna', async () => {
+  const a = { ...tarefa, coluna: entrada }
+  sessao.salvar({ token: 'tk', refreshToken: 'rt' })
+  const chamadas = await capturar(async () => {
+    await tarefas.salvar(a, { ...a, coluna: fazendo })
+    await tarefas.salvar(a, { ...a, status: 'concluida' })
+    await tarefas.salvar(a, { ...a, coluna: fazendo, titulo: 'Outra' })
+    await tarefas.mover('t1', 'c2')
+    await tarefas.salvar(a, { ...a, status: 'concluida', coluna: fazendo })
+  })
+  sessao.limpar()
+  assert.deepEqual(
+    chamadas.map(c => [c.method, c.url]),
+    [
+      ['PATCH', '/tarefas/t1/coluna'],
+      ['PATCH', '/tarefas/t1/status'],
+      ['PUT', '/tarefas/t1'],
+      ['PATCH', '/tarefas/t1/coluna'],
+      ['PUT', '/tarefas/t1'],
+    ],
+  )
+  assert.equal(chamadas[4].body.codigoColuna, 'c2')
+  assert.deepEqual(chamadas[0].body, { codigoColuna: 'c2' })
+  assert.equal(chamadas[2].body.codigoColuna, 'c2')
+  assert.equal(corpoTarefa(tarefa).codigoColuna, undefined)
+  assert.equal(corpoNovaTarefa('p1', { titulo: 'X', colunaId: 'c2' }).codigoColuna, 'c2')
+  assert.equal('codigoColuna' in corpoNovaTarefa('p1', { titulo: 'X' }), false)
+})
+
+test('PUT só leva codigoColuna quando a etapa muda: reabrir arrastando para uma semana manda só o status', async () => {
+  const concluido = { id: 'c4', nome: 'Concluído', cor: 'verde', papel: 'concluida' }
+  const feita = { ...tarefa, status: 'concluida', conclusao: '2026-11-05', coluna: concluido }
+  sessao.salvar({ token: 'tk', refreshToken: 'rt' })
+  const chamadas = await capturar(async () => {
+    // Tela Tarefas: quem organiza solta a concluída numa coluna de semana (status andamento, prazo novo, mesma etapa).
+    await tarefas.salvar(feita, { ...feita, status: 'andamento', conclusao: undefined, fim: '2026-11-14' })
+    // Concluir arrastando para "Concluído" com o prazo de outra semana também não pode prender a tarefa na etapa atual.
+    await tarefas.salvar({ ...tarefa, coluna: entrada }, { ...tarefa, coluna: entrada, status: 'concluida', fim: '2026-11-14' })
+    // Etapa trocada no formulário junto com outro campo: vai a coluna nova.
+    await tarefas.salvar({ ...tarefa, coluna: entrada }, { ...tarefa, coluna: fazendo, titulo: 'Outra' })
+  })
+  sessao.limpar()
+  assert.deepEqual(
+    chamadas.map(c => [c.method, c.url]),
+    [
+      ['PUT', '/tarefas/t1'],
+      ['PUT', '/tarefas/t1'],
+      ['PUT', '/tarefas/t1'],
+    ],
+  )
+  assert.equal('codigoColuna' in chamadas[0].body, false)
+  assert.equal(chamadas[0].body.status, 'andamento')
+  assert.equal('codigoColuna' in chamadas[1].body, false)
+  assert.equal(chamadas[1].body.status, 'concluida')
+  assert.equal(chamadas[2].body.codigoColuna, 'c2')
+})
+
+test('quadroDesatualizado: coluna sumida e 409 QUADRO_MUDOU recarregam; outros erros não', () => {
+  assert.equal(quadroDesatualizado({ codigo: 'COLUNA_DE_OUTRO_PROJETO' }), true)
+  assert.equal(quadroDesatualizado({ codigo: 'QUADRO_MUDOU', status: 409 }), true)
+  assert.equal(quadroDesatualizado({ codigo: 'DESTINO_COLUNA_OBRIGATORIO' }), false)
+  assert.equal(quadroDesatualizado(undefined), false)
 })

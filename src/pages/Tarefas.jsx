@@ -12,8 +12,10 @@ import alerts from '../lib/alerts'
 import useCarregar from '../lib/useCarregar'
 import Esqueleto from '../components/Esqueleto'
 import { adaptTask } from '../lib/apiMappers'
+import { adaptColuna } from '../lib/colunas'
+import SeloEtapa from '../components/SeloEtapa'
 import { STATUS_ATIVOS, projetos } from '../services/projetos'
-import { CATEGORIAS, acoesTarefa, origemTarefa, papelNaTarefa, tarefas } from '../services/tarefas'
+import { CATEGORIAS, acoesTarefa, origemTarefa, papelNaTarefa, quadroDesatualizado, tarefas } from '../services/tarefas'
 
 const VISOES = [
   ['kanban', 'Kanban'],
@@ -89,6 +91,8 @@ export default function Tarefas() {
       await recarregar()
       refresh().catch(() => {})
     } catch (error) {
+      // Coluna apagada ou quadro mudado por outra pessoa: mostra o aviso da API e recarrega a lista.
+      if (quadroDesatualizado(error)) await recarregar().catch(() => {})
       alerts.error('Não foi possível salvar', error.message)
       return false
     }
@@ -189,6 +193,12 @@ export default function Tarefas() {
     { k: 'resp', l: 'Responsáveis', get: t => nm(D, t.responsaveis) },
     { k: 'fim', l: 'Prazo', render: t => fm(t.fim) },
     { k: 'prioridade', l: 'Prioridade', filter: true, render: t => <span className={chip(PC[t.prioridade])}>{t.prioridade}</span> },
+    {
+      k: 'etapa',
+      l: 'Etapa',
+      get: t => (t.avulsa ? '' : t.coluna?.nome || ''),
+      render: t => (t.avulsa ? '' : <SeloEtapa coluna={t.coluna} />),
+    },
     { k: 'situacao', l: 'Situação', get: t => ST[t.status], filter: true },
   ]
 
@@ -248,6 +258,8 @@ export default function Tarefas() {
           me={me}
           t={aberta}
           T={T}
+          colunas={projetoAberto?.colunas?.map(adaptColuna)}
+          mover={acoes.mover}
           p={projetoAberto ? { id: projetoAberto.codigo, nome: projetoAberto.nome, membros: equipeAtual(projetoAberto) } : null}
           salvar={(antes, depois) => acoes.salvar(antes, depois, 'Tarefa salva')}
           close={() => setTk(null)}

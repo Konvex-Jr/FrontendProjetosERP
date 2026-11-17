@@ -112,3 +112,11 @@ test('mesmaLista compara códigos sem ligar para a ordem', () => {
   assert.equal(mesmaLista(['a'], ['a', 'b']), false)
   assert.equal(mesmaLista(undefined, []), true)
 })
+
+test('gravarColunas manda PUT com o corpo das colunas', async () => {
+  const corpo = { colunas: [{ codigo: 'c1', nome: 'A', cor: 'cinza', papel: 'entrada' }], destinos: {} }
+  const chamadas = await capturar(() => projetos.gravarColunas('p1', corpo))
+  assert.equal(chamadas[0].url, '/projetos/p1/colunas')
+  assert.equal(chamadas[0].method, 'PUT')
+  assert.deepEqual(chamadas[0].body, corpo)
+})

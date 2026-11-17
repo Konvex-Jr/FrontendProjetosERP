@@ -1,17 +1,19 @@
 import { useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
-import { DAY, d, fm, iso, nm } from '../lib/utils'
+import { DAY, d, fm, hj, nm } from '../lib/utils'
 import Ic from '../components/Icon'
 import TaskModal from '../components/TaskModal'
-import KanbanTarefas, { semanas } from '../components/KanbanTarefas'
+import KanbanEtapas from '../components/KanbanEtapas'
+import ColunasModal from '../components/ColunasModal'
+import { adaptColuna } from '../lib/colunas'
 import EquipeProjeto from '../components/EquipeProjeto'
 import { Av, PageBar, Seg } from '../components/Ui'
 import alerts from '../lib/alerts'
 import useCarregar from '../lib/useCarregar'
 import Esqueleto from '../components/Esqueleto'
-import { rotuloPrioridade } from '../services/projetos'
-import { acoesTarefa, papelNasTarefas, tarefas } from '../services/tarefas'
+import { projetos, rotuloPrioridade } from '../services/projetos'
+import { acoesTarefa, papelNasTarefas, quadroDesatualizado, tarefas } from '../services/tarefas'
 import { ErroAcessoParcial, gravarProjeto } from '../lib/gravarProjeto'
 import { carregarProjeto } from '../lib/carregarProjeto'
 import Table from '../components/Table'
@@ -82,7 +84,8 @@ export default function Projeto() {
     { id } = useParams(),
     pid = id
   const [pt, setPt] = useState('kanban'),
-    [tk, setTk] = useState(null)
+    [tk, setTk] = useState(null),
+    [editandoColunas, setEditandoColunas] = useState(false)
   const [aba, setAba] = useState('tarefas')
   // Quem não tem Biblioteca no menu (trainee) levaria 403 da API: a aba nem aparece (mesma regra do Perfil).
   const temBiblioteca = nav.some(([chave]) => chave === 'biblioteca')
@@ -116,9 +119,9 @@ export default function Projeto() {
   const p = { id: projeto.codigo, nome: projeto.nome, membros: projeto.participacoes.filter(x => !x.dataSaida).map(x => x.usuario.codigo) }
   const papel = papelNasTarefas({ me, gestao: pode('tarefas.gerirTodas'), projeto })
   const T = dados.tarefas,
-    { h, m } = semanas(D)
+    h = hj(D)
 
-  const add = i =>
+  const add = colunaId =>
     form(
       'Nova tarefa',
       [
@@ -131,7 +134,7 @@ export default function Projeto() {
       {
         prioridade: 'P3',
         responsaveis: papel.organiza ? [] : [me],
-        ...(typeof i == 'number' && i < 3 ? { inicio: D.c.hoje, fim: iso(m + (7 * i + 4) * DAY) } : {}),
+        ...(colunaId ? { colunaId } : {}),
       },
       o => salvarTarefa(() => tarefas.criar(pid, o), 'Tarefa criada'),
     )
@@ -142,6 +145,8 @@ export default function Projeto() {
       if (ok) alerts.toastSuccess(ok)
       await aoSalvar()
     } catch (error) {
+      // Coluna apagada ou quadro mudado por outra pessoa: mostra o aviso da API e recarrega o quadro.
+      if (quadroDesatualizado(error)) await aoSalvar().catch(() => {})
       alerts.error('Não foi possível salvar', error.message)
       return false
     }
@@ -155,8 +160,38 @@ export default function Projeto() {
     pc = x => ((x - a) / L) * 100,
     hp = pc(+h)
 
+  // Grava as colunas e recarrega. A gravação que deu certo continua certa mesmo se a recarga falhar;
+  // no 409 o erro devolvido é o do 409 (a janela recomeça do quadro recarregado).
+  const gravarColunas = async corpo => {
+    try {
+      await projetos.gravarColunas(pid, corpo)
+    } catch (e) {
+      if (e.status === 409) await aoSalvar().catch(() => {})
+      throw e
+    }
+    await aoSalvar().catch(() => {})
+  }
+
   const kanban = () => (
-    <KanbanTarefas D={D} T={T} papelDe={() => papel} acoes={acoes} abrir={setTk} adicionar={papel.participa ? add : null} />
+    <>
+      {papel.organiza && (
+        <div className="mb-2">
+          <button className="btn btn-g" onClick={() => setEditandoColunas(true)}>
+            <Ic k="edit" />
+            Editar colunas
+          </button>
+        </div>
+      )}
+      <KanbanEtapas
+        D={D}
+        T={T}
+        colunas={projeto.colunas.map(adaptColuna)}
+        papelDe={() => papel}
+        acoes={acoes}
+        abrir={setTk}
+        adicionar={papel.participa ? add : null}
+      />
+    </>
   )
 
   const gantt = () =>
@@ -316,6 +351,14 @@ export default function Projeto() {
       {aba == 'geral' && geral()}
       {aba == 'biblioteca' && temBiblioteca && <ItensDoProjeto projeto={projeto} />}
       {aba == 'equipe' && <EquipeProjeto projeto={projeto} todos={todos} gente={gente} gestor={gestor} aoSalvar={aoSalvar} />}
+      {editandoColunas && (
+        <ColunasModal
+          colunas={projeto.colunas.map(adaptColuna)}
+          tarefas={T}
+          aoSalvar={gravarColunas}
+          aoFechar={() => setEditandoColunas(false)}
+        />
+      )}
       {tk && T.find(x => x.id == tk) && (
         <TaskModal
           D={D}
@@ -323,6 +366,8 @@ export default function Projeto() {
           me={me}
           salvar={(antes, depois) => acoes.salvar(antes, depois, 'Tarefa salva')}
           t={T.find(x => x.id == tk)}
+          colunas={projeto.colunas.map(adaptColuna)}
+          mover={acoes.mover}
           p={p}
           T={T}
           close={() => setTk(null)}

@@ -37,6 +37,8 @@ const P = {
     '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1L7 17M17 7l2.1-2.1"/>',
   key: '<circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3M14 9l2 2"/>',
   plus: '<path d="M12 5v14M5 12h14"/>',
+  entrada: '<path d="M4 12h12M11 7l5 5-5 5M20 4v16"/>',
+  move: '<path d="M4 12h16M15 7l5 5-5 5M4 5v14"/>',
   back: '<path d="M15 5l-7 7 7 7"/>',
   x: '<path d="M6 6l12 12M18 6L6 18"/>',
   lock: '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/>',

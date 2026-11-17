@@ -1,4 +1,5 @@
 import { iso } from './utils.js'
+import { adaptColuna } from './colunas.js'
 
 /**
  * Conversões do formato da API (codigo, dataInicio, objetos aninhados) para o formato curto
@@ -55,6 +56,7 @@ export function adaptProject(project) {
     sigiloso: !!project.sigiloso,
     resumo: !!project.resumo,
     acesso: project.acesso || [],
+    colunas: (project.colunas || []).map(adaptColuna),
     podeGerirAcesso: !!project.podeGerirAcesso,
     ...(project.resumo
       ? {
@@ -88,6 +90,7 @@ export function adaptTask(task) {
     dependeDe: userCode(task.dependeDe) || undefined,
     responsaveis: (task.responsaveis || []).map(userCode),
     quantidadeAnexos: task.quantidadeAnexos ?? 0,
+    coluna: task.coluna ? adaptColuna(task.coluna) : null,
     checklist: (task.checklist || []).map(item => ({
       id: item.codigo ?? item.id,
       texto: item.texto,

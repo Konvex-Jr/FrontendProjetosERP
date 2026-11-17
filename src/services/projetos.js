@@ -84,6 +84,8 @@ export const projetos = {
   excluir: codigo => send('DELETE', `/projetos/${codigo}`),
   /** Lista de acesso do projeto sigiloso (só diretor e criador): códigos de pessoas com login. */
   definirAcesso: (codigo, codigos) => send('PUT', `/projetos/${codigo}/acesso`, { codigos }),
+  /** Colunas do quadro: `corpo` vem de `corpoColunas`; devolve as colunas salvas. */
+  gravarColunas: (codigo, corpo) => send('PUT', `/projetos/${codigo}/colunas`, corpo),
   /** Líder do projeto: código de alguém da equipe atual, ou null para tirar. */
   definirLider: (codigo, codigoUsuario) => send('PUT', `/projetos/${codigo}/lider`, { codigoUsuario: codigoUsuario || null }),
 }

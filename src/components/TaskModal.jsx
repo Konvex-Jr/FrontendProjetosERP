@@ -3,6 +3,7 @@ import Ic from './Icon'
 import Anexos from './Anexos'
 import Multi from './Multi'
 import { Prog } from './Ui'
+import SeloEtapa from './SeloEtapa'
 import { ST, chip, fm } from '../lib/utils'
 import { CATEGORIAS, rotuloCategoria, tarefas } from '../services/tarefas'
 import alerts from '../lib/alerts'
@@ -146,9 +147,11 @@ function AnexosTarefa({ t, papel, aoMudar }) {
  * Detalhes de uma tarefa (de projeto ou avulsa). Edita uma cópia (`draft`) e só envia ao salvar:
  * `salvar(antes, depois)` escolhe PATCH (só status) ou PUT (ver services/tarefas).
  * `papel` vem de papelNaTarefa/papelNasTarefas: sem `organiza`, os campos ficam travados.
+ * `colunas` = etapas do projeto da tarefa (sem elas, ou em tarefa avulsa, vale a Situação);
+ * `mover(t, codigoColuna)` grava a etapa na hora para quem só conclui/reabre.
  * `T` = tarefas carregadas na tela (para as dependências); `p` = projeto no formato do contexto.
  */
-export default function TaskModal({ D, salvar, t, p, T, close, del, tog, papel, recarregar }) {
+export default function TaskModal({ D, salvar, t, p, T, close, del, tog, papel, recarregar, colunas, mover }) {
   const [draft, setDraft] = useState({ ...t }),
     [nv, setNv] = useState('')
   const cl = draft.checklist || [],
@@ -157,6 +160,22 @@ export default function TaskModal({ D, salvar, t, p, T, close, del, tog, papel, 
     setCl = f => patch({ checklist: f(cl) })
   // A data de conclusão aqui é só para a tela; ela não vai no corpo, a API grava a data real.
   const st = value => patch({ status: value, conclusao: value == 'concluida' ? D.c.hoje : undefined })
+  const etapas = !t.avulsa && colunas?.length ? colunas : null
+  // Coluna apagada enquanto a janela estava aberta: a recarga traz as colunas novas e o rascunho volta à etapa da tarefa.
+  useEffect(() => {
+    if (etapas && draft.coluna && !etapas.some(c => c.id === draft.coluna.id)) patch({ coluna: t.coluna })
+  }, [colunas])
+  const campoEtapa = (valor, aoMudar) => (
+    <L l="Etapa">
+      <select className="form-select mt-1" value={valor || ''} onChange={e => aoMudar(e.target.value)}>
+        {etapas.map(c => (
+          <option key={c.id} value={c.id}>
+            {c.nome}
+          </option>
+        ))}
+      </select>
+    </L>
+  )
   const save = async () => {
     if ((await salvar(t, draft)) !== false) close()
   }
@@ -307,15 +326,28 @@ export default function TaskModal({ D, salvar, t, p, T, close, del, tog, papel, 
                         </select>
                       </L>
                     )}
-                    <L l="Situação">
-                      <select className="form-select mt-1" value={draft.status} onChange={e => st(e.target.value)}>
-                        {Object.entries(ST).map(([k, l]) => (
-                          <option key={k} value={k}>
-                            {l}
-                          </option>
-                        ))}
-                      </select>
-                    </L>
+                    {etapas ? (
+                      papel.organiza ? (
+                        campoEtapa(draft.coluna?.id, id => patch({ coluna: etapas.find(c => c.id === id) }))
+                      ) : (
+                        !(papel.podeStatus(t) && mover) && (
+                          <div className="mb-3">
+                            <div className="form-label">Etapa</div>
+                            <SeloEtapa coluna={t.coluna} />
+                          </div>
+                        )
+                      )
+                    ) : (
+                      <L l="Situação">
+                        <select className="form-select mt-1" value={draft.status} onChange={e => st(e.target.value)}>
+                          {Object.entries(ST).map(([k, l]) => (
+                            <option key={k} value={k}>
+                              {l}
+                            </option>
+                          ))}
+                        </select>
+                      </L>
+                    )}
                     <L l="Prioridade">
                       <select className="form-select mt-1" value={draft.prioridade} onChange={e => patch({ prioridade: e.target.value })}>
                         {['P1', 'P2', 'P3', 'P4'].map(x => (
@@ -367,6 +399,10 @@ export default function TaskModal({ D, salvar, t, p, T, close, del, tog, papel, 
                   </div>
                 </div>
               </fieldset>
+              {/* Fora do fieldset desabilitado: quem só conclui/reabre também troca a etapa da própria tarefa, na hora. */}
+              {etapas && !papel.organiza && papel.podeStatus(t) && mover && (
+                <div className="mt-3 col-md-4">{campoEtapa(t.coluna?.id, id => mover(t, id))}</div>
+              )}
               {t.id && <AnexosTarefa t={t} papel={papel} aoMudar={recarregar} />}
               <Comentarios t={t} papel={papel} />
               {papel.organiza ? (
