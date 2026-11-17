@@ -168,16 +168,8 @@ const colunasAntes = antes.colunas.map(c => ({ codigo: c.codigo, nome: c.nome, c
 const tarefasAntes = (await api('GET', `/tarefas?codigoProjeto=${site.codigo}`)).map(t => [t.codigo, t.coluna.codigo])
 const entradaAntes = colunasAntes.find(c => c.papel === 'entrada').codigo
 
-const tarefaCriada = await api('POST', '/tarefas', {
-  codigoProjeto: site.codigo,
-  titulo: TITULO,
-  dataInicio: new Date().toISOString().slice(0, 10),
-  dataFim: new Date(Date.now() + 5 * 864e5).toISOString().slice(0, 10),
-  prioridade: 'P2',
-  codigosResponsaveis: [caio.codigo],
-})
-
-const browser = await chromium.launch()
+let tarefaCriada
+let browser
 const errosConsole = []
 const nova = async opcoes => {
   const ctx = await browser.newContext(opcoes)
@@ -189,16 +181,36 @@ const nova = async opcoes => {
 }
 
 try {
+  tarefaCriada = await api('POST', '/tarefas', {
+    codigoProjeto: site.codigo,
+    titulo: TITULO,
+    dataInicio: new Date().toISOString().slice(0, 10),
+    dataFim: new Date(Date.now() + 5 * 864e5).toISOString().slice(0, 10),
+    prioridade: 'P2',
+    codigosResponsaveis: [caio.codigo],
+  })
+  browser = await chromium.launch()
   const page = await nova({ viewport: { width: 1366, height: 900 } })
   await entrar(page, 'bia@dev.konvex', SENHA)
   await abrirProjeto(page, site.codigo)
 
-  await passo('a. líder cria, renomeia, sobe, muda a cor e salva "Homologação"', async () => {
+  await passo('a. líder cria "Homol", salva, reabre e renomeia para "Homologação", sobe e muda a cor', async () => {
     await abrirEditor(page)
     await page.getByRole('button', { name: 'Nova coluna' }).click()
-    const campo = page.locator('.cl-dialog input[aria-label^="Nome da coluna"]').nth(colunasAntes.length - 1)
-    await campo.fill('Homol')
-    await campo.fill('Homologação')
+    await page
+      .locator('.cl-dialog input[aria-label^="Nome da coluna"]')
+      .nth(colunasAntes.length - 1)
+      .fill('Homol')
+    await salvarEditor(page)
+    await coluna(page, 'Homol').waitFor({ timeout: 15000 })
+    const criada = (await api('GET', `/projetos/${site.codigo}`)).colunas.find(c => c.nome === 'Homol')
+    exigir(criada, 'API não tem a coluna "Homol" salva')
+    // Renomear uma coluna já gravada: reabre o editor e muda o nome dela.
+    await abrirEditor(page)
+    await page
+      .locator('.cl-dialog input[aria-label^="Nome da coluna"]')
+      .nth(colunasAntes.length - 1)
+      .fill('Homologação')
     await page.getByRole('button', { name: 'Subir coluna Homologação' }).click()
     await page.getByRole('button', { name: 'Rosa, cor da coluna Homologação' }).click()
     exigir(
@@ -207,12 +219,22 @@ try {
     )
     await salvarEditor(page)
     await coluna(page, 'Homologação').waitFor({ timeout: 15000 })
+    // Recarrega a página: o que vale é o que o servidor guardou.
+    await page.reload()
+    await page.waitForSelector('.kb-et', { timeout: 15000 })
+    await coluna(page, 'Homologação').waitFor({ timeout: 15000 })
+    exigir(
+      (await nomesDasColunas(page)).every(n => n !== 'Homol'),
+      'nome antigo "Homol" continua no quadro',
+    )
     const nomes = await nomesDasColunas(page)
     const i = nomes.findIndex(n => n.includes('Homologação'))
     exigir(i === nomes.length - 3, `Homologação deveria estar antes da penúltima; ordem: ${nomes.join(' | ')}`)
     exigir((await coluna(page, 'Homologação').getAttribute('class')).includes('kc-rosa'), 'coluna sem a cor rosa')
     const servidor = (await api('GET', `/projetos/${site.codigo}`)).colunas.find(c => c.nome === 'Homologação')
     exigir(servidor && servidor.cor === 'rosa', 'API não tem a coluna rosa')
+    exigir(servidor.codigo === criada.codigo, 'o renome criou outra coluna em vez de renomear a mesma')
+    exigir(!(await api('GET', `/projetos/${site.codigo}`)).colunas.some(c => c.nome === 'Homol'), 'API ainda tem "Homol"')
     await page.screenshot({ path: `${PRINTS}colunas-a.png` })
   })
 
@@ -253,18 +275,19 @@ try {
     console.log(`       progresso (tela Projetos): ${antesPct}% -> ${depoisPct}% -> ${volta}%`)
   })
 
-  await passo('e. membro responsável move a própria tarefa e não vê "Editar colunas"', async () => {
-    await sair(page)
-    await entrar(page, 'caio@dev.konvex', SENHA)
+  await passo('f. líder sai e Davi (outro projeto) entra na mesma aba: sem dados do projeto do líder', async () => {
+    // Bia ainda logada: abre o quadro com o botão, passa o mouse no menu e no cartão (enche a memória e a antecipação).
     await abrirProjeto(page, site.codigo)
-    exigir((await page.getByRole('button', { name: 'Editar colunas' }).count()) === 0, 'membro vê "Editar colunas"')
-    await moverPeloMenu(page, 'Fazendo', 'Em teste')
-    const t = (await api('GET', `/tarefas?codigoProjeto=${site.codigo}`)).find(x => x.codigo === tarefaCriada.codigo)
-    exigir(t.coluna.nome === 'Em teste', `API diz coluna ${t.coluna.nome}`)
-  })
-
-  await passo('f. troca de conta na mesma aba: sem dados do projeto do líder', async () => {
-    await abrirProjeto(page, site.codigo) // Caio ainda logado: o quadro está na memória da aba
+    await page.getByRole('button', { name: 'Editar colunas' }).waitFor({ timeout: 15000 })
+    await page.locator('.cm.t button[aria-label="Ações"]').first().hover()
+    for (const rotulo of ['Projetos', 'Tarefas'])
+      await page
+        .locator('aside, nav')
+        .getByText(rotulo, { exact: true })
+        .first()
+        .hover()
+        .catch(() => {})
+    await page.waitForTimeout(700)
     await sair(page)
     await entrar(page, 'davi@dev.konvex', SENHA) // membro de outro projeto (só do sigiloso)
     await page.goto(`${APP}/#/projetos`)
@@ -272,26 +295,37 @@ try {
     await page.waitForLoadState('networkidle')
     let texto = await page.locator('body').innerText()
     exigir(!texto.includes('Site institucional'), 'Projetos mostra o projeto do líder')
+    exigir(!texto.includes(TITULO), 'Projetos mostra tarefa do líder')
     exigir(texto.includes('Proposta confidencial'), 'Projetos não mostra o projeto do próprio Davi')
     exigir(!(await page.getByRole('button', { name: 'Editar colunas' }).count()), 'botão "Editar colunas" na lista')
     await page.goto(`${APP}/#/projetos/${site.codigo}`)
-    await page.waitForLoadState('networkidle')
-    // A API responde 403 e a tela avisa; fecha o aviso (ele cobre a tela) e confere o que sobrou.
+    // A API responde 403 e a tela tem que avisar (o aviso cobre a tela): exige, lê e fecha.
     const aviso = page.locator('.swal2-popup:not(.swal2-toast)')
-    await aviso.waitFor({ timeout: 5000 }).catch(() => {})
-    if (await aviso.count()) {
-      console.log(`       URL direta do projeto alheio: aviso "${(await aviso.locator('.swal2-html-container').innerText()).trim()}"`)
-      await page.click('.swal2-confirm')
-    }
+    await aviso.waitFor({ timeout: 10000 })
+    const msg = (await aviso.locator('.swal2-html-container').innerText()).trim()
+    exigir(/só pode ver os projetos de que participa/.test(msg), `aviso inesperado: "${msg}"`)
+    console.log(`       URL direta do projeto alheio: aviso "${msg}"`)
+    await page.click('.swal2-confirm')
     texto = await page.locator('body').innerText()
-    exigir(!texto.includes(TITULO) && !texto.includes('Em teste'), 'URL direta do projeto mostra dados do líder')
+    for (const x of [TITULO, 'Site institucional', 'Em teste', 'Revisando', 'Fazendo', 'A fazer'])
+      exigir(!texto.includes(x), `URL direta do projeto mostra "${x}"`)
     exigir(!(await page.getByRole('button', { name: 'Editar colunas' }).count()), 'botão "Editar colunas" no projeto alheio')
     await page.goto(`${APP}/#/tarefas`)
     await page.waitForLoadState('networkidle')
     texto = await page.locator('body').innerText()
-    exigir(!texto.includes(TITULO), 'Tarefas mostra tarefa do projeto do líder')
-    exigir(!texto.includes('Site institucional'), 'Tarefas mostra o projeto do líder')
+    for (const x of [TITULO, 'Site institucional', 'Em teste', 'Revisando'])
+      exigir(!texto.includes(x), `Tarefas mostra "${x}" do projeto do líder`)
     exigir(!(await page.getByRole('button', { name: 'Editar colunas' }).count()), 'botão "Editar colunas" em Tarefas')
+  })
+
+  await passo('e. membro responsável move a própria tarefa e não vê "Editar colunas"', async () => {
+    await sair(page) // Davi sai; Caio entra na mesma aba
+    await entrar(page, 'caio@dev.konvex', SENHA)
+    await abrirProjeto(page, site.codigo)
+    exigir((await page.getByRole('button', { name: 'Editar colunas' }).count()) === 0, 'membro vê "Editar colunas"')
+    await moverPeloMenu(page, 'Fazendo', 'Em teste')
+    const t = (await api('GET', `/tarefas?codigoProjeto=${site.codigo}`)).find(x => x.codigo === tarefaCriada.codigo)
+    exigir(t.coluna.nome === 'Em teste', `API diz coluna ${t.coluna.nome}`)
   })
 
   await passo('f2. sigiloso visto em resumo não mostra colunas nem etapas', async () => {
@@ -335,10 +369,10 @@ try {
   resultado.push(['FALHA', 'preparação do navegador', e.message])
   console.log('FALHA preparação:', e.message)
 } finally {
-  await browser.close().catch(() => {})
+  await browser?.close().catch(() => {})
   // Limpeza: apaga a tarefa criada, devolve as colunas e as tarefas ao que eram.
   try {
-    await api('DELETE', `/tarefas/${tarefaCriada.codigo}`)
+    if (tarefaCriada) await api('DELETE', `/tarefas/${tarefaCriada.codigo}`)
     const atual = await api('GET', `/projetos/${site.codigo}`)
     const extras = atual.colunas.filter(c => !colunasAntes.some(x => x.codigo === c.codigo))
     await api('PUT', `/projetos/${site.codigo}/colunas`, {
