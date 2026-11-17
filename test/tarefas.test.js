@@ -160,7 +160,8 @@ test('soMudouEtapa só vale quando a coluna muda e o resto fica igual', () => {
   assert.equal(soMudouEtapa(a, { ...a, coluna: fazendo, titulo: 'Outra' }), false)
   assert.equal(soMudouEtapa(a, { ...a, coluna: fazendo, status: 'concluida' }), false)
   assert.equal(soMudouEtapa(a, a), false)
-  assert.equal(soMudouStatus(a, { ...a, status: 'concluida', coluna: fazendo }), true)
+  assert.equal(soMudouStatus(a, { ...a, status: 'concluida', coluna: fazendo }), false)
+  assert.equal(soMudouStatus(a, { ...a, status: 'concluida', coluna: { ...entrada } }), true)
 })
 
 test('salvar escolhe mover, status ou editar; corpos levam a coluna', async () => {
@@ -171,6 +172,7 @@ test('salvar escolhe mover, status ou editar; corpos levam a coluna', async () =
     await tarefas.salvar(a, { ...a, status: 'concluida' })
     await tarefas.salvar(a, { ...a, coluna: fazendo, titulo: 'Outra' })
     await tarefas.mover('t1', 'c2')
+    await tarefas.salvar(a, { ...a, status: 'concluida', coluna: fazendo })
   })
   sessao.limpar()
   assert.deepEqual(
@@ -180,8 +182,10 @@ test('salvar escolhe mover, status ou editar; corpos levam a coluna', async () =
       ['PATCH', '/tarefas/t1/status'],
       ['PUT', '/tarefas/t1'],
       ['PATCH', '/tarefas/t1/coluna'],
+      ['PUT', '/tarefas/t1'],
     ],
   )
+  assert.equal(chamadas[4].body.codigoColuna, 'c2')
   assert.deepEqual(chamadas[0].body, { codigoColuna: 'c2' })
   assert.equal(chamadas[2].body.codigoColuna, 'c2')
   assert.equal(corpoTarefa(tarefa).codigoColuna, undefined)

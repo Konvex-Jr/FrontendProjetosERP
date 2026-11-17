@@ -46,10 +46,10 @@ export const corpoTarefa = t => ({
   checklist: (t.checklist || []).map(i => ({ codigo: i.id, texto: i.texto, feito: Boolean(i.feito) })),
 })
 
-/** Só o status mudou? Então basta o PATCH. */
+/** Só o status mudou (mesma etapa)? Então basta o PATCH. Etapa junto vai pela edição. */
 export function soMudouStatus(antes, depois) {
   const semStatus = t => JSON.stringify({ ...t, status: undefined, conclusao: undefined, coluna: undefined })
-  return antes.status !== depois.status && semStatus(antes) === semStatus(depois)
+  return antes.status !== depois.status && antes.coluna?.id === depois.coluna?.id && semStatus(antes) === semStatus(depois)
 }
 
 /** Só a etapa (coluna) mudou? Então basta o PATCH da coluna. */
