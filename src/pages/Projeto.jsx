@@ -5,13 +5,14 @@ import { DAY, d, fm, hj, nm } from '../lib/utils'
 import Ic from '../components/Icon'
 import TaskModal from '../components/TaskModal'
 import KanbanEtapas from '../components/KanbanEtapas'
+import ColunasModal from '../components/ColunasModal'
 import { adaptColuna } from '../lib/colunas'
 import EquipeProjeto from '../components/EquipeProjeto'
 import { Av, PageBar, Seg } from '../components/Ui'
 import alerts from '../lib/alerts'
 import useCarregar from '../lib/useCarregar'
 import Esqueleto from '../components/Esqueleto'
-import { rotuloPrioridade } from '../services/projetos'
+import { projetos, rotuloPrioridade } from '../services/projetos'
 import { acoesTarefa, papelNasTarefas, tarefas } from '../services/tarefas'
 import { ErroAcessoParcial, gravarProjeto } from '../lib/gravarProjeto'
 import { carregarProjeto } from '../lib/carregarProjeto'
@@ -83,7 +84,8 @@ export default function Projeto() {
     { id } = useParams(),
     pid = id
   const [pt, setPt] = useState('kanban'),
-    [tk, setTk] = useState(null)
+    [tk, setTk] = useState(null),
+    [editandoColunas, setEditandoColunas] = useState(false)
   const [aba, setAba] = useState('tarefas')
   // Quem não tem Biblioteca no menu (trainee) levaria 403 da API: a aba nem aparece (mesma regra do Perfil).
   const temBiblioteca = nav.some(([chave]) => chave === 'biblioteca')
@@ -156,16 +158,37 @@ export default function Projeto() {
     pc = x => ((x - a) / L) * 100,
     hp = pc(+h)
 
+  // Grava as colunas e recarrega. Se o quadro mudou enquanto a janela estava aberta (409), recarrega mesmo assim.
+  const gravarColunas = async corpo => {
+    try {
+      await projetos.gravarColunas(pid, corpo)
+    } catch (e) {
+      if (e.status === 409) await aoSalvar()
+      throw e
+    }
+    await aoSalvar()
+  }
+
   const kanban = () => (
-    <KanbanEtapas
-      D={D}
-      T={T}
-      colunas={projeto.colunas.map(adaptColuna)}
-      papelDe={() => papel}
-      acoes={acoes}
-      abrir={setTk}
-      adicionar={papel.participa ? add : null}
-    />
+    <>
+      {papel.organiza && (
+        <div className="mb-2">
+          <button className="btn btn-g" onClick={() => setEditandoColunas(true)}>
+            <Ic k="edit" />
+            Editar colunas
+          </button>
+        </div>
+      )}
+      <KanbanEtapas
+        D={D}
+        T={T}
+        colunas={projeto.colunas.map(adaptColuna)}
+        papelDe={() => papel}
+        acoes={acoes}
+        abrir={setTk}
+        adicionar={papel.participa ? add : null}
+      />
+    </>
   )
 
   const gantt = () =>
@@ -325,6 +348,14 @@ export default function Projeto() {
       {aba == 'geral' && geral()}
       {aba == 'biblioteca' && temBiblioteca && <ItensDoProjeto projeto={projeto} />}
       {aba == 'equipe' && <EquipeProjeto projeto={projeto} todos={todos} gente={gente} gestor={gestor} aoSalvar={aoSalvar} />}
+      {editandoColunas && (
+        <ColunasModal
+          colunas={projeto.colunas.map(adaptColuna)}
+          tarefas={T}
+          aoSalvar={gravarColunas}
+          aoFechar={() => setEditandoColunas(false)}
+        />
+      )}
       {tk && T.find(x => x.id == tk) && (
         <TaskModal
           D={D}

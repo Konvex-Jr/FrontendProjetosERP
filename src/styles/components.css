@@ -1786,3 +1786,93 @@ button.kc-tag {
 .mv-i:focus-visible {
     background: var(--kc-b)
 }
+
+/* Janela "Editar colunas" */
+.cl-dialog {
+    max-width: 880px
+}
+
+.cl-lista {
+    display: flex;
+    flex-direction: column;
+    gap: 8px
+}
+
+.cl-linha {
+    display: grid;
+    grid-template-columns: auto minmax(120px, 1fr) auto auto auto;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border: 1px solid var(--ln);
+    border-left: 4px solid var(--kc);
+    border-radius: 8px
+}
+
+.cl-mover {
+    display: flex;
+    gap: 4px
+}
+
+.cl-cores {
+    display: flex;
+    gap: 6px
+}
+
+.cl-cor {
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border: 2px solid transparent;
+    border-radius: 50%;
+    background: var(--kc);
+    cursor: pointer
+}
+
+.cl-cor[aria-pressed="true"] {
+    border-color: var(--tx);
+    box-shadow: 0 0 0 2px var(--bg, #fff) inset
+}
+
+.cl-cor:focus-visible,
+.cl-op input:focus-visible {
+    outline: 2px solid var(--tx);
+    outline-offset: 2px
+}
+
+.cl-papeis {
+    display: flex;
+    gap: 12px
+}
+
+.cl-op {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 13px;
+    white-space: nowrap
+}
+
+.cl-excluida {
+    grid-template-columns: minmax(100px, 1fr) minmax(200px, 2fr) auto;
+    opacity: .95;
+    background: var(--kc-b)
+}
+
+.cl-destino {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px
+}
+
+.cl-destino span {
+    white-space: nowrap
+}
+
+.cl-erro {
+    margin: 12px 0 0;
+    color: #b42318;
+    font-size: 13px;
+    font-weight: 600
+}

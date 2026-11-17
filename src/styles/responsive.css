@@ -345,4 +345,26 @@
   .kb > * {
     scroll-snap-align: start
   }
+
+  /* Janela Editar colunas: cada linha vira um bloco em duas fileiras. */
+  .cl-linha,
+  .cl-excluida {
+    grid-template-columns: 1fr auto
+  }
+
+  .cl-nome,
+  .cl-cores,
+  .cl-papeis,
+  .cl-destino {
+    grid-column: 1 / -1
+  }
+
+  .cl-cores {
+    flex-wrap: wrap
+  }
+
+  .cl-destino {
+    flex-direction: column;
+    align-items: stretch
+  }
 }
