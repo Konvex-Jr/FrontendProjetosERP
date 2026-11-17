@@ -192,3 +192,31 @@ test('salvar escolhe mover, status ou editar; corpos levam a coluna', async () =
   assert.equal(corpoNovaTarefa('p1', { titulo: 'X', colunaId: 'c2' }).codigoColuna, 'c2')
   assert.equal('codigoColuna' in corpoNovaTarefa('p1', { titulo: 'X' }), false)
 })
+
+test('PUT só leva codigoColuna quando a etapa muda: reabrir arrastando para uma semana manda só o status', async () => {
+  const concluido = { id: 'c4', nome: 'Concluído', cor: 'verde', papel: 'concluida' }
+  const feita = { ...tarefa, status: 'concluida', conclusao: '2026-11-05', coluna: concluido }
+  sessao.salvar({ token: 'tk', refreshToken: 'rt' })
+  const chamadas = await capturar(async () => {
+    // Tela Tarefas: quem organiza solta a concluída numa coluna de semana (status andamento, prazo novo, mesma etapa).
+    await tarefas.salvar(feita, { ...feita, status: 'andamento', conclusao: undefined, fim: '2026-11-14' })
+    // Concluir arrastando para "Concluído" com o prazo de outra semana também não pode prender a tarefa na etapa atual.
+    await tarefas.salvar({ ...tarefa, coluna: entrada }, { ...tarefa, coluna: entrada, status: 'concluida', fim: '2026-11-14' })
+    // Etapa trocada no formulário junto com outro campo: vai a coluna nova.
+    await tarefas.salvar({ ...tarefa, coluna: entrada }, { ...tarefa, coluna: fazendo, titulo: 'Outra' })
+  })
+  sessao.limpar()
+  assert.deepEqual(
+    chamadas.map(c => [c.method, c.url]),
+    [
+      ['PUT', '/tarefas/t1'],
+      ['PUT', '/tarefas/t1'],
+      ['PUT', '/tarefas/t1'],
+    ],
+  )
+  assert.equal('codigoColuna' in chamadas[0].body, false)
+  assert.equal(chamadas[0].body.status, 'andamento')
+  assert.equal('codigoColuna' in chamadas[1].body, false)
+  assert.equal(chamadas[1].body.status, 'concluida')
+  assert.equal(chamadas[2].body.codigoColuna, 'c2')
+})

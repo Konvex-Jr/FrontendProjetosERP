@@ -36,12 +36,17 @@ export const corpoNovaTarefa = (codigoProjeto, t) =>
     ? { codigoProjeto, ...base(t), ...(t.colunaId ? { codigoColuna: t.colunaId } : {}) }
     : { categoria: t.categoria, ...base(t) }
 
-/** Corpo do PUT /tarefas/:codigo (envia tudo; a API ignora responsáveis quando quem edita é membro). */
-export const corpoTarefa = t => ({
+/**
+ * Corpo do PUT /tarefas/:codigo (envia tudo; a API ignora responsáveis quando quem edita é membro).
+ * `codigoColuna` só vai quando a etapa muda em relação a `antes`: na API ele vence o status, e mandar a
+ * coluna atual prenderia a tarefa nela (ex.: reabrir arrastando a concluída para uma semana na tela Tarefas).
+ * Sem `codigoColuna`, a API leva a tarefa para a coluna do status.
+ */
+export const corpoTarefa = (t, antes) => ({
   ...base(t),
   ...(t.avulsa ? { categoria: t.categoria } : {}),
   status: t.status,
-  ...(t.coluna ? { codigoColuna: t.coluna.id } : {}),
+  ...(t.coluna && t.coluna.id !== antes?.coluna?.id ? { codigoColuna: t.coluna.id } : {}),
   codigoDependencia: t.dependeDe || null,
   checklist: (t.checklist || []).map(i => ({ codigo: i.id, texto: i.texto, feito: Boolean(i.feito) })),
 })
@@ -64,7 +69,7 @@ export const tarefas = {
     return get('/tarefas' + (qs ? '?' + qs : ''))
   },
   criar: (codigoProjeto, t) => send('POST', '/tarefas', corpoNovaTarefa(codigoProjeto, t)),
-  editar: t => send('PUT', `/tarefas/${t.id}`, corpoTarefa(t)),
+  editar: (t, antes) => send('PUT', `/tarefas/${t.id}`, corpoTarefa(t, antes)),
   alterarStatus: (codigo, status) => send('PATCH', `/tarefas/${codigo}/status`, { status }),
   mover: (codigo, codigoColuna) => send('PATCH', `/tarefas/${codigo}/coluna`, { codigoColuna }),
   excluir: codigo => send('DELETE', `/tarefas/${codigo}`),
@@ -78,7 +83,7 @@ export const tarefas = {
       ? tarefas.mover(depois.id, depois.coluna.id)
       : soMudouStatus(antes, depois)
         ? tarefas.alterarStatus(depois.id, depois.status)
-        : tarefas.editar(depois),
+        : tarefas.editar(depois, antes),
 }
 
 /**
