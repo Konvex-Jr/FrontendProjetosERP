@@ -145,6 +145,8 @@ export default function Projeto() {
       if (ok) alerts.toastSuccess(ok)
       await aoSalvar()
     } catch (error) {
+      // Coluna apagada por outra pessoa: mostra o aviso da API e recarrega o quadro.
+      if (error.codigo === 'COLUNA_DE_OUTRO_PROJETO') await aoSalvar().catch(() => {})
       alerts.error('Não foi possível salvar', error.message)
       return false
     }
@@ -364,6 +366,8 @@ export default function Projeto() {
           me={me}
           salvar={(antes, depois) => acoes.salvar(antes, depois, 'Tarefa salva')}
           t={T.find(x => x.id == tk)}
+          colunas={projeto.colunas.map(adaptColuna)}
+          mover={acoes.mover}
           p={p}
           T={T}
           close={() => setTk(null)}

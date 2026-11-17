@@ -82,6 +82,7 @@ export default function KanbanTarefas({ D, T, papelDe, acoes, abrir, adicionar, 
                 acoes={acoes}
                 abrir={abrir}
                 origem={origem}
+                etapa
                 aoArrastar={x => (dg.current = x)}
                 aoSoltar={() => {
                   dg.current = null

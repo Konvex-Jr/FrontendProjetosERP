@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { chip, d, fm, hj, PC } from '../lib/utils'
 import { origemTarefa } from '../services/tarefas'
 import Clipe from './Clipe'
+import SeloEtapa from './SeloEtapa'
 import Ic from './Icon'
 import ActionMenu from './ActionMenu'
 import alerts from '../lib/alerts'
@@ -10,10 +11,10 @@ import { Av } from './Ui'
 /**
  * Cartão de tarefa dos quadros (por semana e por etapa).
  * `papel` diz o que a pessoa pode nesta tarefa; `acoes` vem de `acoesTarefa`.
- * `origem`: mostra o projeto ou a categoria. `colunas`: liga o item "Mover para…" (quadro por etapa).
+ * `origem`: mostra o projeto ou a categoria. `etapa`: mostra o selo da etapa (só tarefa de projeto). `colunas`: liga o item "Mover para…" (quadro por etapa).
  * `aoArrastar(t)` e `aoSoltar()` avisam o quadro do início e do fim do arrasto.
  */
-export default function CartaoTarefa({ D, t, papel, acoes, abrir, origem = false, colunas, aoArrastar, aoSoltar }) {
+export default function CartaoTarefa({ D, t, papel, acoes, abrir, origem = false, etapa = false, colunas, aoArrastar, aoSoltar }) {
   const [movendo, setMovendo] = useState(false)
   const lt = t.status != 'concluida' && d(t.fim) < hj(D),
     dn = t.status == 'concluida'
@@ -38,6 +39,11 @@ export default function CartaoTarefa({ D, t, papel, acoes, abrir, origem = false
           title={(t.avulsa ? 'Tarefa avulsa: ' : 'Projeto: ') + origemTarefa(t)}
         >
           {origemTarefa(t)}
+        </span>
+      )}
+      {etapa && !t.avulsa && (
+        <span className="ms-1">
+          <SeloEtapa coluna={t.coluna} />
         </span>
       )}
       <b>{t.titulo}</b>
