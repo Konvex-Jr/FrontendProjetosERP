@@ -6,6 +6,7 @@ import {
   origemTarefa,
   papelNaTarefa,
   papelNasTarefas,
+  quadroDesatualizado,
   soMudouEtapa,
   soMudouStatus,
   tarefas,
@@ -219,4 +220,11 @@ test('PUT só leva codigoColuna quando a etapa muda: reabrir arrastando para uma
   assert.equal('codigoColuna' in chamadas[1].body, false)
   assert.equal(chamadas[1].body.status, 'concluida')
   assert.equal(chamadas[2].body.codigoColuna, 'c2')
+})
+
+test('quadroDesatualizado: coluna sumida e 409 QUADRO_MUDOU recarregam; outros erros não', () => {
+  assert.equal(quadroDesatualizado({ codigo: 'COLUNA_DE_OUTRO_PROJETO' }), true)
+  assert.equal(quadroDesatualizado({ codigo: 'QUADRO_MUDOU', status: 409 }), true)
+  assert.equal(quadroDesatualizado({ codigo: 'DESTINO_COLUNA_OBRIGATORIO' }), false)
+  assert.equal(quadroDesatualizado(undefined), false)
 })

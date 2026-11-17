@@ -51,6 +51,12 @@ export const corpoTarefa = (t, antes) => ({
   checklist: (t.checklist || []).map(i => ({ codigo: i.id, texto: i.texto, feito: Boolean(i.feito) })),
 })
 
+/**
+ * Erro de quadro desatualizado: a coluna sumiu (`COLUNA_DE_OUTRO_PROJETO`) ou o quadro mudou durante
+ * a gravação (409 `QUADRO_MUDOU`). A tela mostra `error.message` e recarrega.
+ */
+export const quadroDesatualizado = error => ['COLUNA_DE_OUTRO_PROJETO', 'QUADRO_MUDOU'].includes(error?.codigo)
+
 /** Só o status mudou (mesma etapa)? Então basta o PATCH. Etapa junto vai pela edição. */
 export function soMudouStatus(antes, depois) {
   const semStatus = t => JSON.stringify({ ...t, status: undefined, conclusao: undefined, coluna: undefined })

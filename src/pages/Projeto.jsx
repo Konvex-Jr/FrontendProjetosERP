@@ -13,7 +13,7 @@ import alerts from '../lib/alerts'
 import useCarregar from '../lib/useCarregar'
 import Esqueleto from '../components/Esqueleto'
 import { projetos, rotuloPrioridade } from '../services/projetos'
-import { acoesTarefa, papelNasTarefas, tarefas } from '../services/tarefas'
+import { acoesTarefa, papelNasTarefas, quadroDesatualizado, tarefas } from '../services/tarefas'
 import { ErroAcessoParcial, gravarProjeto } from '../lib/gravarProjeto'
 import { carregarProjeto } from '../lib/carregarProjeto'
 import Table from '../components/Table'
@@ -145,8 +145,8 @@ export default function Projeto() {
       if (ok) alerts.toastSuccess(ok)
       await aoSalvar()
     } catch (error) {
-      // Coluna apagada por outra pessoa: mostra o aviso da API e recarrega o quadro.
-      if (error.codigo === 'COLUNA_DE_OUTRO_PROJETO') await aoSalvar().catch(() => {})
+      // Coluna apagada ou quadro mudado por outra pessoa: mostra o aviso da API e recarrega o quadro.
+      if (quadroDesatualizado(error)) await aoSalvar().catch(() => {})
       alerts.error('Não foi possível salvar', error.message)
       return false
     }

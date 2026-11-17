@@ -15,7 +15,7 @@ import { adaptTask } from '../lib/apiMappers'
 import { adaptColuna } from '../lib/colunas'
 import SeloEtapa from '../components/SeloEtapa'
 import { STATUS_ATIVOS, projetos } from '../services/projetos'
-import { CATEGORIAS, acoesTarefa, origemTarefa, papelNaTarefa, tarefas } from '../services/tarefas'
+import { CATEGORIAS, acoesTarefa, origemTarefa, papelNaTarefa, quadroDesatualizado, tarefas } from '../services/tarefas'
 
 const VISOES = [
   ['kanban', 'Kanban'],
@@ -91,8 +91,8 @@ export default function Tarefas() {
       await recarregar()
       refresh().catch(() => {})
     } catch (error) {
-      // Coluna apagada por outra pessoa: mostra o aviso da API e recarrega a lista.
-      if (error.codigo === 'COLUNA_DE_OUTRO_PROJETO') await recarregar().catch(() => {})
+      // Coluna apagada ou quadro mudado por outra pessoa: mostra o aviso da API e recarrega a lista.
+      if (quadroDesatualizado(error)) await recarregar().catch(() => {})
       alerts.error('Não foi possível salvar', error.message)
       return false
     }
