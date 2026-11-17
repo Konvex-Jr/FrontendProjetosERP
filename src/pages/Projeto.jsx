@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
-import { DAY, d, fm, iso, nm } from '../lib/utils'
+import { DAY, d, fm, hj, nm } from '../lib/utils'
 import Ic from '../components/Icon'
 import TaskModal from '../components/TaskModal'
-import KanbanTarefas, { semanas } from '../components/KanbanTarefas'
+import KanbanEtapas from '../components/KanbanEtapas'
+import { adaptColuna } from '../lib/colunas'
 import EquipeProjeto from '../components/EquipeProjeto'
 import { Av, PageBar, Seg } from '../components/Ui'
 import alerts from '../lib/alerts'
@@ -116,9 +117,9 @@ export default function Projeto() {
   const p = { id: projeto.codigo, nome: projeto.nome, membros: projeto.participacoes.filter(x => !x.dataSaida).map(x => x.usuario.codigo) }
   const papel = papelNasTarefas({ me, gestao: pode('tarefas.gerirTodas'), projeto })
   const T = dados.tarefas,
-    { h, m } = semanas(D)
+    h = hj(D)
 
-  const add = i =>
+  const add = colunaId =>
     form(
       'Nova tarefa',
       [
@@ -131,7 +132,7 @@ export default function Projeto() {
       {
         prioridade: 'P3',
         responsaveis: papel.organiza ? [] : [me],
-        ...(typeof i == 'number' && i < 3 ? { inicio: D.c.hoje, fim: iso(m + (7 * i + 4) * DAY) } : {}),
+        ...(colunaId ? { colunaId } : {}),
       },
       o => salvarTarefa(() => tarefas.criar(pid, o), 'Tarefa criada'),
     )
@@ -156,7 +157,15 @@ export default function Projeto() {
     hp = pc(+h)
 
   const kanban = () => (
-    <KanbanTarefas D={D} T={T} papelDe={() => papel} acoes={acoes} abrir={setTk} adicionar={papel.participa ? add : null} />
+    <KanbanEtapas
+      D={D}
+      T={T}
+      colunas={projeto.colunas.map(adaptColuna)}
+      papelDe={() => papel}
+      acoes={acoes}
+      abrir={setTk}
+      adicionar={papel.participa ? add : null}
+    />
   )
 
   const gantt = () =>

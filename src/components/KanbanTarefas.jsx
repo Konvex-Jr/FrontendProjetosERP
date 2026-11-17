@@ -1,11 +1,7 @@
 import { useRef, useState } from 'react'
-import { DAY, PC, chip, d, fm, hj, iso } from '../lib/utils'
-import { origemTarefa } from '../services/tarefas'
-import Clipe from './Clipe'
+import { DAY, chip, d, hj, iso } from '../lib/utils'
+import CartaoTarefa from './CartaoTarefa'
 import Ic from './Icon'
-import ActionMenu from './ActionMenu'
-import alerts from '../lib/alerts'
-import { Av } from './Ui'
 
 export const COLUNAS = ['Essa semana', 'Semana que vem', 'Daqui a duas semanas', 'Concluído']
 
@@ -29,7 +25,7 @@ const ordem = (a, b) => (a.prioridade > b.prioridade ? 1 : a.prioridade < b.prio
 export default function KanbanTarefas({ D, T, papelDe, acoes, abrir, adicionar, origem = false }) {
   const [ov, setOv] = useState(null),
     dg = useRef(null)
-  const { h, m, col } = semanas(D)
+  const { m, col } = semanas(D)
 
   const drop = (x, i) => {
     const papel = papelDe(x)
@@ -77,95 +73,22 @@ export default function KanbanTarefas({ D, T, papelDe, acoes, abrir, adicionar, 
               {c}
               <span className={chip()}>{l.length}</span>
             </h3>
-            {l.map(t => {
-              const papel = papelDe(t)
-              const lt = t.status != 'concluida' && d(t.fim) < h,
-                dn = t.status == 'concluida'
-              return (
-                <div
-                  key={t.id}
-                  draggable={papel.organiza || papel.podeStatus(t)}
-                  className="tk"
-                  onClick={() => abrir(t.id)}
-                  // A tarefa arrastada fica na ref `dg`: o dataTransfer só leva texto.
-                  onDragStart={e => {
-                    dg.current = t
-                    e.dataTransfer.effectAllowed = 'move'
-                    e.dataTransfer.setData('text/plain', String(t.id))
-                  }}
-                  onDragEnd={() => {
-                    dg.current = null
-                    setOv(null)
-                  }}
-                >
-                  <span className={chip(PC[t.prioridade])}>{t.prioridade}</span>
-                  {origem && (
-                    <span
-                      className={chip(t.avulsa ? 'p3 ms-1 kb-or' : 'ms-1 kb-or')}
-                      title={(t.avulsa ? 'Tarefa avulsa: ' : 'Projeto: ') + origemTarefa(t)}
-                    >
-                      {origemTarefa(t)}
-                    </span>
-                  )}
-                  <b>{t.titulo}</b>
-                  <div className="tkf">
-                    <span className="bds">
-                      <span className={'bd ' + (dn ? 'ok' : lt ? 'er' : '')} title={dn ? 'Concluída' : lt ? 'Atrasada' : 'Prazo'}>
-                        <Ic k="clock" />
-                        {fm(dn && t.conclusao ? t.conclusao : t.fim)}
-                      </span>
-                      {(t.checklist || []).length > 0 && (
-                        <span className={'bd ' + (t.checklist.every(x => x.feito) ? 'ok' : '')}>
-                          <Ic k="check" />
-                          {t.checklist.filter(x => x.feito).length}/{t.checklist.length}
-                        </span>
-                      )}
-                      {t.dependeDe && (
-                        <span className="bd" title="Depende de outra tarefa">
-                          <Ic k="link" />
-                        </span>
-                      )}
-                      <Clipe n={t.quantidadeAnexos} />
-                      {t.descricao && (
-                        <span className="bd" title="Tem descrição">
-                          <Ic k="list" />
-                        </span>
-                      )}
-                    </span>
-                    <Av D={D} ids={t.responsaveis} />
-                  </div>
-                  {papel.podeStatus(t) && (
-                    <span className="cm t">
-                      <ActionMenu
-                        items={[
-                          [dn ? 'undo' : 'check', dn ? 'Reabrir' : 'Concluir', () => acoes.tog(t)],
-                          ...(papel.organiza
-                            ? [
-                                [
-                                  'trash',
-                                  'Excluir',
-                                  async () => {
-                                    if (
-                                      await alerts.confirm({
-                                        title: 'Excluir tarefa?',
-                                        text: t.titulo,
-                                        confirmText: 'Excluir tarefa',
-                                        danger: true,
-                                      })
-                                    )
-                                      acoes.del(t.id)
-                                  },
-                                  1,
-                                ],
-                              ]
-                            : []),
-                        ]}
-                      />
-                    </span>
-                  )}
-                </div>
-              )
-            })}
+            {l.map(t => (
+              <CartaoTarefa
+                key={t.id}
+                D={D}
+                t={t}
+                papel={papelDe(t)}
+                acoes={acoes}
+                abrir={abrir}
+                origem={origem}
+                aoArrastar={x => (dg.current = x)}
+                aoSoltar={() => {
+                  dg.current = null
+                  setOv(null)
+                }}
+              />
+            ))}
             {i < 3 && adicionar && (
               <button className="btn btn-ghost addc" onClick={() => adicionar(i)}>
                 <Ic k="plus" />

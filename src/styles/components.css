@@ -562,6 +562,13 @@ svg.i {
     padding-bottom: 8px
 }
 
+/* Quadro por etapa: de 2 a 12 colunas, com largura mínima e rolagem só no quadro. */
+.kb.kb-et {
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(240px, 1fr)
+}
+
 .col-k {
     background: var(--col);
     border-radius: var(--rd);
@@ -1650,4 +1657,132 @@ button.kc-tag {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     gap: 6px 16px
+}
+
+/* Quadro por etapa (projeto) */
+.kc-cinza {
+    --kc: var(--kc-cinza);
+    --kc-b: var(--kc-cinza-b)
+}
+
+.kc-azul {
+    --kc: var(--kc-azul);
+    --kc-b: var(--kc-azul-b)
+}
+
+.kc-verde {
+    --kc: var(--kc-verde);
+    --kc-b: var(--kc-verde-b)
+}
+
+.kc-amarelo {
+    --kc: var(--kc-amarelo);
+    --kc-b: var(--kc-amarelo-b)
+}
+
+.kc-laranja {
+    --kc: var(--kc-laranja);
+    --kc-b: var(--kc-laranja-b)
+}
+
+.kc-vermelho {
+    --kc: var(--kc-vermelho);
+    --kc-b: var(--kc-vermelho-b)
+}
+
+.kc-roxo {
+    --kc: var(--kc-roxo);
+    --kc-b: var(--kc-roxo-b)
+}
+
+.kc-rosa {
+    --kc: var(--kc-rosa);
+    --kc-b: var(--kc-rosa-b)
+}
+
+/* Classe .kc-<chave> aplica as duas cores; --kc e --kc-b são lidas pelas regras abaixo. */
+.col-k[class*='kc-'] {
+    background: var(--kc-b);
+    border-top: 3px solid var(--kc)
+}
+
+.kb-et .col-k.over {
+    background: var(--bg)
+}
+
+.kc-ponto {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--kc);
+    flex: none
+}
+
+.selo-etapa {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--kc-b);
+    color: var(--tx);
+    font-weight: 600
+}
+
+.col-k .selo-etapa {
+    background: transparent;
+    padding-left: 0;
+    font-size: 14px
+}
+
+.kc-nome {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0
+}
+
+.kc-sinal {
+    display: inline-flex;
+    color: var(--mu)
+}
+
+.kc-sinal .i {
+    width: 14px;
+    height: 14px
+}
+
+.mv {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding-top: 6px;
+    border-top: 1px solid var(--ln)
+}
+
+.mv-t {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--mu)
+}
+
+.mv-i {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 6px 8px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--tx);
+    font-size: 13px;
+    text-align: left
+}
+
+.mv-i:hover,
+.mv-i:focus-visible {
+    background: var(--kc-b)
 }

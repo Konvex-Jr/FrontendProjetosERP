@@ -337,6 +337,11 @@
     scroll-padding: 0 12px
   }
 
+  .kb.kb-et {
+    grid-template-columns: none;
+    grid-auto-columns: 85%
+  }
+
   .kb > * {
     scroll-snap-align: start
   }

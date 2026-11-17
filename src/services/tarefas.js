@@ -125,5 +125,6 @@ export function papelNaTarefa({ me, gestao, atribui, projeto, tarefa }) {
 export const acoesTarefa = salvarTarefa => ({
   tog: t => salvarTarefa(() => tarefas.alterarStatus(t.id, t.status == 'concluida' ? 'andamento' : 'concluida')),
   del: codigo => salvarTarefa(() => tarefas.excluir(codigo), 'Tarefa excluída'),
+  mover: (t, colunaId) => salvarTarefa(() => tarefas.mover(t.id, colunaId)),
   salvar: (antes, depois, ok) => salvarTarefa(() => tarefas.salvar(antes, depois), ok),
 })
