@@ -35,11 +35,14 @@ export function cartoesDeLinks(u) {
     ['github', u?.githubUrl],
     [null, u?.calendarioUrl],
   ]
-  return links
-    .filter(([, url]) => typeof url === 'string' && url.trim())
-    .map(([tipo, url]) => {
-      const limpo = url.trim()
-      const t = tipo || tipoDoCalendario(limpo)
-      return { tipo: t, rotulo: ROTULOS[t], url: limpo, texto: encurtar(limpo) }
-    })
+  return (
+    links
+      // Só http(s): `javascript:` e afins nunca chegam ao href, mesmo se o backend deixar passar.
+      .filter(([, url]) => typeof url === 'string' && /^https?:\/\/\S/i.test(url.trim()))
+      .map(([tipo, url]) => {
+        const limpo = url.trim()
+        const t = tipo || tipoDoCalendario(limpo)
+        return { tipo: t, rotulo: ROTULOS[t], url: limpo, texto: encurtar(limpo) }
+      })
+  )
 }

@@ -34,7 +34,7 @@ test('cartoesDeLinks usa o calendário genérico para outros serviços e hosts p
   const [calendly] = cartoesDeLinks({ calendarioUrl: 'https://calendly.com/ana' })
   assert.equal(calendly.tipo, 'calendario')
   assert.equal(calendly.rotulo, 'Agenda')
-  for (const url of ['https://calendar.google.com.evil.io/x', 'https://evilcalendar.google.com.br/', 'nao é link']) {
+  for (const url of ['https://calendar.google.com.evil.io/x', 'https://evilcalendar.google.com.br/', 'https://nao-e-link.com']) {
     assert.equal(cartoesDeLinks({ calendarioUrl: url })[0].tipo, 'calendario', url)
   }
 })
@@ -45,4 +45,8 @@ test('cartoesDeLinks encurta o texto: sem protocolo, sem www, sem barra final, a
   assert.equal(longo.length, 40)
   assert.ok(longo.endsWith('…'))
   assert.ok(longo.startsWith('github.com/aaa'))
+})
+
+test('cartoesDeLinks descarta o que não for http(s)', () => {
+  assert.deepEqual(cartoesDeLinks({ githubUrl: 'javascript:alert(1)', linkedinUrl: ' data:text/html,x', calendarioUrl: 'nao é link' }), [])
 })
