@@ -118,6 +118,9 @@
   .cal { display: none }
   .cal-ag { display: block }
 
+  /* Perfil: um cartão de link por linha. */
+  .links-perfil { grid-template-columns: 1fr }
+
 
   /* Barra inferior: até 4 itens + "Mais" (a gaveta lista todos com o nome). */
   #menu.cm-mais a.ex {

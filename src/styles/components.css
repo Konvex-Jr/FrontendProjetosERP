@@ -1922,3 +1922,61 @@ button.kc-tag {
     user-select: none;
     pointer-events: none
 }
+
+/* Links do perfil (LinkedIn, GitHub, calendário) como cartões com logo */
+.links-perfil {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap: 8px;
+    margin-top: 16px
+}
+
+.link-perfil {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid var(--ln);
+    border-radius: var(--rd);
+    background: var(--c);
+    color: var(--tx);
+    text-decoration: none;
+    min-width: 0;
+    transition: border-color .15s var(--ez)
+}
+
+.link-perfil:hover,
+.link-perfil:focus-visible {
+    border-color: var(--act);
+    color: var(--tx)
+}
+
+.link-perfil>span:last-child {
+    min-width: 0
+}
+
+.link-perfil b {
+    display: block;
+    font-size: .9rem
+}
+
+.link-perfil small {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--mu)
+}
+
+.logo-marca {
+    flex: none;
+    width: 24px;
+    height: 24px;
+    display: inline-flex;
+    color: var(--tx)
+}
+
+.logo-marca svg {
+    width: 24px;
+    height: 24px
+}

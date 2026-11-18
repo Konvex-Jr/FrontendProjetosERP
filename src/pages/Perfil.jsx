@@ -9,142 +9,28 @@ import { PageBar, Prog } from '../components/Ui'
 import alerts from '../lib/alerts'
 import useCarregar from '../lib/useCarregar'
 import Esqueleto from '../components/Esqueleto'
-import { juntarTecnologia, minhaConta, pessoas, rotuloStatus, tecnologias, tecnologiasDe } from '../services/pessoas'
+import { minhaConta, pessoas, rotuloStatus } from '../services/pessoas'
+import { cartoesDeLinks } from '../lib/linksPerfil'
+import LogoMarca from '../components/LogosMarcas'
 import { horas } from '../services/capacitacoes'
 import { itensDoAutor } from '../services/biblioteca'
 import Clipe from '../components/Clipe'
 import { SeloSigiloso } from '../components/SeloProjeto'
 
 const COR_STATUS = { ativo: 'ok', trainee: '', alumni: 'wa', inativo: 'er' }
-const semProtocolo = url => url.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')
-const Link = ({ url }) => (
-  <a href={url} target="_blank" rel="noreferrer">
-    {semProtocolo(url)}
-  </a>
-)
-
-/** Tecnologias que a pessoa domina (sessão 13): chips; no próprio perfil, edição com sugestões da lista que cresce. */
-function Tecnologias({ u, meu, aoSalvar }) {
-  const atuais = tecnologiasDe(u)
-  const [editando, setEditando] = useState(false)
-  const [lista, setLista] = useState(atuais)
-  const [nova, setNova] = useState('')
-  const [sugestoes, setSugestoes] = useState([])
-  const [salvando, setSalvando] = useState(false)
-  const abrir = async () => {
-    setLista(atuais)
-    setNova('')
-    setEditando(true)
-    try {
-      setSugestoes(await tecnologias.sugestoes())
-    } catch {
-      setSugestoes([])
-    }
-  }
-  const adicionar = () => {
-    setLista(l => juntarTecnologia(l, nova, sugestoes))
-    setNova('')
-  }
-  const salvar = async () => {
-    const final = juntarTecnologia(lista, nova, sugestoes)
-    setSalvando(true)
-    try {
-      await tecnologias.salvarMinhas(final)
-      alerts.toastSuccess('Tecnologias atualizadas')
-      setEditando(false)
-      await aoSalvar()
-    } catch (error) {
-      alerts.error('Não foi possível salvar', error.message)
-    } finally {
-      setSalvando(false)
-    }
-  }
+/** Links do perfil como cartões com logo; abrem em nova aba. */
+function CartoesDeLinks({ cartoes }) {
   return (
-    <div className="card card-body h-100">
-      <div className="d-flex justify-content-between align-items-center gap-2">
-        <h2 className="m-0">Tecnologias que domina</h2>
-        {meu && !editando && (
-          <button className="btn btn-g" onClick={abrir}>
-            <Ic k="edit" />
-            Editar
-          </button>
-        )}
-      </div>
-      {!editando ? (
-        atuais.length ? (
-          <div className="kc-tags mt-2">
-            {atuais.map(t => (
-              <span key={t} className={chip()}>
-                {t}
-              </span>
-            ))}
-          </div>
-        ) : (
-          <small className="mt-2">
-            {meu
-              ? 'Nenhuma ainda. Use “Editar” para dizer com o que você trabalha (ex.: React, SolidWorks, Arduino).'
-              : 'Nenhuma tecnologia informada.'}
-          </small>
-        )
-      ) : (
-        <div className="mt-2">
-          <div className="kc-tags mb-2">
-            {lista.length ? (
-              lista.map(t => (
-                <span key={t} className={chip()}>
-                  {t}
-                  <button
-                    type="button"
-                    className="dots ms-1"
-                    aria-label={`Remover ${t}`}
-                    onClick={() => setLista(l => l.filter(x => x !== t))}
-                  >
-                    <Ic k="x" />
-                  </button>
-                </span>
-              ))
-            ) : (
-              <small>Nenhuma escolhida.</small>
-            )}
-          </div>
-          <div className="d-flex gap-2">
-            <input
-              className="form-control"
-              list="sug-tec"
-              placeholder="Digite e escolha ou crie"
-              value={nova}
-              maxLength={60}
-              onChange={e => setNova(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === 'Enter') {
-                  e.preventDefault()
-                  adicionar()
-                }
-              }}
-            />
-            <datalist id="sug-tec">
-              {sugestoes
-                .filter(s => !lista.some(x => x.toLowerCase() === s.toLowerCase()))
-                .map(s => (
-                  <option key={s} value={s} />
-                ))}
-            </datalist>
-            <button type="button" className="btn btn-g" disabled={!nova.trim()} onClick={adicionar}>
-              <Ic k="plus" />
-              Adicionar
-            </button>
-          </div>
-          <small className="d-block mt-1">Se a tecnologia ainda não existir na lista, ela é criada. Todos os membros veem.</small>
-          <div className="d-flex justify-content-end gap-2 mt-2">
-            <button className="btn btn-g" onClick={() => setEditando(false)}>
-              Cancelar
-            </button>
-            <button className="btn btn-primary" disabled={salvando} onClick={salvar}>
-              {salvando ? 'Salvando…' : 'Salvar'}
-            </button>
-          </div>
-        </div>
-      )}
+    <div className="links-perfil">
+      {cartoes.map(c => (
+        <a key={c.tipo} className="link-perfil" href={c.url} target="_blank" rel="noreferrer" title={c.url}>
+          <LogoMarca tipo={c.tipo} />
+          <span>
+            <b>{c.rotulo}</b>
+            <small>{c.texto}</small>
+          </span>
+        </a>
+      ))}
     </div>
   )
 }
@@ -288,20 +174,11 @@ export default function Perfil() {
   const info = [
     ['E-mail', u.email],
     ['Telefone', u.telefone],
-    ['LinkedIn', u.linkedinUrl && <Link url={u.linkedinUrl} />],
-    ['GitHub', u.githubUrl && <Link url={u.githubUrl} />],
-    [
-      'Calendário',
-      u.calendarioUrl && (
-        <a href={u.calendarioUrl} target="_blank" rel="noreferrer">
-          Ver agenda
-        </a>
-      ),
-    ],
     ['Curso', u.curso && (u.semestre ? `${u.curso} · ${u.semestre}º semestre` : u.curso)],
     ['Na EJ desde', u.dataEntrada && fd(u.dataEntrada)],
     ['Saída', u.dataSaida && fd(u.dataSaida)],
   ].filter(([, v]) => v)
+  const cartoes = cartoesDeLinks(u)
 
   const projeto = p => (
     <div
@@ -414,6 +291,11 @@ export default function Perfil() {
                 <span className="text-end">{v}</span>
               </div>
             ))}
+            {cartoes.length > 0 ? (
+              <CartoesDeLinks cartoes={cartoes} />
+            ) : (
+              meu && <small className="d-block mt-3">Adicione seus links em Editar meus dados.</small>
+            )}
             {u.bio && <p className="mt-3 mb-0">{u.bio}</p>}
             {meu && (
               <div className="d-flex flex-wrap gap-2 mt-3">
@@ -459,9 +341,6 @@ export default function Perfil() {
         </div>
         <div className="col-md-6">
           <Lista titulo="Projetos anteriores" itens={projetosAnteriores} vazio="Nenhum projeto encerrado." linha={projeto} />
-        </div>
-        <div className="col-md-6">
-          <Tecnologias key={tecnologiasDe(u).join()} u={u} meu={meu} aoSalvar={recarregar} />
         </div>
         <div className="col-md-6">
           <Lista
