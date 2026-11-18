@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { fotoUrl, quadradoDeRecorte, validarArquivoFoto } from '../src/lib/foto.js'
+import { blobDeFotoValido, fotoUrl, quadradoDeRecorte, validarArquivoFoto } from '../src/lib/foto.js'
 
 const UUID = '3f2b8c1e-5a4d-4e6f-9a1b-0c2d3e4f5a6b.webp'
 
@@ -38,4 +38,11 @@ test('validarArquivoFoto confere tipo e tamanho', () => {
   assert.equal(validarArquivoFoto({ type: 'image/jpeg', size: 100 }), null)
   assert.equal(validarArquivoFoto({ type: 'image/webp', size: 100 }), null)
   assert.equal(validarArquivoFoto(null), 'Escolha uma imagem JPEG, PNG ou WebP.')
+})
+
+test('blobDeFotoValido aceita WebP e JPEG, recusa PNG e nada', () => {
+  assert.equal(blobDeFotoValido({ type: 'image/webp' }), true)
+  assert.equal(blobDeFotoValido({ type: 'image/jpeg' }), true)
+  assert.equal(blobDeFotoValido({ type: 'image/png' }), false)
+  assert.equal(blobDeFotoValido(null), false)
 })

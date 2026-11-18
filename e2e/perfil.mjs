@@ -8,6 +8,7 @@
  *   d. troca de conta na mesma aba: Caio entra e o topo mostra as iniciais dele, sem a foto de Bia
  *   e. Bia volta e remove a foto: topo e perfil voltam às iniciais
  *   f. celular (375 px): cartões dos links um por linha, sem rolagem lateral
+ *   g. navegador sem WebP no canvas (como Safari e iPhone): a foto sai em JPEG e o servidor converte
  *
  * Ao final devolve os links de Bia e tira a foto: pode rodar de novo.
  * Pré-requisitos como no `levantamento.mjs` (API de dev com dados fictícios, frontend no ar, Playwright):
@@ -227,6 +228,29 @@ try {
     const sobra = await m.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)
     exigir(sobra <= 0, `a página rola na horizontal (${sobra} px)`)
     await m.screenshot({ path: `${PRINTS}perfil-f.png` })
+  })
+
+  await passo('g. navegador sem WebP no canvas (Safari): envia JPEG e a foto aparece', async () => {
+    const s = await nova({ viewport: { width: 1366, height: 900 } })
+    // Como o WebKit: pedir WebP ao canvas devolve PNG.
+    await s.addInitScript(() => {
+      const original = HTMLCanvasElement.prototype.toBlob
+      HTMLCanvasElement.prototype.toBlob = function (cb, tipo, q) {
+        return original.call(this, cb, tipo === 'image/webp' ? 'image/png' : tipo, q)
+      }
+    })
+    const enviados = []
+    s.on('request', r => r.url().endsWith('/auth/foto') && r.method() === 'PUT' && enviados.push(r.headers()['content-type']))
+    await entrar(s, A, SENHA)
+    await abrirMeuPerfil(s)
+    await s.getByRole('button', { name: 'Trocar foto' }).first().click()
+    const png = Buffer.from(await gerarPng(s), 'base64')
+    await s.setInputFiles('.modal input[type=file]', { name: 'foto.png', mimeType: 'image/png', buffer: png })
+    await s.waitForSelector('.foto-previa img')
+    await s.locator('.modal').getByRole('button', { name: 'Salvar' }).click()
+    await s.waitForSelector('.modal', { state: 'detached', timeout: 15000 })
+    exigir(enviados[0] === 'image/jpeg', `o envio foi ${enviados[0]}, não image/jpeg`)
+    await fotoCarregada(s.locator('.av.big img[src*="/fotos/"]'), 'o perfil não mostra a foto enviada em JPEG')
   })
 } catch (e) {
   falhou = true

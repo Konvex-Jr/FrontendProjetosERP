@@ -1,15 +1,16 @@
 import { useEffect, useRef, useState } from 'react'
-import { LADO_FOTO, quadradoDeRecorte, validarArquivoFoto } from '../lib/foto'
+import { blobDeFotoValido, LADO_FOTO, quadradoDeRecorte, validarArquivoFoto } from '../lib/foto'
 import { minhaConta } from '../services/pessoas'
 import alerts from '../lib/alerts'
 import ZonaEnvio from './ZonaEnvio'
 
 const PREVIA = 256
-const SEM_WEBP = 'Seu navegador não gerou a imagem. Tente outro navegador.'
+const SEM_IMAGEM = 'Seu navegador não gerou a imagem. Tente outro navegador.'
 
 /**
  * Janela "Trocar foto": escolhe a imagem, enquadra (arrastar com mouse ou dedo, zoom de 1 a 3) e salva
- * um WebP 256×256. `aoSalvo()` roda depois do envio, para a tela recarregar. A prévia é a própria
+ * uma imagem 256×256 (WebP, ou JPEG onde o navegador não gera WebP). `aoSalvo()` roda depois do
+ * envio, para a tela recarregar. A prévia é a própria
  * área recortada: o que se vê é o que vai ser salvo.
  */
 export default function FotoModal({ aoFechar, aoSalvo }) {
@@ -73,8 +74,11 @@ export default function FotoModal({ aoFechar, aoSalvo }) {
       const canvas = document.createElement('canvas')
       canvas.width = canvas.height = LADO_FOTO
       canvas.getContext('2d').drawImage(imagem, sx, sy, lado, lado, 0, 0, LADO_FOTO, LADO_FOTO)
-      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/webp', 0.85))
-      if (!blob || blob.type !== 'image/webp') throw new Error(SEM_WEBP)
+      const gerar = tipo => new Promise(resolve => canvas.toBlob(resolve, tipo, 0.85))
+      // Safari e iPhone não geram WebP pelo canvas (devolvem PNG): aí vai JPEG, e o servidor converte.
+      let blob = await gerar('image/webp')
+      if (!blobDeFotoValido(blob)) blob = await gerar('image/jpeg')
+      if (!blobDeFotoValido(blob)) throw new Error(SEM_IMAGEM)
       await minhaConta.enviarFoto(blob)
       alerts.toastSuccess('Foto atualizada')
       await aoSalvo?.()

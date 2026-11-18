@@ -26,3 +26,9 @@ export function validarArquivoFoto(file) {
   if (file.size > LIMITE_ENTRADA) return 'A imagem pode ter até 5 MB.'
   return null
 }
+
+/**
+ * O canvas gerou algo que dá para enviar? WebP (Chrome, Firefox) ou JPEG (Safari e iPhone, que não
+ * geram WebP e devolvem PNG). O servidor regrava sempre em WebP 256×256.
+ */
+export const blobDeFotoValido = blob => !!blob && (blob.type === 'image/webp' || blob.type === 'image/jpeg')
