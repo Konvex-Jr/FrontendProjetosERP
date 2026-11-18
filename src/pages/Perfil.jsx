@@ -16,6 +16,8 @@ import { horas } from '../services/capacitacoes'
 import { itensDoAutor } from '../services/biblioteca'
 import Clipe from '../components/Clipe'
 import { SeloSigiloso } from '../components/SeloProjeto'
+import AreasPessoa from '../components/AreasPessoa'
+import { rotuloArea } from '../lib/periodos'
 
 const COR_STATUS = { ativo: 'ok', trainee: '', alumni: 'wa', inativo: 'er' }
 /** Links do perfil como cartões com logo; abrem em nova aba. */
@@ -79,7 +81,7 @@ export default function Perfil() {
       </>
     )
 
-  const { usuario: u, projetosAtuais, projetosAnteriores, historico, capacitacoes, alocacao } = perfil
+  const { usuario: u, projetosAtuais, projetosAnteriores, periodos, podeGerirPeriodos, capacitacoes, alocacao } = perfil
 
   const editarDados = () =>
     form(
@@ -231,10 +233,12 @@ export default function Perfil() {
       <span className={chip()}>{fd(x.atualizadoEm)}</span>
     </div>
   )
-  const mudancas = [
-    ...historico.cargos.map(m => ({ ...m, tipo: 'Cargo', de: m.cargoAnterior?.nome, para: m.cargoNovo?.nome })),
-    ...historico.areas.map(m => ({ ...m, tipo: 'Área', de: m.areaAnterior?.nome, para: m.areaNova?.nome })),
-  ].sort((a, b) => (a.dataVigencia < b.dataVigencia ? 1 : -1))
+  // Mudou um período: recarrega o perfil e os dados compartilhados (a lista de Pessoas mostra as áreas).
+  const aoMudarPeriodos = async () => {
+    await recarregar()
+    refresh().catch(() => {})
+  }
+  const areasAtuais = (u.areas || []).map(rotuloArea)
 
   return (
     <>
@@ -279,9 +283,8 @@ export default function Perfil() {
               )}
               <div>
                 <h2 className="mb-0">{u.nomeExibicao || u.nome}</h2>
-                <small>
-                  {[u.cargo?.nome, u.area?.nome, u.senioridade?.nome].filter(Boolean).join(' · ') || 'Sem cargo e área definidos'}
-                </small>
+                <small className="d-block">{areasAtuais.length ? areasAtuais.join(' · ') : 'Sem área no momento'}</small>
+                {u.senioridade?.nome && <small className="d-block">{u.senioridade.nome}</small>}
               </div>
               <span className={'ms-auto ' + chip(COR_STATUS[u.status])}>{rotuloStatus(u.status)}</span>
             </div>
@@ -363,21 +366,7 @@ export default function Perfil() {
           )}
         </div>
         <div className="col-md-6">
-          <Lista
-            titulo="Histórico de cargo e área"
-            itens={mudancas}
-            vazio="Sem mudanças registradas."
-            linha={(m, i) => (
-              <div className="ag" key={i} style={{ cursor: 'default' }}>
-                <span className={chip()}>{m.tipo}</span>
-                <div>
-                  <b>{m.para || 'Nenhum'}</b>
-                  <small>antes: {m.de || 'nenhum'}</small>
-                </div>
-                <span className={chip()}>{fd(m.dataVigencia)}</span>
-              </div>
-            )}
-          />
+          <AreasPessoa periodos={periodos} podeGerir={podeGerirPeriodos} codigoPessoa={u.codigo} onMudou={aoMudarPeriodos} />
         </div>
       </div>
       {trocandoFoto && <FotoModal aoFechar={() => setTrocandoFoto(false)} aoSalvo={aoMudarFoto} />}

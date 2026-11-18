@@ -114,6 +114,16 @@
 }
 
 @media (max-width: 575.98px) {
+    /* Perfil, Áreas e cargos: as ações descem para baixo do nome do período. */
+    .ag.periodo {
+        flex-wrap: wrap
+    }
+
+    .ag.periodo>.periodo-acoes {
+        flex-basis: 100%;
+        justify-content: flex-end
+    }
+
   /* Capacitações: a grade do mês vira agenda (sessão 13). */
   .cal { display: none }
   .cal-ag { display: block }
