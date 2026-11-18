@@ -5,7 +5,7 @@
  */
 // Endereço da API definido no build (VITE_API_URL; na produção, `/api` no mesmo domínio).
 // Sem ele, usa o backend local. A barra final sai porque os caminhos já começam com `/`.
-const API_URL = (import.meta.env?.VITE_API_URL || 'http://localhost:5001').replace(/\/$/, '')
+export const API_URL = (import.meta.env?.VITE_API_URL || 'http://localhost:5001').replace(/\/$/, '')
 
 /**
  * Erro de qualquer chamada. `message` já vem pronta para a pessoa ler (as telas mostram

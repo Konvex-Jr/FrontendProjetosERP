@@ -35,6 +35,7 @@ export function adaptUser(user) {
     perfil: user.perfil,
     ativo: user.ativo,
     status: user.status,
+    foto: user.foto ?? null,
     senha: undefined,
     senioridade: senioridadeValue ? slug(senioridadeValue) : undefined,
     senioridadeRef,

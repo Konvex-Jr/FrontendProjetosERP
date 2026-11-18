@@ -54,6 +54,9 @@ export const tecnologias = {
 export const minhaConta = {
   editarPerfil: dados => send('PUT', '/auth/perfil', vazioComoNull(dados)),
   trocarSenha: (senhaAtual, novaSenha) => send('PUT', '/auth/senha', { senhaAtual, novaSenha }),
+  /** Foto já recortada (Blob image/webp): vai como bytes no corpo, pelo mesmo caminho dos anexos. */
+  enviarFoto: blob => request('/auth/foto', { method: 'PUT', auth: true, body: blob }),
+  removerFoto: () => send('DELETE', '/auth/foto'),
 }
 
 export const configuracoes = {

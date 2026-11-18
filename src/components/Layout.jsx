@@ -1,8 +1,9 @@
 import { Suspense, useEffect, useState } from 'react'
 import { Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
-import { fm, ini, un, chip } from '../lib/utils'
+import { fm, un, chip } from '../lib/utils'
 import Ic from './Icon'
+import Avatar from './Avatar'
 import FormModal from './FormModal'
 import Esqueleto from './Esqueleto'
 import { PAGINAS } from '../paginas'
@@ -58,9 +59,12 @@ function Header() {
             <b>{un(D, me)}</b>
             <small>{D.u.find(u => u.id == me)?.perfil}</small>
           </span>
-          <span className="av" role="button" title="Meu perfil" onClick={() => navigate('/perfil')}>
-            {ini(un(D, me))}
-          </span>
+          <Avatar
+            pessoa={D.u.find(u => u.id == me) || { nome: un(D, me) }}
+            role="button"
+            title="Meu perfil"
+            onClick={() => navigate('/perfil')}
+          />
           <button className="btn btn-g btn-sm hs-sair" onClick={sair} aria-label="Sair">
             <Ic k="logout" />
             <span>Sair</span>

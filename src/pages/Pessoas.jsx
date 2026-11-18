@@ -9,6 +9,7 @@ import { PageBar } from '../components/Ui'
 import alerts from '../lib/alerts'
 import useCarregar from '../lib/useCarregar'
 import Esqueleto from '../components/Esqueleto'
+import Avatar from '../components/Avatar'
 import { configuracoes, pessoas, rotuloStatus, STATUS_PESSOA, tecnologiasDe } from '../services/pessoas'
 import { corpoNovaPessoa, opcoesMudarStatus, podeRedefinirSenha } from '../lib/cadastroPessoa'
 
@@ -170,7 +171,8 @@ export default function Pessoas() {
       k: 'nome',
       l: 'Nome',
       render: p => (
-        <a role="button" className="fw-semibold" onClick={() => go('perfil', p.codigo)}>
+        <a role="button" className="fw-semibold d-inline-flex align-items-center gap-2" onClick={() => go('perfil', p.codigo)}>
+          <Avatar pessoa={p} className="av-lista" />
           {p.nome}
         </a>
       ),

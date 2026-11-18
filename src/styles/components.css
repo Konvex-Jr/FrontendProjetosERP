@@ -1880,3 +1880,45 @@ button.kc-tag {
 :root[data-theme=dark] .cl-erro {
     color: var(--er)
 }
+
+/* Foto de perfil (Avatar) */
+.av.com-foto {
+    overflow: hidden;
+    background: var(--col)
+}
+
+.av img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block
+}
+
+.av.av-lista {
+    width: 28px;
+    height: 28px;
+    margin: 0;
+    flex: none
+}
+
+.av.av-troca {
+    cursor: pointer
+}
+
+.foto-previa {
+    position: relative;
+    overflow: hidden;
+    border-radius: 50%;
+    margin: 0 auto;
+    background: var(--col);
+    touch-action: none;
+    cursor: grab;
+    max-width: 100%
+}
+
+.foto-previa img {
+    position: absolute;
+    max-width: none;
+    user-select: none;
+    pointer-events: none
+}

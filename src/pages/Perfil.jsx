@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
-import { chip, codigoDoPerfil, fd, ini } from '../lib/utils'
+import { chip, codigoDoPerfil, fd } from '../lib/utils'
 import Ic from '../components/Icon'
+import Avatar from '../components/Avatar'
+import FotoModal from '../components/FotoModal'
 import { PageBar, Prog } from '../components/Ui'
 import alerts from '../lib/alerts'
 import useCarregar from '../lib/useCarregar'
@@ -168,6 +170,7 @@ export function dadosDaTela({ me }, outro) {
 export default function Perfil() {
   const { codigo: outro } = useParams()
   const { me, form, go, refresh, nav } = useApp()
+  const [trocandoFoto, setTrocandoFoto] = useState(false)
   const codigo = codigoDoPerfil(me, outro)
   const meu = codigo === me
   const tela = dadosDaTela({ me }, outro)
@@ -233,6 +236,30 @@ export default function Perfil() {
         }
       },
     )
+
+  // Depois de trocar ou remover: recarrega o perfil e os dados compartilhados (topo, listas, equipes).
+  const aoMudarFoto = async () => {
+    await recarregar()
+    refresh().catch(() => {})
+  }
+  const removerFoto = async () => {
+    if (
+      !(await alerts.confirm({
+        title: 'Remover a foto?',
+        text: 'Voltam a aparecer as suas iniciais.',
+        confirmText: 'Remover',
+        danger: true,
+      }))
+    )
+      return
+    try {
+      await minhaConta.removerFoto()
+      alerts.toastSuccess('Foto removida')
+      await aoMudarFoto()
+    } catch (error) {
+      alerts.error('Não foi possível remover a foto', error.message)
+    }
+  }
 
   const trocarSenha = () =>
     form(
@@ -359,7 +386,20 @@ export default function Perfil() {
         <div className="col-md-6">
           <div className="card card-body h-100">
             <div className="d-flex align-items-center gap-3 mb-3">
-              <span className="av">{ini(u.nome)}</span>
+              {meu ? (
+                <Avatar
+                  pessoa={u}
+                  tamanho="grande"
+                  className="av-troca"
+                  role="button"
+                  tabIndex={0}
+                  title="Trocar foto"
+                  onClick={() => setTrocandoFoto(true)}
+                  onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), setTrocandoFoto(true))}
+                />
+              ) : (
+                <Avatar pessoa={u} tamanho="grande" />
+              )}
               <div>
                 <h2 className="mb-0">{u.nomeExibicao || u.nome}</h2>
                 <small>
@@ -375,6 +415,19 @@ export default function Perfil() {
               </div>
             ))}
             {u.bio && <p className="mt-3 mb-0">{u.bio}</p>}
+            {meu && (
+              <div className="d-flex flex-wrap gap-2 mt-3">
+                <button className="btn btn-g btn-sm" onClick={() => setTrocandoFoto(true)}>
+                  <Ic k="edit" />
+                  Trocar foto
+                </button>
+                {u.foto && (
+                  <button className="btn btn-g btn-sm" onClick={removerFoto}>
+                    Remover foto
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
@@ -448,6 +501,7 @@ export default function Perfil() {
           />
         </div>
       </div>
+      {trocandoFoto && <FotoModal aoFechar={() => setTrocandoFoto(false)} aoSalvo={aoMudarFoto} />}
     </>
   )
 }
