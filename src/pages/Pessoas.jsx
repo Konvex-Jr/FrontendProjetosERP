@@ -12,6 +12,7 @@ import Esqueleto from '../components/Esqueleto'
 import Avatar from '../components/Avatar'
 import { configuracoes, pessoas, rotuloStatus, STATUS_PESSOA } from '../services/pessoas'
 import { corpoNovaPessoa, opcoesMudarStatus, podeRedefinirSenha } from '../lib/cadastroPessoa'
+import { rotuloArea } from '../lib/periodos'
 
 const COR_STATUS = { ativo: 'ok', trainee: '', alumni: 'wa', inativo: 'er' }
 const PERFIS = [
@@ -26,13 +27,8 @@ export function dadosDaTela() {
   return {
     chave: 'pessoas',
     carregar: async () => {
-      const [lista, areas, cargos, senioridades] = await Promise.all([
-        pessoas.listar(),
-        configuracoes.areas(),
-        configuracoes.cargos(),
-        configuracoes.senioridades(),
-      ])
-      return { lista, areas, cargos, senioridades }
+      const [lista, senioridades] = await Promise.all([pessoas.listar(), configuracoes.senioridades()])
+      return { lista, senioridades }
     },
   }
 }
@@ -52,10 +48,9 @@ export default function Pessoas() {
       </>
     )
 
-  const { lista, areas, cargos, senioridades } = dados
+  const { lista, senioridades } = dados
   const gereDiretores = pode('pessoas.gerirDiretores')
   const perfis = gereDiretores ? PERFIS : PERFIS.filter(([k]) => k !== 'diretor')
-  const opcoes = (itens, ativo) => [['', '—'], ...itens.filter(ativo).map(i => [i.codigo, i.nome])]
   const podeMexer = p => gereDiretores || p.perfil !== 'diretor'
 
   // Depois de salvar: recarrega esta tela e os dados compartilhados (nomes em projetos etc.).
@@ -94,8 +89,6 @@ export default function Pessoas() {
         // Trainee é sempre membro: o campo some e o corpo vai com perfil membro (lib/cadastroPessoa.js).
         { k: 'perfil', l: 'Perfil de acesso', o: perfis, s: v => (p ? p.status : v.status) !== 'trainee' },
         { k: 'codigoSenioridade', l: 'Senioridade', o: senioridades.map(s => [s.codigo, s.nome]) },
-        { k: 'codigoArea', l: 'Área', o: opcoes(areas, a => a.ativa || a.codigo === p?.area?.codigo), opt: true },
-        { k: 'codigoCargo', l: 'Cargo', o: opcoes(cargos, c => c.ativo || c.codigo === p?.cargo?.codigo), opt: true },
         { k: 'dataEntrada', l: 'Data de entrada na EJ', t: 'date', opt: true },
       ],
       p
@@ -104,16 +97,12 @@ export default function Pessoas() {
             email: p.email,
             perfil: p.perfil,
             codigoSenioridade: p.senioridade?.codigo || senioridades[0]?.codigo,
-            codigoArea: p.area?.codigo || '',
-            codigoCargo: p.cargo?.codigo || '',
             dataEntrada: p.dataEntrada?.slice(0, 10) || '',
           }
         : {
             status: 'ativo',
             perfil: 'membro',
             codigoSenioridade: senioridades[0]?.codigo,
-            codigoArea: '',
-            codigoCargo: '',
             dataEntrada: '',
           },
       v => {
@@ -178,8 +167,27 @@ export default function Pessoas() {
       ),
     },
     { k: 'email', l: 'E-mail' },
-    { k: 'ar', l: 'Área', filter: 1, get: p => p.area?.nome || '—' },
-    { k: 'cg', l: 'Cargo', filter: 1, get: p => p.cargo?.nome || '—' },
+    // Áreas atuais (períodos em aberto), cada uma com o cargo; o filtro olha só a própria área (não as de baixo).
+    {
+      k: 'ar',
+      l: 'Áreas',
+      fl: 'Área',
+      filter: 1,
+      get: p => (p.areas || []).map(rotuloArea).join(', ') || '—',
+      vals: p => (p.areas?.length ? p.areas.map(a => a.area.nome) : ['—']),
+      render: p =>
+        p.areas?.length ? (
+          <span className="selos-area">
+            {p.areas.map(a => (
+              <span key={a.codigoPeriodo} className={chip()}>
+                {rotuloArea(a)}
+              </span>
+            ))}
+          </span>
+        ) : (
+          '—'
+        ),
+    },
     { k: 'sn', l: 'Senioridade', filter: 1, get: p => p.senioridade?.nome || '—' },
     { k: 'pf', l: 'Perfil', filter: 1, get: p => PERFIS.find(([k]) => k === p.perfil)?.[1] || p.perfil },
     {

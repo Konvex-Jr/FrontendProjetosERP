@@ -6,7 +6,7 @@ import { valoresIniciais } from '../lib/formulario'
 /**
  * Campos: k (chave), l (rótulo), t (tipo do input ou 'textarea'), o (opções de select),
  * c (opções de múltipla escolha; pode ser função dos valores), s (mostrar se), opt (opcional), h (dica abaixo do campo),
- * rows (linhas do textarea). `largo`: modal mais largo para textos longos (ex.: Base de Inteligência).
+ * rows (linhas do textarea), min e max (limites de data ou número). `largo`: modal mais largo para textos longos (ex.: Base de Inteligência).
  * `save` pode ser assíncrono; se devolver false (ou falhar), o modal continua aberto.
  *
  * Detalhes: `o` é uma lista de pares [valor, rótulo]; `c` é uma lista de { id, nome, perfil? } (componente Multi);
@@ -35,7 +35,14 @@ export default function FormModal({ t, fs, init, save, close, largo }) {
     }
   }
   const campo = x => {
-    const comum = { className: 'form-control mt-1', required: !x.opt, value: v[x.k] ?? '', onChange: e => set(x.k, e.target.value) }
+    const comum = {
+      className: 'form-control mt-1',
+      required: !x.opt,
+      value: v[x.k] ?? '',
+      onChange: e => set(x.k, e.target.value),
+      ...(x.min ? { min: x.min } : {}),
+      ...(x.max ? { max: x.max } : {}),
+    }
     if (x.o)
       return (
         <select className="form-select mt-1" disabled={Boolean(x.disabled)} value={v[x.k] ?? ''} onChange={e => set(x.k, e.target.value)}>

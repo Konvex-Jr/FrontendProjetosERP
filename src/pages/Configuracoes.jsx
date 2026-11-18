@@ -14,6 +14,10 @@ const ABAS = [
   ['cargos', 'Cargos'],
   ['senioridades', 'Senioridades'],
 ]
+const LIDERA = [
+  ['false', 'Não'],
+  ['true', 'Sim'],
+]
 const SIM_NAO = [
   ['true', 'Ativo'],
   ['false', 'Inativo'],
@@ -87,9 +91,19 @@ export default function Configuracoes() {
       [
         { k: 'nome', l: 'Nome' },
         { k: 'ativo', l: 'Situação', o: SIM_NAO },
+        {
+          k: 'lideraArea',
+          l: 'Lidera a área',
+          o: LIDERA,
+          h: 'Para gerentes e diretores de área: quem tem este cargo numa área lidera a área e as que estão abaixo dela.',
+        },
       ],
-      { nome: c?.nome || '', ativo: String(c?.ativo ?? true) },
-      v => salvar(() => configuracoes.salvarCargo(c?.codigo, { nome: v.nome, ativo: v.ativo === 'true' }), 'Cargo salvo'),
+      { nome: c?.nome || '', ativo: String(c?.ativo ?? true), lideraArea: String(c?.lideraArea ?? false) },
+      v =>
+        salvar(
+          () => configuracoes.salvarCargo(c?.codigo, { nome: v.nome, ativo: v.ativo === 'true', lideraArea: v.lideraArea === 'true' }),
+          'Cargo salvo',
+        ),
     )
 
   const editarSenioridade = s =>
@@ -127,6 +141,7 @@ export default function Configuracoes() {
       linhas: cargos,
       colunas: [
         { k: 'nome', l: 'Nome' },
+        { k: 'li', l: 'Lidera a área', filter: 1, get: c => (c.lideraArea ? 'Sim' : 'Não') },
         { k: 'st', l: 'Situação', filter: 1, get: c => (c.ativo ? 'Ativo' : 'Inativo'), render: c => situacao(c.ativo) },
         { l: 'Ações', render: c => editarBotao(() => editarCargo(c)) },
       ],

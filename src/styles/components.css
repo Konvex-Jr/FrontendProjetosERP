@@ -841,6 +841,23 @@ svg.i {
     border: 0
 }
 
+/* Áreas e cargos (perfil, sessão 23a): linha sem clique, com ações da gestão. */
+.ag.periodo {
+    cursor: default
+}
+
+.ag>.periodo-acoes {
+    display: flex;
+    gap: 6px;
+    flex: 0 0 auto
+}
+
+.selos-area {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 4px
+}
+
 .ag>div {
     flex: 1;
     min-width: 0

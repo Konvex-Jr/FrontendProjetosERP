@@ -10,7 +10,8 @@ import { useState } from 'react'
  * - `l`: rótulo do cabeçalho. No celular vira o rótulo do campo no cartão; a coluna 'Ações' vai para o canto superior direito do cartão;
  * - `get(linha)`: valor usado na busca, na ordenação e no filtro (padrão: linha[k]). Use para texto, não para JSX;
  * - `render(linha)`: o que aparece na célula (padrão: o valor);
- * - `filter`: cria um select com os valores distintos da coluna; `fl`: rótulo desse select.
+ * - `filter`: cria um select com os valores distintos da coluna; `fl`: rótulo desse select;
+ * - `vals(linha)`: lista de valores da linha para o filtro, quando ela tem vários (ex.: as áreas de uma pessoa).
  * `linhaCls(linha)`: classe extra da linha (ex.: esmaecer). A primeira coluna é o título do cartão no celular. Cada linha precisa de `id` (key do React).
  */
 export default function Table({ cols, rows, vazio, filtros, busca = true, linhaCls }) {
@@ -20,7 +21,7 @@ export default function Table({ cols, rows, vazio, filtros, busca = true, linhaC
   const val = (r, c) => (c.get ? c.get(r) : r[c.k])
   let R = rows.filter(
     r =>
-      cols.every(c => !f[c.k] || String(val(r, c)) == f[c.k]) &&
+      cols.every(c => !f[c.k] || (c.vals ? c.vals(r).includes(f[c.k]) : String(val(r, c)) == f[c.k])) &&
       (!q || cols.some(c => c.k && String(val(r, c)).toLowerCase().includes(q.toLowerCase()))),
   )
   if (s.k) {
@@ -56,7 +57,7 @@ export default function Table({ cols, rows, vazio, filtros, busca = true, linhaC
                 onChange={e => setF({ ...f, [c.k]: e.target.value })}
               >
                 <option value="">{c.fl || c.l}: todos</option>
-                {[...new Set(rows.map(r => String(val(r, c))))].sort().map(v => (
+                {[...new Set(rows.flatMap(r => (c.vals ? c.vals(r) : [String(val(r, c))])))].sort().map(v => (
                   <option key={v}>{v}</option>
                 ))}
               </select>
