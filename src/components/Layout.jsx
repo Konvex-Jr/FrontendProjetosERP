@@ -63,8 +63,11 @@ function Header() {
           <Avatar
             pessoa={D.u.find(u => u.id == me) || { nome: un(D, me) }}
             role="button"
+            tabIndex={0}
             title="Meu perfil"
+            aria-label="Meu perfil"
             onClick={() => navigate('/perfil')}
+            onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), navigate('/perfil'))}
           />
           <button className="btn btn-g btn-sm hs-sair" onClick={sair} aria-label="Sair">
             <Ic k="logout" />
