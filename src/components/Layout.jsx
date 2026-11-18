@@ -4,6 +4,7 @@ import { useApp } from '../context/AppContext'
 import { fm, un, chip } from '../lib/utils'
 import Ic from './Icon'
 import Avatar from './Avatar'
+import { podeAbrirSecao } from '../lib/rotas'
 import FormModal from './FormModal'
 import Esqueleto from './Esqueleto'
 import { PAGINAS } from '../paginas'
@@ -181,8 +182,8 @@ export default function Layout() {
     { pathname } = useLocation()
   if (!me) return <Navigate to="/login" replace />
   const secao = pathname.split('/')[1]
-  // Só abre telas que vieram no menu da pessoa (GET /auth/permissoes).
-  if (secao && !nav.some(([, , caminho]) => caminho === '/' + secao)) return <Navigate to="/" replace />
+  // Só abre telas que vieram no menu da pessoa (GET /auth/permissoes), além do perfil.
+  if (!podeAbrirSecao(secao, nav)) return <Navigate to="/" replace />
   return (
     <>
       <Header />
