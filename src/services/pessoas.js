@@ -26,6 +26,11 @@ export const pessoas = {
   alterarStatus: (codigo, status, dataSaida) =>
     send('PATCH', `/usuarios/${codigo}/status`, { status, ...(dataSaida ? { dataSaida } : {}) }),
   redefinirSenha: (codigo, novaSenha) => send('PUT', `/usuarios/${codigo}/senha`, { novaSenha }),
+  /** Períodos nas áreas (sessão 23a): { codigoArea, codigoCargo, inicio, fim }. */
+  periodos: codigo => get(`/usuarios/${codigo}/periodos`),
+  criarPeriodo: (codigo, dados) => send('POST', `/usuarios/${codigo}/periodos`, vazioComoNull(dados)),
+  editarPeriodo: (codigo, codigoPeriodo, dados) => send('PUT', `/usuarios/${codigo}/periodos/${codigoPeriodo}`, vazioComoNull(dados)),
+  excluirPeriodo: (codigo, codigoPeriodo) => send('DELETE', `/usuarios/${codigo}/periodos/${codigoPeriodo}`),
 }
 
 export const minhaConta = {
