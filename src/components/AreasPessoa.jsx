@@ -38,6 +38,10 @@ export default function AreasPessoa({ periodos, podeGerir, codigoPessoa, onMudou
     }
     const areasOk = areas.filter(a => a.ativa || a.codigo === p?.area.codigo)
     const cargosOk = cargos.filter(c => c.ativo || c.codigo === p?.cargo?.codigo)
+    if (!areasOk.length) {
+      alerts.error('Nenhuma área ativa', 'Cadastre ou reative uma área em Configurações antes de lançar períodos.')
+      return
+    }
     form(
       p ? 'Editar período' : 'Adicionar período',
       [
@@ -108,7 +112,8 @@ export default function AreasPessoa({ periodos, podeGerir, codigoPessoa, onMudou
           <button className="btn btn-g btn-sm" title="Editar" aria-label={`Editar ${rotuloArea(p)}`} onClick={() => abrir(p)}>
             <Ic k="edit" />
           </button>
-          {!p.fim && (
+          {/* Período que começou hoje não pode terminar hoje (fim > início): o caminho é excluir. */}
+          {!p.fim && dataISO(p.inicio) < hoje && (
             <button className="btn btn-g btn-sm" onClick={() => encerrar(p)}>
               Encerrar
             </button>
