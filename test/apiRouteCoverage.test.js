@@ -36,7 +36,6 @@ const routeContracts = [
   ['PUT', '/capacitacoes/c-1/avaliacao'],
   ['GET', '/capacitacoes/c-1/avaliacoes'],
   ['POST', '/capacitacoes/c-1/anexos'],
-  ['GET', '/habilidades'],
   ['GET', '/usuarios/user-1/perfil'],
   ['PATCH', '/usuarios/user-1/status'],
   ['PUT', '/usuarios/user-1/senha'],

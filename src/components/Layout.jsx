@@ -1,8 +1,10 @@
 import { Suspense, useEffect, useState } from 'react'
 import { Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
-import { fm, ini, un, chip } from '../lib/utils'
+import { fm, un, chip } from '../lib/utils'
 import Ic from './Icon'
+import Avatar from './Avatar'
+import { podeAbrirSecao } from '../lib/rotas'
 import FormModal from './FormModal'
 import Esqueleto from './Esqueleto'
 import { PAGINAS } from '../paginas'
@@ -58,9 +60,15 @@ function Header() {
             <b>{un(D, me)}</b>
             <small>{D.u.find(u => u.id == me)?.perfil}</small>
           </span>
-          <span className="av" role="button" title="Meu perfil" onClick={() => navigate('/perfil')}>
-            {ini(un(D, me))}
-          </span>
+          <Avatar
+            pessoa={D.u.find(u => u.id == me) || { nome: un(D, me) }}
+            role="button"
+            tabIndex={0}
+            title="Meu perfil"
+            aria-label="Meu perfil"
+            onClick={() => navigate('/perfil')}
+            onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), navigate('/perfil'))}
+          />
           <button className="btn btn-g btn-sm hs-sair" onClick={sair} aria-label="Sair">
             <Ic k="logout" />
             <span>Sair</span>
@@ -177,8 +185,8 @@ export default function Layout() {
     { pathname } = useLocation()
   if (!me) return <Navigate to="/login" replace />
   const secao = pathname.split('/')[1]
-  // Só abre telas que vieram no menu da pessoa (GET /auth/permissoes).
-  if (secao && !nav.some(([, , caminho]) => caminho === '/' + secao)) return <Navigate to="/" replace />
+  // Só abre telas que vieram no menu da pessoa (GET /auth/permissoes), além do perfil.
+  if (!podeAbrirSecao(secao, nav)) return <Navigate to="/" replace />
   return (
     <>
       <Header />

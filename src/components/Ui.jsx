@@ -1,5 +1,5 @@
 import Ic from './Icon'
-import { ini } from '../lib/utils'
+import Avatar from './Avatar'
 
 /** Peças pequenas de interface usadas em várias telas. */
 
@@ -8,11 +8,7 @@ export const Av = ({ D, ids }) => (
   <span>
     {ids.map(i => {
       const u = D.u.find(x => x.id == i)
-      return (
-        <span key={i} className="av" title={u?.nome}>
-          {ini(u?.nome || '?')}
-        </span>
-      )
+      return <Avatar key={i} pessoa={u} title={u?.nome} />
     })}
   </span>
 )

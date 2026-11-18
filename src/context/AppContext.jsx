@@ -7,6 +7,7 @@ import { readConfig } from '../lib/apiMappers'
 import { capacitacoes } from '../services/capacitacoes'
 import { carregarAcesso, carregarDadosGlobais, carregarInicio } from '../services/inicio'
 import { apagarMemorias, definirPessoa } from '../lib/memoriasDaAba'
+import { memoria } from '../lib/memoria'
 import { EsqueletoApp } from '../components/Esqueleto'
 
 const Ctx = createContext(null)
@@ -34,7 +35,10 @@ export function AppProvider({ children }) {
   const [acesso, setAcesso] = useState(SEM_ACESSO)
 
   const refresh = async config => {
+    const dona = memoria.pessoa()
     const apiData = await carregarDadosGlobais()
+    // Saiu e outra pessoa entrou enquanto a resposta vinha: os dados são da pessoa anterior, descarta.
+    if (memoria.pessoa() !== dona) return null
     const resolvedConfig = config || readConfig(apiData.senioridades, false)
     const next = { ...apiData, c: resolvedConfig }
     setD(next)

@@ -9,7 +9,8 @@ import { PageBar } from '../components/Ui'
 import alerts from '../lib/alerts'
 import useCarregar from '../lib/useCarregar'
 import Esqueleto from '../components/Esqueleto'
-import { configuracoes, pessoas, rotuloStatus, STATUS_PESSOA, tecnologiasDe } from '../services/pessoas'
+import Avatar from '../components/Avatar'
+import { configuracoes, pessoas, rotuloStatus, STATUS_PESSOA } from '../services/pessoas'
 import { corpoNovaPessoa, opcoesMudarStatus, podeRedefinirSenha } from '../lib/cadastroPessoa'
 
 const COR_STATUS = { ativo: 'ok', trainee: '', alumni: 'wa', inativo: 'er' }
@@ -170,7 +171,8 @@ export default function Pessoas() {
       k: 'nome',
       l: 'Nome',
       render: p => (
-        <a role="button" className="fw-semibold" onClick={() => go('perfil', p.codigo)}>
+        <a role="button" className="fw-semibold d-inline-flex align-items-center gap-2" onClick={() => go('perfil', p.codigo)}>
+          <Avatar pessoa={p} className="av-lista" />
           {p.nome}
         </a>
       ),
@@ -187,8 +189,6 @@ export default function Pessoas() {
       get: p => rotuloStatus(p.status),
       render: p => <span className={chip(COR_STATUS[p.status])}>{rotuloStatus(p.status)}</span>,
     },
-    // Tecnologias entram na busca: digitar "React" acha quem domina (sessão 13).
-    { k: 'tec', l: 'Tecnologias', get: p => tecnologiasDe(p).join(', ') || '—' },
     { k: 'en', l: 'Entrada', get: p => p.dataEntrada || '', render: p => fd(p.dataEntrada) },
     {
       l: 'Ações',
