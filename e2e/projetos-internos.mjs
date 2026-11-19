@@ -8,6 +8,8 @@
  *   4. Bia (fora de Inovação) não vê o geral nem a tarefa
  *   5. Inês abre o próprio perfil: os períodos não têm botões
  *   6. celular (375 px), tema escuro: o filtro de projetos com grupos cabe na tela
+ *   7. Lia (papel membro, cargo que lidera Execução), na mesma aba: cria tarefa no geral de Execução para a Bia,
+ *      muda a etapa e abre "Editar colunas" (salva sem mudar)
  *
  * Pré-requisitos como no `areas.mjs` (dados fictícios com Robô, Inês e Caio em Inovação, Bia fora):
  *   API_URL=http://localhost:5002 APP_URL=http://localhost:5173 node e2e/projetos-internos.mjs
@@ -25,6 +27,8 @@ const SUFIXO = Date.now().toString(36)
 const NOME_PROJETO = `Robô e2e ${SUFIXO}`
 const TITULO = `Montar braço ${SUFIXO}`
 const GERAL = 'Inovação · geral'
+const GERAL_EXECUCAO = 'Execução · geral'
+const TITULO_LIA = `Montar bancada ${SUFIXO}`
 
 function carregarPlaywright() {
   const require = createRequire(import.meta.url)
@@ -119,6 +123,14 @@ for (const [email, esperado] of [
   const emInovacao = (await api('GET', `/usuarios/${p.codigo}/periodos`)).some(x => !x.fim && x.area.codigo === inovacao.codigo)
   if (emInovacao !== esperado) throw new Error(`${email}: período em Inovação deveria ser ${esperado} (dados fictícios)`)
 }
+
+const bia = pessoas.find(p => p.email === 'bia@dev.konvex')
+const lia = pessoas.find(p => p.email === 'lia@dev.konvex')
+const execucao = areas.find(a => a.nome === 'Execução')
+if (!lia || !bia || !execucao) throw new Error('Rode antes: npm run dados:ficticios (no backend): falta a Lia')
+const geraisExecucao = (await api('GET', '/projetos?tipo=interno')).filter(p => p.geralDaArea && p.area?.codigo === execucao.codigo)
+if (geraisExecucao.length !== 1) throw new Error(`Esperava 1 projeto geral em Execução, achei ${geraisExecucao.length}`)
+const [geralExecucao] = geraisExecucao
 
 let browser
 const errosConsole = []
@@ -262,6 +274,43 @@ try {
     exigir(caixa.x >= 0 && caixa.x + caixa.width <= 376, `o filtro passa da tela (x=${caixa.x}, largura=${caixa.width})`)
     await m.screenshot({ path: `${PRINTS}projetos-internos-6.png` })
   })
+
+  await passo('7. Lia (membro que lidera Execução) cria tarefa no geral para a Bia, muda a etapa e abre as colunas', async () => {
+    // Mesma aba do passo anterior: a conta troca sem recarregar a página.
+    await entrar(page, 'lia@dev.konvex', SENHA)
+    await abrirTarefas(page)
+    await page.getByRole('button', { name: 'Nova tarefa' }).first().click()
+    const opcoesProjeto = await campo(page, 'Projeto').locator('option').allInnerTexts()
+    exigir(opcoesProjeto.includes(GERAL_EXECUCAO), 'o geral de Execução não aparece em "Nova tarefa" para a Lia')
+    await campo(page, 'Projeto').selectOption({ label: GERAL_EXECUCAO })
+    await campo(page, 'Título').fill(TITULO_LIA)
+    await campo(page, 'Início').fill(HOJE)
+    await campo(page, 'Fim').fill(FIM)
+    await janela(page).locator('.ms .mc').click()
+    await janela(page).locator('.ms .mo').filter({ hasText: 'Bia Membro' }).click()
+    await janela(page).getByRole('button', { name: 'Salvar' }).click()
+    await janela(page).waitFor({ state: 'detached', timeout: 15000 })
+    await page.getByRole('button', { name: 'Tudo o que vejo' }).click()
+    await page.getByText(TITULO_LIA).first().click()
+    await detalhes(page).waitFor()
+    await detalhes(page)
+      .locator('label')
+      .filter({ hasText: /^Etapa/ })
+      .locator('select')
+      .selectOption({ label: 'Fazendo' })
+    await detalhes(page).getByRole('button', { name: 'Salvar alterações' }).click()
+    await detalhes(page).waitFor({ state: 'detached', timeout: 15000 })
+    const t = (await api('GET', `/tarefas?codigoProjeto=${geralExecucao.codigo}`)).find(x => x.titulo === TITULO_LIA)
+    exigir(t, 'API: tarefa não foi criada no geral de Execução')
+    exigir(t.coluna?.nome === 'Fazendo', `API: etapa = ${t.coluna?.nome}`)
+    exigir(t.responsaveis.includes(bia.codigo) || t.responsaveis.some(r => r.codigo === bia.codigo), 'API: Bia não é responsável')
+    await page.goto(`${APP}/#/projetos/${geralExecucao.codigo}`)
+    await page.getByRole('button', { name: 'Editar colunas' }).click()
+    await page.waitForSelector('.cl-dialog', { timeout: 15000 })
+    await page.click('.cl-dialog button[type=submit]')
+    await page.waitForSelector('.cl-dialog', { state: 'detached', timeout: 15000 })
+    await page.screenshot({ path: `${PRINTS}projetos-internos-7.png` })
+  })
 } catch (e) {
   falhou = true
   console.log('FALHA preparação:', e.message)
@@ -271,10 +320,13 @@ try {
   try {
     for (const t of (await api('GET', `/tarefas?codigoProjeto=${geral.codigo}`)).filter(x => x.titulo === TITULO))
       await api('DELETE', `/tarefas/${t.codigo}`)
+    for (const t of (await api('GET', `/tarefas?codigoProjeto=${geralExecucao.codigo}`)).filter(x => x.titulo === TITULO_LIA))
+      await api('DELETE', `/tarefas/${t.codigo}`)
     for (const p of (await api('GET', '/projetos?tipo=interno')).filter(x => x.nome === NOME_PROJETO))
       await api('DELETE', `/projetos/${p.codigo}`)
     const sobrou =
       (await api('GET', `/tarefas?codigoProjeto=${geral.codigo}`)).some(x => x.titulo === TITULO) ||
+      (await api('GET', `/tarefas?codigoProjeto=${geralExecucao.codigo}`)).some(x => x.titulo === TITULO_LIA) ||
       (await api('GET', '/projetos?tipo=interno')).some(x => x.nome === NOME_PROJETO)
     console.log(`limpeza: ${sobrou ? 'SOBROU dado do teste' : 'tudo como antes'}`)
     if (sobrou) falhou = true
