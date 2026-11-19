@@ -15,7 +15,7 @@ import LogoMarca from '../components/LogosMarcas'
 import { horas } from '../services/capacitacoes'
 import { itensDoAutor } from '../services/biblioteca'
 import Clipe from '../components/Clipe'
-import { SeloSigiloso } from '../components/SeloProjeto'
+import { SeloSigiloso, SeloTipo } from '../components/SeloProjeto'
 import AreasPessoa from '../components/AreasPessoa'
 import { rotuloArea } from '../lib/periodos'
 
@@ -197,6 +197,7 @@ export default function Perfil() {
           {p.dataSaida ? ` até ${fd(p.dataSaida)}` : ''}
         </small>
       </div>
+      <SeloTipo p={p} />
       {p.sigiloso && <SeloSigiloso />}
       <span className={chip()}>{p.status}</span>
     </div>

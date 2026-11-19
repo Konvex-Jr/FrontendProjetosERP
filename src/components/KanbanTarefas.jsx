@@ -20,7 +20,7 @@ const ordem = (a, b) => (a.prioridade > b.prioridade ? 1 : a.prioridade < b.prio
 /**
  * Kanban de tarefas por semana, usado no projeto e no painel global (sessão 8c).
  * `papelDe(t)` diz o que a pessoa pode em cada tarefa; `acoes` vem de `acoesTarefa`.
- * `origem`: mostra no cartão o projeto ou a categoria (painel global).
+ * `origem`: mostra no cartão o projeto (painel global).
  */
 export default function KanbanTarefas({ D, T, papelDe, acoes, abrir, adicionar, origem = false }) {
   const [ov, setOv] = useState(null),

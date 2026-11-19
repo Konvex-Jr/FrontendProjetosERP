@@ -3,11 +3,11 @@
  * Áreas e cargos por período (sessão 23a), ponta a ponta, tudo pela tela (a API só prepara, confere e desfaz).
  *
  *   a. diretora marca "Lidera a área" no cargo Assessor (Configurações › Cargos)
- *   b. gerente (Inês) abre o perfil do Caio, adiciona Inovação · Gerente com início no ano passado
+ *   b. gerente (Inês) abre o perfil da Bia, adiciona Inovação · Gerente com início no ano passado
  *      e encerra o período atual em Execução
  *   c. data no futuro: o campo recusa e a janela continua aberta
- *   d. a lista de Pessoas mostra o selo "Inovação · Gerente" do Caio, e o filtro por área acha ele
- *   e. troca de conta na mesma aba: Caio vê as próprias áreas sem os botões da gestão
+ *   d. a lista de Pessoas mostra o selo "Inovação · Gerente" da Bia, e o filtro por área acha ela
+ *   e. troca de conta na mesma aba: Bia vê as próprias áreas sem os botões da gestão
  *   f. celular (375 px), tema escuro: a seção cabe na tela, sem rolagem lateral
  *
  * Ao final devolve tudo como estava: pode rodar de novo.
@@ -107,19 +107,19 @@ mkdirSync(PRINTS, { recursive: true })
 tokenDir = await entrarApi(...DIRETORA)
 
 const pessoas = await api('GET', '/usuarios')
-const caio = pessoas.find(p => p.email === 'caio@dev.konvex')
+const bia = pessoas.find(p => p.email === 'bia@dev.konvex')
 const areas = await api('GET', '/areas')
 const inovacao = areas.find(a => a.nome === 'Inovação')
 const cargos = await api('GET', '/cargos')
 const assessor = cargos.find(c => c.nome === 'Assessor')
 const gerente = cargos.find(c => c.nome === 'Gerente')
-if (!caio || !inovacao || !assessor || !gerente) throw new Error('Rode antes: npm run dados:ficticios (no backend)')
+if (!bia || !inovacao || !assessor || !gerente) throw new Error('Rode antes: npm run dados:ficticios (no backend)')
 
 // Retrato para devolver como estava.
-const periodosAntes = await api('GET', `/usuarios/${caio.codigo}/periodos`)
+const periodosAntes = await api('GET', `/usuarios/${bia.codigo}/periodos`)
 const execucaoAntes = periodosAntes.find(p => !p.fim && p.area.nome === 'Execução')
 if (!execucaoAntes || periodosAntes.some(p => p.area.codigo === inovacao.codigo))
-  throw new Error('Caio precisa estar só em Execução (dados fictícios); limpe os períodos de teste antes')
+  throw new Error('Bia precisa estar só em Execução, sem Inovação (dados fictícios); limpe os períodos de teste antes')
 const assessorAntes = { nome: assessor.nome, ativo: assessor.ativo, lideraArea: assessor.lideraArea }
 
 let browser
@@ -152,9 +152,9 @@ try {
     await sair(page)
   })
 
-  await passo('b. gerente adiciona Inovação · Gerente (ano passado) e encerra Execução no perfil do Caio', async () => {
+  await passo('b. gerente adiciona Inovação · Gerente (ano passado) e encerra Execução no perfil da Bia', async () => {
     await entrar(page, 'ines@dev.konvex', SENHA)
-    await abrirPerfil(page, caio.codigo)
+    await abrirPerfil(page, bia.codigo)
     await secao(page).getByRole('button', { name: 'Adicionar período' }).click()
     await campo(page, 'Área').selectOption({ label: 'Inovação' })
     await campo(page, 'Cargo').selectOption({ label: 'Gerente' })
@@ -170,7 +170,7 @@ try {
       !(await linhaPeriodo(page, 'Execução').getByRole('button', { name: 'Encerrar' }).count()),
       'período encerrado ainda mostra "Encerrar"',
     )
-    const api1 = await api('GET', `/usuarios/${caio.codigo}/periodos`)
+    const api1 = await api('GET', `/usuarios/${bia.codigo}/periodos`)
     exigir(api1.find(p => p.codigo === execucaoAntes.codigo).fim?.slice(0, 10) === HOJE, 'API: Execução não foi encerrada hoje')
     exigir(
       api1.some(p => p.area.codigo === inovacao.codigo && !p.fim && p.cargo?.codigo === gerente.codigo),
@@ -183,7 +183,7 @@ try {
 
   await passo('c. data no futuro: o campo recusa e a janela continua aberta', async () => {
     await secao(page).getByRole('button', { name: 'Adicionar período' }).click()
-    await campo(page, 'Área').selectOption({ label: 'Capacitação' })
+    await campo(page, 'Área').selectOption({ label: 'Projetos' })
     const inicio = campo(page, 'Início')
     await inicio.fill(AMANHA)
     exigir((await inicio.getAttribute('max')) === HOJE, `max do início = ${await inicio.getAttribute('max')}`)
@@ -192,20 +192,20 @@ try {
     exigir(await janela(page).isVisible(), 'a janela fechou com data no futuro')
     exigir(await inicio.evaluate(el => el.validity.rangeOverflow), 'o campo não acusou a data no futuro')
     await janela(page).getByRole('button', { name: 'Cancelar' }).click()
-    const api2 = await api('GET', `/usuarios/${caio.codigo}/periodos`)
-    exigir(!api2.some(p => p.area.nome === 'Capacitação'), 'gravou o período com data no futuro')
+    const api2 = await api('GET', `/usuarios/${bia.codigo}/periodos`)
+    exigir(!api2.some(p => p.area.nome === 'Projetos'), 'gravou o período com data no futuro')
   })
 
-  await passo('d. Pessoas mostra o selo e o filtro por área acha o Caio', async () => {
+  await passo('d. Pessoas mostra o selo e o filtro por área acha a Bia', async () => {
     await page.goto(`${APP}/#/usuarios`)
-    const linha = page.locator('tr').filter({ hasText: 'caio@dev.konvex' })
+    const linha = page.locator('tr').filter({ hasText: 'bia@dev.konvex' })
     await linha.locator('.selos-area').getByText('Inovação · Gerente').waitFor({ timeout: 15000 })
     exigir(!(await linha.innerText()).includes('Execução'), 'a lista ainda mostra Execução (encerrada)')
     await page.getByLabel('Filtrar Áreas').selectOption('Inovação')
     const nomes = await page.locator('tbody tr').allInnerTexts()
     exigir(
-      nomes.some(t => t.includes('caio@dev.konvex')),
-      'filtro Inovação não acha o Caio',
+      nomes.some(t => t.includes('bia@dev.konvex')),
+      'filtro Inovação não acha a Bia',
     )
     exigir(
       nomes.every(t => t.includes('Inovação')),
@@ -214,23 +214,23 @@ try {
     await page.screenshot({ path: `${PRINTS}areas-d.png` })
   })
 
-  await passo('e. troca de conta na mesma aba: Caio vê as áreas sem botões', async () => {
-    await abrirPerfil(page, caio.codigo) // enche a memória da aba com o perfil visto pela gestão
+  await passo('e. troca de conta na mesma aba: Bia vê as áreas sem botões', async () => {
+    await abrirPerfil(page, bia.codigo) // enche a memória da aba com o perfil visto pela gestão
     await sair(page)
-    await entrar(page, 'caio@dev.konvex', SENHA)
+    await entrar(page, 'bia@dev.konvex', SENHA)
     await page.goto(`${APP}/#/perfil`)
     await linhaPeriodo(page, 'Inovação · Gerente').waitFor({ timeout: 15000 })
     await page.waitForLoadState('networkidle')
-    exigir(!(await secao(page).getByRole('button', { name: 'Adicionar período' }).count()), 'Caio vê "Adicionar período"')
-    exigir(!(await secao(page).getByRole('button', { name: 'Encerrar' }).count()), 'Caio vê "Encerrar"')
-    exigir(!(await secao(page).locator('.periodo-acoes').count()), 'Caio vê as ações dos períodos')
+    exigir(!(await secao(page).getByRole('button', { name: 'Adicionar período' }).count()), 'Bia vê "Adicionar período"')
+    exigir(!(await secao(page).getByRole('button', { name: 'Encerrar' }).count()), 'Bia vê "Encerrar"')
+    exigir(!(await secao(page).locator('.periodo-acoes').count()), 'Bia vê as ações dos períodos')
   })
 
   await passo('f. celular (375 px), escuro: a seção cabe sem rolagem lateral', async () => {
     const m = await nova({ viewport: { width: 375, height: 800 }, colorScheme: 'dark', isMobile: true, hasTouch: true })
     await m.addInitScript(() => localStorage.setItem('tema', 'dark'))
     await entrar(m, 'ines@dev.konvex', SENHA)
-    await abrirPerfil(m, caio.codigo)
+    await abrirPerfil(m, bia.codigo)
     await linhaPeriodo(m, 'Inovação · Gerente').waitFor({ timeout: 15000 })
     const medidas = await m.evaluate(() => ({
       paginaRola: document.documentElement.scrollWidth > window.innerWidth + 1,
@@ -248,16 +248,16 @@ try {
   await browser?.close().catch(() => {})
   // Limpeza: tira os períodos criados, reabre Execução e devolve o cargo Assessor.
   try {
-    for (const p of await api('GET', `/usuarios/${caio.codigo}/periodos`))
-      if (!periodosAntes.some(x => x.codigo === p.codigo)) await api('DELETE', `/usuarios/${caio.codigo}/periodos/${p.codigo}`)
-    await api('PUT', `/usuarios/${caio.codigo}/periodos/${execucaoAntes.codigo}`, {
+    for (const p of await api('GET', `/usuarios/${bia.codigo}/periodos`))
+      if (!periodosAntes.some(x => x.codigo === p.codigo)) await api('DELETE', `/usuarios/${bia.codigo}/periodos/${p.codigo}`)
+    await api('PUT', `/usuarios/${bia.codigo}/periodos/${execucaoAntes.codigo}`, {
       codigoArea: execucaoAntes.area.codigo,
       codigoCargo: execucaoAntes.cargo?.codigo ?? null,
       inicio: execucaoAntes.inicio.slice(0, 10),
       fim: null,
     })
     await api('PUT', `/cargos/${assessor.codigo}`, assessorAntes)
-    const fim = await api('GET', `/usuarios/${caio.codigo}/periodos`)
+    const fim = await api('GET', `/usuarios/${bia.codigo}/periodos`)
     const igual =
       JSON.stringify(fim.map(p => [p.codigo, p.fim])) === JSON.stringify(periodosAntes.map(p => [p.codigo, p.fim])) &&
       (await api('GET', '/cargos')).find(c => c.codigo === assessor.codigo).lideraArea === assessorAntes.lideraArea

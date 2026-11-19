@@ -1,5 +1,6 @@
 import { chip } from '../lib/utils'
 import { COR_STATUS_PROJETO, rotuloStatusProjeto } from '../services/projetos'
+import { rotuloTipo } from '../lib/projetosInternos'
 import Ic from './Icon'
 
 /** Selo dos projetos sigilosos (lista, página do projeto e perfil). */
@@ -12,3 +13,6 @@ export const SeloSigiloso = () => (
 
 /** Status do projeto como chip, com a cor de cada status. */
 export const StatusProjeto = ({ s }) => <span className={chip(COR_STATUS_PROJETO[s])}>{rotuloStatusProjeto(s)}</span>
+
+/** Tipo do projeto: Cliente, Interno ou Geral da área (`p` com `tipo` e `geralDaArea`). */
+export const SeloTipo = ({ p }) => <span className={chip()}>{rotuloTipo(p)}</span>

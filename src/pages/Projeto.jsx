@@ -18,8 +18,9 @@ import { ErroAcessoParcial, gravarProjeto } from '../lib/gravarProjeto'
 import { carregarProjeto } from '../lib/carregarProjeto'
 import Table from '../components/Table'
 import { camposProjeto, valoresProjeto } from './Projetos'
-import { SeloSigiloso, StatusProjeto } from '../components/SeloProjeto'
+import { SeloSigiloso, SeloTipo, StatusProjeto } from '../components/SeloProjeto'
 import { ItensDoProjeto } from './Biblioteca'
+import { TEXTO_EQUIPE_GERAL } from '../lib/projetosInternos'
 
 const ABAS = [
   ['tarefas', 'Tarefas'],
@@ -75,6 +76,17 @@ function ResumoSigiloso({ projeto, voltar }) {
   )
 }
 
+/** Projeto geral da área: a equipe vem dos períodos na área, sem editar aqui. */
+function EquipeCalculada({ projeto }) {
+  const pessoas = projeto.participacoes.filter(x => !x.dataSaida).map(x => ({ ...x, id: x.codigo ?? x.usuario.codigo }))
+  return (
+    <>
+      <p className="text-mu">{TEXTO_EQUIPE_GERAL}</p>
+      <Table busca={false} rows={pessoas} vazio="Ninguém na área agora." cols={[{ k: 'p', l: 'Pessoa', get: x => x.usuario.nome }]} />
+    </>
+  )
+}
+
 /**
  * Página de um projeto (/projetos/:id), com as abas Tarefas (kanban ou Gantt), Visão geral, Equipe e Biblioteca.
  * Nas tarefas, gestão e líder organizam; quem está na equipe atual cria e conclui as suas (papelNasTarefas).
@@ -117,6 +129,7 @@ export default function Projeto() {
     refresh().catch(() => {})
   }
   const p = { id: projeto.codigo, nome: projeto.nome, membros: projeto.participacoes.filter(x => !x.dataSaida).map(x => x.usuario.codigo) }
+  const ehGeral = Boolean(projeto.geralDaArea)
   const papel = papelNasTarefas({ me, gestao: pode('tarefas.gerirTodas'), projeto })
   const T = dados.tarefas,
     h = hj(D)
@@ -269,13 +282,14 @@ export default function Projeto() {
     ['Status', <StatusProjeto key="status" s={projeto.status} />],
     ['Referência', projeto.referencia || '—'],
     ['Cliente', projeto.clienteNome || '—'],
-    ['Período', fm(dia(projeto.dataInicio)) + ' a ' + fm(dia(projeto.dataFim))],
+    ['Tipo', <SeloTipo key="tipo" p={projeto} />],
+    ...(ehGeral ? [] : [['Período', fm(dia(projeto.dataInicio)) + ' a ' + fm(dia(projeto.dataFim))]]),
     ['Prioridade', rotuloPrioridade(projeto.prioridade)],
     ['Responsável', projeto.responsavel?.nome || '—'],
-    ['Líder', projeto.lider?.nome || '—'],
+    ...(ehGeral ? [] : [['Líder', projeto.lider?.nome || '—']]),
     ['Área', projeto.area?.nome || '—'],
     ['Equipe', <Av key="equipe" D={D} ids={p.membros} />],
-    ...(projeto.sigiloso
+    ...(projeto.sigiloso && !ehGeral
       ? [
           ['Visibilidade', <SeloSigiloso key="sigilo" />],
           ['Quem mais vê', projeto.acesso.length ? projeto.acesso.map(c => nm(D, [c])).join(', ') : 'Só diretores, quem criou e a equipe'],
@@ -304,7 +318,7 @@ export default function Projeto() {
           </p>
         </>
       )}
-      {gestor && (
+      {gestor && !ehGeral && (
         <div className="mt-3">
           <button className="btn btn-g" onClick={editarProjeto}>
             <Ic k="edit" />
@@ -324,6 +338,7 @@ export default function Projeto() {
           {/* Um filho só depois do título: o CSS do celular (.cab) conta com isso. */}
           <span className="d-flex flex-wrap gap-1">
             <StatusProjeto s={projeto.status} />
+            <SeloTipo p={projeto} />
             {projeto.sigiloso && <SeloSigiloso />}
           </span>
         </div>
@@ -350,7 +365,8 @@ export default function Projeto() {
       {aba == 'tarefas' && (pt == 'kanban' ? kanban() : gantt())}
       {aba == 'geral' && geral()}
       {aba == 'biblioteca' && temBiblioteca && <ItensDoProjeto projeto={projeto} />}
-      {aba == 'equipe' && <EquipeProjeto projeto={projeto} todos={todos} gente={gente} gestor={gestor} aoSalvar={aoSalvar} />}
+      {aba == 'equipe' && ehGeral && <EquipeCalculada projeto={projeto} />}
+      {aba == 'equipe' && !ehGeral && <EquipeProjeto projeto={projeto} todos={todos} gente={gente} gestor={gestor} aoSalvar={aoSalvar} />}
       {editandoColunas && (
         <ColunasModal
           colunas={projeto.colunas.map(adaptColuna)}
