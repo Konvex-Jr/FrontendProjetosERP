@@ -8,9 +8,10 @@ import { Av, PageBar, Prog } from '../components/Ui'
 import alerts from '../lib/alerts'
 import useCarregar from '../lib/useCarregar'
 import Esqueleto from '../components/Esqueleto'
-import { SeloSigiloso, StatusProjeto } from '../components/SeloProjeto'
+import { SeloSigiloso, SeloTipo, StatusProjeto } from '../components/SeloProjeto'
 import { ErroAcessoParcial, acessoComLogin, gravarProjeto } from '../lib/gravarProjeto'
 import { consumir } from '../lib/atalho'
+import { FILTRO_TIPO, TIPOS_PROJETO, areasDosProjetos, comArea, erroDoFormularioProjeto, filtrarProjetos } from '../lib/projetosInternos'
 import { GRUPOS_PROJETO } from '../lib/indicadores'
 import { configuracoes, pessoas } from '../services/pessoas'
 import { PRIORIDADE_PROJETO, STATUS_PROJETO, projetos, rotuloStatusProjeto } from '../services/projetos'
@@ -30,8 +31,9 @@ export function camposProjeto({ lista, areas, novo, podeGerirAcesso }) {
   const gereAcesso = novo || podeGerirAcesso
   return [
     { k: 'nome', l: 'Nome' },
+    { k: 'tipo', l: 'Tipo', o: TIPOS_PROJETO, h: 'Interno é da Konvex e fica numa área; cliente é para quem a Konvex trabalha.' },
     { k: 'referencia', l: 'Referência', opt: true, h: 'Código curto do projeto, ex.: PRJ-2026-01.' },
-    { k: 'clienteNome', l: 'Cliente', opt: true },
+    { k: 'clienteNome', l: 'Cliente', opt: true, s: v => v.tipo !== 'interno' },
     { k: 'descricao', l: 'Descrição', t: 'textarea' },
     { k: 'objetivo', l: 'Objetivo', t: 'textarea', opt: true },
     { k: 'dataInicio', l: 'Início', t: 'date' },
@@ -39,7 +41,13 @@ export function camposProjeto({ lista, areas, novo, podeGerirAcesso }) {
     { k: 'status', l: 'Status', o: STATUS_PROJETO, s: () => !novo },
     { k: 'prioridade', l: 'Prioridade', o: PRIORIDADE_PROJETO },
     { k: 'codigoResponsavel', l: 'Responsável', o: opcoes(lista, u => u.naEj), opt: true },
-    { k: 'codigoArea', l: 'Área', o: opcoes(areas, a => a.ativa), opt: true },
+    {
+      k: 'codigoArea',
+      l: 'Área',
+      o: opcoes(areas, a => a.ativa),
+      opt: true,
+      h: 'Obrigatória no projeto interno.',
+    },
     { k: 'visibilidade', l: 'Visibilidade', o: VISIBILIDADE, s: () => gereAcesso },
     {
       k: 'acesso',
@@ -54,9 +62,10 @@ export function camposProjeto({ lista, areas, novo, podeGerirAcesso }) {
 
 /** `pessoas`: a mesma lista do seletor de acesso (só os códigos com login entram no formulário). */
 export function valoresProjeto(p, pessoas = []) {
-  if (!p) return { prioridade: 'media', codigoResponsavel: '', codigoArea: '', visibilidade: 'normal', acesso: [] }
+  if (!p) return { tipo: 'cliente', prioridade: 'media', codigoResponsavel: '', codigoArea: '', visibilidade: 'normal', acesso: [] }
   return {
     nome: p.nome,
+    tipo: p.tipo || 'cliente',
     referencia: p.referencia || '',
     clienteNome: p.clienteNome || '',
     descricao: p.descricao,
@@ -95,7 +104,9 @@ export function dadosDaTela({ me, mb, pode }) {
 export default function Projetos() {
   const { D, me, mb, form, go, pode, refresh } = useApp()
   const [pv, setPv] = useState('grid'),
-    [grupo, setGrupo] = useState(() => consumir('projetos') || '')
+    [grupo, setGrupo] = useState(() => consumir('projetos') || ''),
+    [tipo, setTipo] = useState(''),
+    [areaId, setAreaId] = useState('')
   const gestor = pode('projetos.editar')
   const tela = dadosDaTela({ me, mb, pode })
   const { dados, carregando, recarregar } = useCarregar(tela.carregar, [mb, me, gestor], { chave: tela.chave })
@@ -107,7 +118,8 @@ export default function Projetos() {
         {carregando && <Esqueleto />}
       </>
     )
-  const { lista, gente, areas } = dados
+  const { gente, areas } = dados
+  const lista = dados.lista.map(comArea)
 
   const executar = async (acao, sucesso) => {
     try {
@@ -135,6 +147,11 @@ export default function Projetos() {
       camposProjeto({ lista: gente, areas, novo: !p, podeGerirAcesso: p?.podeGerirAcesso }),
       valoresProjeto(p, gente),
       async v => {
+        const aviso = erroDoFormularioProjeto(v)
+        if (aviso) {
+          alerts.error('Não foi possível salvar', aviso)
+          return false
+        }
         const r = await executar(() => gravarProjeto(p, v), p ? 'Projeto atualizado' : 'Projeto criado')
         if (r && !p) go('projeto', r.codigo)
         return r === false ? false : undefined
@@ -162,13 +179,13 @@ export default function Projetos() {
       <ActionMenu
         items={[
           ['open', 'Abrir', () => go('projeto', p.codigo)],
-          ...(gestor
+          ...(gestor && !p.geralDaArea
             ? [
                 ['edit', 'Editar', () => editar(p)],
                 ['check', 'Mudar status', () => mudarStatus(p)],
               ]
             : []),
-          ...(pode('projetos.excluir') ? [['trash', 'Excluir', () => excluir(p), 1]] : []),
+          ...(pode('projetos.excluir') && !p.geralDaArea ? [['trash', 'Excluir', () => excluir(p), 1]] : []),
         ]}
       />
     )
@@ -180,7 +197,7 @@ export default function Projetos() {
       l: 'Projeto',
       render: p => (
         <>
-          {p.nome}
+          {p.nome} <SeloTipo p={p} />
           {p.sigiloso && (
             <>
               {' '}
@@ -197,9 +214,12 @@ export default function Projetos() {
     { l: 'Equipe', render: p => <Av D={D} ids={membrosAtivos(p)} /> },
     { l: 'Ações', render: p => <Ac p={p} /> },
   ]
-  const linhas = lista.filter(p => !grupo || GRUPOS_PROJETO[grupo].status.includes(p.status)).map(p => ({ ...p, id: p.codigo }))
-  const vazio = grupo
-    ? 'Nenhum projeto neste grupo. Escolha “Todos” no filtro.'
+  const linhas = filtrarProjetos(lista, { tipo, areaId })
+    .filter(p => !grupo || GRUPOS_PROJETO[grupo].status.includes(p.status))
+    .map(p => ({ ...p, id: p.codigo }))
+  const filtrando = grupo || tipo || areaId
+  const vazio = filtrando
+    ? 'Nenhum projeto com estes filtros. Escolha “Todos” nos filtros.'
     : gestor
       ? 'Nenhum projeto cadastrado. Use “Novo projeto”.'
       : 'Você ainda não participa de nenhum projeto. Quando a gestão incluir você numa equipe, ele aparece aqui.'
@@ -216,6 +236,21 @@ export default function Projetos() {
         {Object.entries(GRUPOS_PROJETO).map(([k, g]) => (
           <option key={k} value={k}>
             {g.rotulo}
+          </option>
+        ))}
+      </select>
+      <select className="form-select w-auto" aria-label="Tipo de projeto" value={tipo} onChange={e => setTipo(e.target.value)}>
+        {FILTRO_TIPO.map(([k, l]) => (
+          <option key={k} value={k}>
+            {k ? l : 'Tipo: todos'}
+          </option>
+        ))}
+      </select>
+      <select className="form-select w-auto" aria-label="Área do projeto" value={areaId} onChange={e => setAreaId(e.target.value)}>
+        <option value="">Área: todas</option>
+        {areasDosProjetos(lista).map(([k, nome]) => (
+          <option key={k} value={k}>
+            {nome}
           </option>
         ))}
       </select>
@@ -255,6 +290,7 @@ export default function Projetos() {
                 <div className="d-flex justify-content-between align-items-center gap-2">
                   <span className="d-flex flex-wrap gap-1">
                     <StatusProjeto s={p.status} />
+                    <SeloTipo p={p} />
                     {p.sigiloso && <SeloSigiloso />}
                   </span>
                   <Av D={D} ids={membrosAtivos(p)} />

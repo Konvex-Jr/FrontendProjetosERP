@@ -1,6 +1,13 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { filtrarProjetos, gruposDeProjetos, rotuloTipo } from '../src/lib/projetosInternos.js'
+import {
+  areasDosProjetos,
+  comArea,
+  erroDoFormularioProjeto,
+  filtrarProjetos,
+  gruposDeProjetos,
+  rotuloTipo,
+} from '../src/lib/projetosInternos.js'
 
 const area = (areaId, areaNome) => ({ areaId, areaNome })
 const projetos = [
@@ -59,4 +66,29 @@ test('gruposDeProjetos agrupa pelo id da área, não pelo nome', () => {
     { id: 2, nome: 'B', tipo: 'interno', ...area(2, 'Mesma') },
   ])
   assert.equal(g.length, 2)
+})
+
+test('comArea achata a área e assume cliente sem tipo', () => {
+  assert.deepEqual(comArea({ codigo: 'p', area: { codigo: 'a', nome: 'Tec' } }), {
+    codigo: 'p',
+    area: { codigo: 'a', nome: 'Tec' },
+    tipo: 'cliente',
+    areaId: 'a',
+    areaNome: 'Tec',
+  })
+  assert.equal(comArea({ tipo: 'interno', area: null }).areaId, null)
+})
+
+test('areasDosProjetos lista cada área uma vez, em ordem', () => {
+  const ps = [area('b', 'Vendas'), area('a', 'Tecnologia'), area('b', 'Vendas'), area(null, null)]
+  assert.deepEqual(areasDosProjetos(ps), [
+    ['a', 'Tecnologia'],
+    ['b', 'Vendas'],
+  ])
+})
+
+test('projeto interno exige área; cliente não', () => {
+  assert.match(erroDoFormularioProjeto({ tipo: 'interno', codigoArea: '' }), /área/)
+  assert.equal(erroDoFormularioProjeto({ tipo: 'interno', codigoArea: 'a' }), '')
+  assert.equal(erroDoFormularioProjeto({ tipo: 'cliente', codigoArea: '' }), '')
 })

@@ -15,7 +15,7 @@ import LogoMarca from '../components/LogosMarcas'
 import { horas } from '../services/capacitacoes'
 import { itensDoAutor } from '../services/biblioteca'
 import Clipe from '../components/Clipe'
-import { SeloSigiloso } from '../components/SeloProjeto'
+import { SeloSigiloso, SeloTipo } from '../components/SeloProjeto'
 import AreasPessoa from '../components/AreasPessoa'
 import { rotuloArea } from '../lib/periodos'
 
@@ -57,7 +57,7 @@ export function dadosDaTela({ me }, outro) {
 /** RF-013: perfil da pessoa. Em /perfil é o próprio; em /perfil/:codigo, o de outra pessoa. */
 export default function Perfil() {
   const { codigo: outro } = useParams()
-  const { me, form, go, refresh, nav } = useApp()
+  const { D, me, form, go, refresh, nav } = useApp()
   const [trocandoFoto, setTrocandoFoto] = useState(false)
   const codigo = codigoDoPerfil(me, outro)
   const meu = codigo === me
@@ -182,6 +182,8 @@ export default function Perfil() {
   ].filter(([, v]) => v)
   const cartoes = cartoesDeLinks(u)
 
+  // O perfil não traz o tipo: vem do projeto na lista do contexto (some se a pessoa não vê o projeto).
+  const tipoDe = p => D.p.find(x => String(x.id) === String(p.codigo))
   const projeto = p => (
     <div
       className={'ag' + (p.restrito ? ' resumo-sigilo' : '')}
@@ -197,6 +199,7 @@ export default function Perfil() {
           {p.dataSaida ? ` até ${fd(p.dataSaida)}` : ''}
         </small>
       </div>
+      {tipoDe(p) && <SeloTipo p={tipoDe(p)} />}
       {p.sigiloso && <SeloSigiloso />}
       <span className={chip()}>{p.status}</span>
     </div>

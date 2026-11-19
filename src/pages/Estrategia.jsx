@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useApp } from '../context/AppContext'
 import { DAY, PC, chip, d, fm, hj, nm, prog } from '../lib/utils'
 import Burn from '../components/Burn'
 import Table from '../components/Table'
-import { PageBar, Prog } from '../components/Ui'
+import { PageBar, Prog, Seg } from '../components/Ui'
 import { contagemTarefas } from '../lib/indicadores'
+import { FILTRO_TIPO, filtrarProjetos } from '../lib/projetosInternos'
 
 const TB = { late: ['Atrasadas', 'er'], and: ['Em andamento', 'an'], done: ['Concluídas', 'ok'] }
 
@@ -13,7 +14,15 @@ const TB = { late: ['Atrasadas', 'er'], and: ['Em andamento', 'an'], done: ['Con
  * e participação das pessoas em capacitações. Usa os dados do contexto (D).
  */
 export default function Estrategia() {
-  const { D, go } = useApp()
+  const { D: Dtodos, go } = useApp()
+  const [tipo, setTipo] = useState('')
+  // O filtro vale para tudo que sai de projetos e tarefas (cartões, burndown, listas); capacitações não mudam.
+  const D = useMemo(() => {
+    if (!tipo) return Dtodos
+    const ps = filtrarProjetos(Dtodos.p, { tipo })
+    const ids = new Set(ps.map(p => String(p.id)))
+    return { ...Dtodos, p: ps, t: Dtodos.t.filter(t => ids.has(String(t.projetoId))) }
+  }, [Dtodos, tipo])
   const T = D.t,
     h = hj(D),
     ativos = D.u.filter(u => u.ativo),
@@ -62,6 +71,9 @@ export default function Estrategia() {
   return (
     <>
       <PageBar title="Visão Estratégica" sub={'Panorama de tarefas, projetos, capacitações e pessoas em ' + fm(D.c.hoje)} />
+      <div className="mb-3">
+        <Seg items={FILTRO_TIPO} value={tipo} onChange={setTipo} />
+      </div>
 
       <div className="row g-3 mb-3">
         <div className="col-6 col-lg-3">
