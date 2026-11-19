@@ -151,6 +151,7 @@ export default function Projeto() {
                   D.u.filter(u => p.membros.includes(u.id)),
                   carga,
                 ),
+                h: 'A % ao lado do nome é a ocupação desta semana.',
               },
             ]
           : []),
