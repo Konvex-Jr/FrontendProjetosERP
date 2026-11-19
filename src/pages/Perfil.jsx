@@ -19,7 +19,7 @@ import { SeloSigiloso, SeloTipo } from '../components/SeloProjeto'
 import AreasPessoa from '../components/AreasPessoa'
 import { rotuloArea } from '../lib/periodos'
 import { ocupacao } from '../services/ocupacao'
-import { faixaOcupacao, formatarHoras, proximaSemana, rotuloSemana, semanaAnterior } from '../lib/ocupacao'
+import { faixaOcupacao, formatarHoras, proximaSemana, rotuloSemana, semanaAnterior, semanaAtual } from '../lib/ocupacao'
 
 const COR_STATUS = { ativo: 'ok', trainee: '', alumni: 'wa', inativo: 'er' }
 /** Links do perfil como cartões com logo; abrem em nova aba. */
@@ -52,15 +52,18 @@ function linhaOcupacao(i) {
 /** Ocupação da semana (horas por dificuldade das tarefas abertas). `inicial` = semana atual, vinda do perfil. */
 function CartaoOcupacao({ codigo, inicial }) {
   const [semana, setSemana] = useState(null)
+  // Perfil sem `ocupacao` (cache antigo ou resposta diferente): a semana atual é buscada à parte.
+  const atual = inicial?.semana ?? semanaAtual()
+  const buscar = semana || (inicial ? null : atual)
   const { dados: outra, carregando } = useCarregar(
-    () => (semana ? ocupacao.dePessoa(codigo, semana) : Promise.resolve(null)),
-    [codigo, semana],
-    { chave: semana ? `ocupacao:${codigo}:${semana}` : `ocupacao:${codigo}:atual` },
+    () => (buscar ? ocupacao.dePessoa(codigo, buscar) : Promise.resolve(null)),
+    [codigo, buscar],
+    { chave: buscar ? `ocupacao:${codigo}:${buscar}` : `ocupacao:${codigo}:atual` },
   )
-  const o = semana ? outra : inicial
-  const mostrada = semana || inicial.semana
+  const o = buscar ? outra : inicial
+  const mostrada = semana || atual
   const faixa = o ? faixaOcupacao(o.percentual) : 'ok'
-  const voltarPara = s => setSemana(s === inicial.semana ? null : s)
+  const voltarPara = s => setSemana(s === atual ? null : s)
 
   return (
     <div className="card card-body h-100">

@@ -7,7 +7,6 @@ import alerts from '../lib/alerts'
 import { equipe, projetos } from '../services/projetos'
 import { ocupacao } from '../services/ocupacao'
 import useCarregar from '../lib/useCarregar'
-import { semanaAtual } from '../lib/ocupacao'
 import ChipOcupacao from './ChipOcupacao'
 import { rotuloStatus } from '../services/pessoas'
 
@@ -17,9 +16,8 @@ import { rotuloStatus } from '../services/pessoas'
 export default function EquipeProjeto({ projeto, gente, gestor, aoSalvar }) {
   const { form, go } = useApp()
   // Ocupação da semana atual; se a chamada falhar, a coluna mostra "—" e o resto da aba segue.
-  const semana = semanaAtual()
-  const { dados: ocupacoes } = useCarregar(() => ocupacao.todas(semana).catch(() => null), [semana], {
-    chave: `ocupacao:todas:${semana}`,
+  const { dados: ocupacoes } = useCarregar(() => ocupacao.todas().catch(() => null), [], {
+    chave: 'ocupacao:todas',
   })
   const percentuais = Object.fromEntries((ocupacoes || []).map(o => [o.codigoUsuario, o.percentual]))
   const ativas = projeto.participacoes.filter(p => !p.dataSaida).map(p => ({ ...p, id: p.codigo }))
