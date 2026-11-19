@@ -8,6 +8,8 @@ export const filtrarProjetos = (projetos, { tipo = '', areaId = '' } = {}) =>
 
 /** Grupos para a tela: Clientes, depois uma área por grupo (ordem alfabética; geral primeiro, internos por nome). */
 export function gruposDeProjetos(projetos) {
+  // Aceita o projeto direto da API (com `area` aninhada) ou já com `areaId` e `areaNome`.
+  projetos = (projetos || []).map(p => (p.area ? comArea(p) : p))
   const porNome = (a, b) => (a.nome || '').localeCompare(b.nome || '', 'pt-BR')
   const clientes = (projetos || []).filter(p => p.tipo !== 'interno').sort(porNome)
   const porArea = new Map()

@@ -92,3 +92,14 @@ test('projeto interno exige área; cliente não', () => {
   assert.equal(erroDoFormularioProjeto({ tipo: 'interno', codigoArea: 'a' }), '')
   assert.equal(erroDoFormularioProjeto({ tipo: 'cliente', codigoArea: '' }), '')
 })
+
+test('gruposDeProjetos agrupa por área também o projeto cru da API (area aninhada)', () => {
+  const crus = [
+    { nome: 'Site', tipo: 'cliente', area: null },
+    { nome: 'Inovação · geral', tipo: 'interno', geralDaArea: true, area: { codigo: 'a1', nome: 'Inovação' } },
+  ]
+  assert.deepEqual(
+    gruposDeProjetos(crus).map(g => g.rotulo),
+    ['Clientes', 'Inovação'],
+  )
+})
