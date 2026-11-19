@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import {
   corpoNovaTarefa,
+  criarComAnexos,
   corpoTarefa,
   origemTarefa,
   papelNaTarefa,
@@ -283,4 +284,51 @@ test('24b: soMudouConclusao e chamadas PATCH', async () => {
   assert.deepEqual(chamadas[0].body, { dataConclusao: new Date('2026-11-09T12:00:00').toISOString() })
   assert.equal(chamadas[1].url, '/tarefas/t1/checklist/i1')
   assert.deepEqual(chamadas[1].body, { feito: true })
+})
+
+test('criarComAnexos: cria a tarefa e envia os anexos para ela', async () => {
+  const chamadas = []
+  const criar = async (projeto, t) => {
+    chamadas.push(['criar', projeto, t.titulo])
+    return { codigo: 'nova', avisosOcupacao: [] }
+  }
+  const enviar = async (dono, codigo, arquivos) => {
+    chamadas.push(['enviar', dono, codigo, arquivos.map(a => a.name)])
+    return { enviados: 1, falhas: [{ nome: 'b.pdf', erro: 'Falhou' }] }
+  }
+  const r = await criarComAnexos('p1', { titulo: 'X' }, [{ name: 'a.pdf' }, { name: 'b.pdf' }], { criar, enviar })
+  assert.deepEqual(chamadas, [
+    ['criar', 'p1', 'X'],
+    ['enviar', 'tarefas', 'nova', ['a.pdf', 'b.pdf']],
+  ])
+  assert.equal(r.criada.codigo, 'nova')
+  assert.deepEqual(r.falhas, [{ nome: 'b.pdf', erro: 'Falhou' }])
+})
+
+test('criarComAnexos: sem arquivos não chama o envio', async () => {
+  let enviou = false
+  const r = await criarComAnexos('p1', { titulo: 'X' }, [], {
+    criar: async () => ({ codigo: 'nova' }),
+    enviar: async () => {
+      enviou = true
+    },
+  })
+  assert.equal(enviou, false)
+  assert.deepEqual(r.falhas, [])
+})
+
+test('criarComAnexos: falha ao criar não envia anexos', async () => {
+  let enviou = false
+  await assert.rejects(
+    criarComAnexos('p1', {}, [{ name: 'a.pdf' }], {
+      criar: async () => {
+        throw new Error('Título obrigatório')
+      },
+      enviar: async () => {
+        enviou = true
+      },
+    }),
+    /Título obrigatório/,
+  )
+  assert.equal(enviou, false)
 })

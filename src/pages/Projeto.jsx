@@ -13,9 +13,9 @@ import alerts from '../lib/alerts'
 import useCarregar from '../lib/useCarregar'
 import Esqueleto from '../components/Esqueleto'
 import { projetos, rotuloPrioridade } from '../services/projetos'
-import { apoioTarefa } from '../services/ocupacao'
-import { comCarga, opcoesDificuldade } from '../lib/ocupacao'
-import { acoesTarefa, avisarOcupacao, papelNasTarefas, quadroDesatualizado, tarefas } from '../services/tarefas'
+import { acoesTarefa, avisarOcupacao, criarDaJanela, papelNasTarefas, quadroDesatualizado } from '../services/tarefas'
+import { rascunhoNovo } from '../lib/rascunhoTarefa'
+import { PRAZOS, noPrazo } from '../lib/prazo'
 import { ErroAcessoParcial, gravarProjeto } from '../lib/gravarProjeto'
 import { carregarProjeto } from '../lib/carregarProjeto'
 import Table from '../components/Table'
@@ -98,6 +98,8 @@ export default function Projeto() {
     pid = id
   const [pt, setPt] = useState('kanban'),
     [tk, setTk] = useState(null),
+    [criando, setCriando] = useState(null),
+    [prazo, setPrazo] = useState(''),
     [editandoColunas, setEditandoColunas] = useState(false)
   const [aba, setAba] = useState('tarefas')
   // Quem não tem Biblioteca no menu (trainee) levaria 403 da API: a aba nem aparece (mesma regra do Perfil).
@@ -132,41 +134,14 @@ export default function Projeto() {
   const p = { id: projeto.codigo, nome: projeto.nome, membros: projeto.participacoes.filter(x => !x.dataSaida).map(x => x.usuario.codigo) }
   const ehGeral = Boolean(projeto.geralDaArea)
   const papel = papelNasTarefas({ me, gestao: pode('tarefas.gerirTodas'), projeto })
-  const T = dados.tarefas,
-    h = hj(D)
+  // `todas` vai para a janela da tarefa (dependências); quadro e cronograma mostram só as do filtro de prazo.
+  const todas = dados.tarefas,
+    h = hj(D),
+    T = todas.filter(t => noPrazo(t, prazo, h))
+  const colunas = projeto.colunas.map(adaptColuna)
 
-  const add = async colunaId => {
-    const { horas, carga } = await apoioTarefa(D.c.hoje)
-    return form(
-      'Nova tarefa',
-      [
-        { k: 'titulo', l: 'Título' },
-        { k: 'prioridade', l: 'Prioridade', o: ['P1', 'P2', 'P3', 'P4'].map(x => [x, x]) },
-        ...(papel.organiza
-          ? [
-              {
-                k: 'responsaveis',
-                l: 'Responsáveis',
-                c: comCarga(
-                  D.u.filter(u => p.membros.includes(u.id)),
-                  carga,
-                ),
-                h: 'A % ao lado do nome é a ocupação desta semana.',
-              },
-            ]
-          : []),
-        { k: 'dificuldade', l: 'Dificuldade', o: opcoesDificuldade(horas), opt: true },
-        { k: 'inicio', l: 'Início', t: 'date' },
-        { k: 'fim', l: 'Fim', t: 'date' },
-      ],
-      {
-        prioridade: 'P3',
-        responsaveis: papel.organiza ? [] : [me],
-        ...(colunaId ? { colunaId } : {}),
-      },
-      o => salvarTarefa(() => tarefas.criar(pid, o), 'Tarefa criada'),
-    )
-  }
+  // Nova tarefa (botão ou "+" de uma coluna): janela da tarefa em modo criação, na coluna clicada.
+  const add = colunaId => setCriando(rascunhoNovo({ projetoId: pid, organiza: papel.organiza, membros: p.membros, me, colunas, colunaId }))
   // Toda alteração de tarefa vai direto para a API; depois recarrega a tela e o painel.
   const salvarTarefa = async (chamada, ok) => {
     try {
@@ -202,20 +177,31 @@ export default function Projeto() {
     await aoSalvar().catch(() => {})
   }
 
+  // Filtro de prazo (só na tela) acima do quadro e do cronograma; "Editar colunas" ao lado, no quadro.
+  const barraTarefas = () => (
+    <div className="fl d-flex flex-wrap gap-2 mb-2">
+      <select className="form-select w-auto" aria-label="Prazo" value={prazo} onChange={e => setPrazo(e.target.value)}>
+        {PRAZOS.map(([v, l]) => (
+          <option key={v} value={v}>
+            {l}
+          </option>
+        ))}
+      </select>
+      {pt == 'kanban' && papel.organiza && (
+        <button className="btn btn-g" onClick={() => setEditandoColunas(true)}>
+          <Ic k="edit" />
+          Editar colunas
+        </button>
+      )}
+    </div>
+  )
+
   const kanban = () => (
     <>
-      {papel.organiza && (
-        <div className="mb-2">
-          <button className="btn btn-g" onClick={() => setEditandoColunas(true)}>
-            <Ic k="edit" />
-            Editar colunas
-          </button>
-        </div>
-      )}
       <KanbanEtapas
         D={D}
         T={T}
-        colunas={projeto.colunas.map(adaptColuna)}
+        colunas={colunas}
         papelDe={() => papel}
         acoes={acoes}
         abrir={setTk}
@@ -226,7 +212,7 @@ export default function Projeto() {
 
   const gantt = () =>
     !T.length ? (
-      <div className="card card-body">Nenhuma tarefa ainda. Use “Nova tarefa”.</div>
+      <div className="card card-body">{prazo ? 'Nenhuma tarefa com este prazo.' : 'Nenhuma tarefa ainda. Use “Nova tarefa”.'}</div>
     ) : (
       <div className="card gt">
         {T.map(t => {
@@ -379,30 +365,40 @@ export default function Projeto() {
       <div className="mb-3">
         <Seg items={abas} value={aba} onChange={setAba} />
       </div>
+      {aba == 'tarefas' && barraTarefas()}
       {aba == 'tarefas' && (pt == 'kanban' ? kanban() : gantt())}
       {aba == 'geral' && geral()}
       {aba == 'biblioteca' && temBiblioteca && <ItensDoProjeto projeto={projeto} />}
       {aba == 'equipe' && ehGeral && <EquipeCalculada projeto={projeto} />}
       {aba == 'equipe' && !ehGeral && <EquipeProjeto projeto={projeto} gente={gente} gestor={gestor} aoSalvar={aoSalvar} />}
       {editandoColunas && (
-        <ColunasModal
-          colunas={projeto.colunas.map(adaptColuna)}
-          tarefas={T}
-          aoSalvar={gravarColunas}
-          aoFechar={() => setEditandoColunas(false)}
+        <ColunasModal colunas={colunas} tarefas={todas} aoSalvar={gravarColunas} aoFechar={() => setEditandoColunas(false)} />
+      )}
+      {criando && (
+        <TaskModal
+          D={D}
+          modo="criar"
+          papel={papel}
+          me={me}
+          t={criando}
+          colunas={colunas}
+          p={p}
+          T={todas}
+          criar={(rascunho, arquivos) => criarDaJanela(rascunho, arquivos, { aoCriar: aoSalvar, abrir: setTk })}
+          close={() => setCriando(null)}
         />
       )}
-      {tk && T.find(x => x.id == tk) && (
+      {tk && todas.find(x => x.id == tk) && (
         <TaskModal
           D={D}
           papel={papel}
           me={me}
           salvar={(antes, depois) => acoes.salvar(antes, depois, 'Tarefa salva')}
-          t={T.find(x => x.id == tk)}
-          colunas={projeto.colunas.map(adaptColuna)}
+          t={todas.find(x => x.id == tk)}
+          colunas={colunas}
           mover={acoes.mover}
           p={p}
-          T={T}
+          T={todas}
           close={() => setTk(null)}
           del={acoes.del}
           tog={acoes.tog}

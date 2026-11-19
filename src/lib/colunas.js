@@ -11,9 +11,12 @@ export const adaptColuna = c => ({ id: c.codigo, nome: c.nome, cor: c.cor, papel
 // Ordem dentro da coluna: prioridade (P1 primeiro) e depois prazo (mesma regra do KanbanTarefas).
 const ordem = (a, b) => (a.prioridade > b.prioridade ? 1 : a.prioridade < b.prioridade ? -1 : a.fim > b.fim ? 1 : a.fim < b.fim ? -1 : 0)
 
+/** Coluna de entrada do quadro (papel `entrada`; sem ela, a primeira); quadro vazio = null. */
+export const colunaDeEntrada = colunas => colunas?.find(c => c.papel === 'entrada') || colunas?.[0] || null
+
 /** [{ coluna, tarefas }] na ordem das colunas; tarefa sem coluna conhecida vai para a de entrada. */
 export function agrupar(colunas, tarefas) {
-  const entrada = colunas.find(c => c.papel === 'entrada') || colunas[0]
+  const entrada = colunaDeEntrada(colunas)
   const grupos = colunas.map(coluna => ({ coluna, tarefas: [] }))
   for (const t of tarefas || []) {
     const grupo = grupos.find(g => g.coluna.id === t.coluna?.id) || grupos.find(g => g.coluna === entrada)

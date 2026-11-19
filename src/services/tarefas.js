@@ -1,6 +1,7 @@
 import { request } from './api.js'
 import alerts from '../lib/alerts.js'
 import { textoAviso } from '../lib/ocupacao.js'
+import { enviarVarios, resumoFalhas } from './anexos.js'
 
 /**
  * Chamadas diretas do módulo Tarefas.
@@ -119,6 +120,43 @@ export const tarefas = {
         : soMudouStatus(antes, depois)
           ? tarefas.alterarStatus(depois.id, depois.status)
           : tarefas.editar(depois, antes),
+}
+
+/**
+ * Nova tarefa completa (sessão 24b): cria (POST com descrição e checklist) e depois envia os anexos escolhidos
+ * para a tarefa criada, um por vez. Falha de anexo não desfaz a tarefa: volta em `falhas` ({ nome, erro }).
+ * Falha ao criar sobe como erro (nenhum anexo é enviado).
+ */
+export async function criarComAnexos(codigoProjeto, rascunho, arquivos, { criar = tarefas.criar, enviar = enviarVarios } = {}) {
+  const criada = await criar(codigoProjeto, rascunho)
+  const { falhas } = arquivos?.length ? await enviar('tarefas', criada.codigo, arquivos) : { falhas: [] }
+  return { criada, falhas }
+}
+
+/**
+ * "Criar tarefa" da janela (Tarefas e Projeto): cria com os anexos, mostra os avisos e recarrega a tela (`aoCriar`).
+ * Se algum anexo falhou, a tarefa fica criada: avisa quais arquivos não subiram e abre a tarefa (`abrir(codigo)`)
+ * para reenviar. Devolve false quando a tarefa não foi criada (a janela continua aberta com o rascunho).
+ */
+export async function criarDaJanela(rascunho, arquivos, { aoCriar, abrir }) {
+  let resultado
+  try {
+    resultado = await criarComAnexos(rascunho.projetoId, rascunho, arquivos)
+  } catch (error) {
+    // Coluna apagada ou quadro mudado por outra pessoa: recarrega para a janela pegar as etapas novas.
+    if (quadroDesatualizado(error)) await Promise.resolve(aoCriar?.()).catch(() => {})
+    alerts.error('Não foi possível criar a tarefa', error.message)
+    return false
+  }
+  const { criada, falhas } = resultado
+  avisarOcupacao(criada)
+  await Promise.resolve(aoCriar?.()).catch(() => {})
+  if (!falhas.length) {
+    alerts.toastSuccess('Tarefa criada')
+    return
+  }
+  await alerts.error('Alguns anexos não foram enviados', resumoFalhas(falhas))
+  abrir?.(criada.codigo)
 }
 
 /**

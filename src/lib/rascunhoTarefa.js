@@ -3,6 +3,8 @@
  * Base do aviso "Descartar alterações?" ao fechar.
  */
 
+import { colunaDeEntrada } from './colunas.js'
+
 // Vazio é vazio: campo apagado (null, undefined, '' ou lista vazia) não conta como alteração.
 const vazio = v => v == null || v === '' || (Array.isArray(v) && v.length === 0)
 
@@ -31,3 +33,43 @@ export function mudouRascunho(original, rascunho, anexosEscolhidos = []) {
  */
 export const conclusaoDoStatus = (status, original, hoje) =>
   status === 'concluida' ? (original?.status === 'concluida' ? original.conclusao : hoje) : undefined
+
+// Participante cria e fica como responsável (a API faz igual); quem organiza escolhe, só gente da equipe atual.
+const responsaveisNoProjeto = (responsaveis, { organiza, membros, me }) =>
+  organiza ? (responsaveis || []).filter(id => (membros || []).includes(id)) : [me]
+
+/**
+ * Rascunho de uma tarefa nova (modo criação da janela): campos vazios, prioridade P3 e a coluna clicada
+ * (`colunaId`) ou a de entrada. `responsaveis` e as datas são os padrões da tela que abriu.
+ */
+export function rascunhoNovo({ projetoId, organiza, membros, me, colunas, responsaveis = [], colunaId, inicio = '', fim = '' }) {
+  return {
+    projetoId,
+    titulo: '',
+    descricao: '',
+    prioridade: 'P3',
+    dificuldade: '',
+    inicio,
+    fim,
+    responsaveis: responsaveisNoProjeto(responsaveis, { organiza, membros, me }),
+    checklist: [],
+    coluna: (colunas || []).find(c => c.id === colunaId) || colunaDeEntrada(colunas),
+  }
+}
+
+/**
+ * Troca o projeto do rascunho de criação: refaz os responsáveis pela regra do novo projeto,
+ * tira dos itens quem deixou de ser responsável e volta para a coluna de entrada do novo quadro.
+ */
+export function noProjeto(rascunho, { projetoId, organiza, membros, me, colunas }) {
+  const responsaveis = responsaveisNoProjeto(rascunho.responsaveis, { organiza, membros, me })
+  return {
+    ...rascunho,
+    projetoId,
+    responsaveis,
+    checklist: (rascunho.checklist || []).map(i =>
+      i.responsavel && !responsaveis.includes(i.responsavel) ? { ...i, responsavel: undefined } : i,
+    ),
+    coluna: colunaDeEntrada(colunas),
+  }
+}

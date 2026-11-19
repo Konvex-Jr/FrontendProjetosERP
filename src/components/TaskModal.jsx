@@ -5,13 +5,16 @@ import Multi from './Multi'
 import { Prog } from './Ui'
 import SeloEtapa from './SeloEtapa'
 import Avatar from './Avatar'
+import ZonaEnvio from './ZonaEnvio'
 import { ST, chip, fm } from '../lib/utils'
 import { tarefas } from '../services/tarefas'
 import { configuracoes } from '../services/pessoas'
 import { ocupacao } from '../services/ocupacao'
 import { cargaPorPessoa, comCarga, opcoesDificuldade, segundaDaSemana } from '../lib/ocupacao'
 import alerts from '../lib/alerts'
-import { conclusaoDoStatus, mudouRascunho } from '../lib/rascunhoTarefa'
+import { conclusaoDoStatus, mudouRascunho, noProjeto } from '../lib/rascunhoTarefa'
+import { colunaDeEntrada } from '../lib/colunas'
+import { conferirArquivo, resumoFalhas, tamanhoLegivel } from '../services/anexos'
 
 const L = ({ l, children }) => (
   <label className="form-label w-100 mb-3">
@@ -161,22 +164,54 @@ const comFeito = (lista, id, feito) => (lista || []).map(i => (i.id === id ? { .
  * `mover(t, codigoColuna)` grava a etapa na hora para quem só conclui/reabre.
  * `T` = tarefas carregadas na tela (para as dependências); `p` = projeto no formato do contexto.
  * `recarregar` atualiza a tela por trás (anexos e marcação do checklist).
+ *
+ * Modo criação (`modo="criar"`, sessão 24b): `t` é o rascunho inicial (rascunhoNovo, sem `id`). Tudo fica na tela
+ * até "Criar tarefa", que chama `criar(rascunho, arquivos)` (se devolver false, a janela continua aberta).
+ * Os anexos escolhidos ficam numa lista com remover. Sem comentários, dependência, "Excluir" e "Concluída em".
+ * Em Tarefas, `projetos` = grupos do select ({ rotulo, opcoes: [[codigo, nome]] }) e `projetoDe(codigo)` devolve
+ * `{ p, papel, colunas }` do projeto escolhido; no Projeto valem `p`, `papel` e `colunas` fixos.
  */
-export default function TaskModal({ D, salvar, t, p, T, close, del, tog, papel, recarregar, colunas, mover }) {
+export default function TaskModal({
+  D,
+  salvar,
+  t,
+  p: projetoFixo,
+  T,
+  close,
+  del,
+  tog,
+  papel: papelFixo,
+  recarregar,
+  colunas: colunasFixas,
+  mover,
+  me,
+  modo = 'editar',
+  criar,
+  projetos,
+  projetoDe,
+}) {
+  const criando = modo === 'criar'
   const [inicial, setOriginal] = useState(() => ({ ...t })),
     [rascunho, setDraft] = useState(() => ({ ...t })),
     [nv, setNv] = useState(''),
     [marcando, setMarcando] = useState({}),
-    [editando, setEditando] = useState(null)
+    [editando, setEditando] = useState(null),
+    [arquivos, setArquivos] = useState([]),
+    [salvando, setSalvando] = useState(false)
+  // Na criação em Tarefas, equipe, papel e etapas são os do projeto escolhido na janela.
+  const { p, papel, colunas } =
+    criando && projetoDe ? projetoDe(rascunho.projetoId) : { p: projetoFixo, papel: papelFixo, colunas: colunasFixas }
   const etapas = colunas?.length ? colunas : null
   // Coluna apagada enquanto a janela estava aberta: a recarga traz as colunas novas e o rascunho volta à etapa da tarefa.
   const colunaSumiu = etapas && rascunho.coluna && !etapas.some(c => c.id === rascunho.coluna.id)
+  const colunaDeVolta = criando ? colunaDeEntrada(etapas) : t.coluna
   // O original acompanha (senão a troca de coluna contaria como alteração e o "Salvar data" viraria PUT).
-  const draft = colunaSumiu ? { ...rascunho, coluna: t.coluna } : rascunho
-  const original = colunaSumiu ? { ...inicial, coluna: t.coluna } : inicial
-  const podeEditar = papel.podeEditar(t),
-    podeStatus = papel.podeStatus(t),
-    podeMarcar = papel.podeMarcar(t)
+  const draft = colunaSumiu ? { ...rascunho, coluna: colunaDeVolta } : rascunho
+  const original = colunaSumiu ? { ...inicial, coluna: colunaDeVolta } : inicial
+  // Na criação, quem abriu a janela preenche tudo e marca os itens no rascunho (a API aplica a regra dos responsáveis).
+  const podeEditar = criando || papel.podeEditar(t),
+    podeStatus = criando || papel.podeStatus(t),
+    podeMarcar = criando || papel.podeMarcar(t)
   // Horas por dificuldade e % da semana do prazo; se falhar, a tela segue sem o complemento.
   const [horas, setHoras] = useState(null),
     [carga, setCarga] = useState({})
@@ -218,13 +253,14 @@ export default function TaskModal({ D, salvar, t, p, T, close, del, tog, papel, 
       </select>
     </L>
   )
-  const mudou = mudouRascunho(original, draft)
+  // Na criação, qualquer campo preenchido ou anexo escolhido conta como alteração.
+  const mudou = mudouRascunho(original, draft, criando ? arquivos : [])
 
   // Fechar (X, Esc, clique fora, Cancelar/Fechar): com alteração não salva, pede confirmação antes.
   // `fechando` evita uma segunda pergunta (ex.: Esc de novo com a confirmação aberta).
   const fechando = useRef(false)
   const fechar = async () => {
-    if (fechando.current) return
+    if (fechando.current || salvando) return
     if (!mudou) return close()
     fechando.current = true
     try {
@@ -245,6 +281,15 @@ export default function TaskModal({ D, salvar, t, p, T, close, del, tog, papel, 
   }, [])
 
   const save = async () => {
+    if (criando) {
+      setSalvando(true)
+      try {
+        if ((await criar({ ...draft, colunaId: draft.coluna?.id }, arquivos)) !== false) close()
+      } finally {
+        setSalvando(false)
+      }
+      return
+    }
     if (!mudou) return close()
     if ((await salvar(original, draft)) !== false) close()
   }
@@ -270,8 +315,8 @@ export default function TaskModal({ D, salvar, t, p, T, close, del, tog, papel, 
     }
     return o
   }
-  // Dependência só entre tarefas do mesmo projeto (o painel global mistura projetos).
-  const doProjeto = T.filter(c => c.projetoId == t.projetoId)
+  // Dependência só entre tarefas do mesmo projeto (o painel global mistura projetos); a tarefa nova ainda não tem.
+  const doProjeto = criando ? [] : T.filter(c => c.projetoId == t.projetoId)
   const opts = doProjeto.filter(c => c.id != t.id && !chain(c.id).includes(t.id)),
     deps = doProjeto.filter(x => x.dependeDe == t.id)
   // Responsáveis: equipe atual do projeto.
@@ -280,6 +325,25 @@ export default function TaskModal({ D, salvar, t, p, T, close, del, tog, papel, 
     carga,
   )
   const origem = 'em ' + (p?.nome || t.projetoNome || 'projeto')
+  // Criação em Tarefas: trocar o projeto refaz responsáveis e etapa pela regra do novo projeto.
+  const trocarProjeto = codigo => {
+    const novo = projetoDe(codigo)
+    setDraft(current =>
+      noProjeto(current, {
+        projetoId: codigo,
+        organiza: novo.papel.organiza,
+        membros: novo.p?.membros,
+        me,
+        colunas: novo.colunas,
+      }),
+    )
+  }
+  // Anexos da criação: ficam na tela até criar; o que não passa na conferência (tipo ou tamanho) nem entra na lista.
+  const escolherArquivos = lista => {
+    const ruins = lista.map(a => ({ nome: a.name, erro: conferirArquivo(a) })).filter(f => f.erro)
+    if (ruins.length) alerts.error('Alguns arquivos não foram aceitos', resumoFalhas(ruins))
+    setArquivos(atual => [...atual, ...lista.filter(a => !conferirArquivo(a))])
+  }
 
   // Checklist. Responsável do item: um dos responsáveis da tarefa no rascunho (quem saiu deles aparece como "Ninguém").
   const pessoa = id => D.u.find(u => u.id == id)
@@ -345,7 +409,7 @@ export default function TaskModal({ D, salvar, t, p, T, close, del, tog, papel, 
         <div
           className="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg"
           role="dialog"
-          aria-label="Detalhes da tarefa"
+          aria-label={criando ? 'Nova tarefa' : 'Detalhes da tarefa'}
           onClick={e => e.stopPropagation()}
         >
           <div className="modal-content">
@@ -358,6 +422,8 @@ export default function TaskModal({ D, salvar, t, p, T, close, del, tog, papel, 
                     rows={1}
                     className="tt0 form-control"
                     aria-label="Título da tarefa"
+                    placeholder={criando ? 'Título da tarefa' : undefined}
+                    autoFocus={criando}
                     value={draft.titulo}
                     onChange={e => {
                       patch({ titulo: e.target.value.replace(/\n/g, ' ') })
@@ -371,7 +437,7 @@ export default function TaskModal({ D, salvar, t, p, T, close, del, tog, papel, 
                 </button>
               </div>
               <small>
-                {origem}
+                {criando ? (projetos ? 'Nova tarefa' : 'Nova tarefa ' + origem) : origem}
                 {t.criadaPor ? ` · criada por ${t.criadaPor}` : ''}
                 {t.status == 'concluida' && t.conclusao
                   ? ` · concluída em ${fm(t.conclusao)}${t.concluidaPor ? ' por ' + t.concluidaPor : ''}`
@@ -498,6 +564,22 @@ export default function TaskModal({ D, salvar, t, p, T, close, del, tog, papel, 
                   )}
                 </div>
                 <div className="col-md-4">
+                  {criando && projetos && (
+                    <L l="Projeto">
+                      <select className="form-select mt-1" value={draft.projetoId || ''} onChange={e => trocarProjeto(e.target.value)}>
+                        {projetos.map(g => (
+                          <optgroup key={g.rotulo} label={g.rotulo}>
+                            {g.opcoes.map(([v, l]) => (
+                              <option key={v} value={v}>
+                                {l}
+                              </option>
+                            ))}
+                          </optgroup>
+                        ))}
+                      </select>
+                      <small className="d-block mt-1">Você cria tarefas nos projetos de que participa.</small>
+                    </L>
+                  )}
                   {etapas ? (
                     podeEditar && podeStatus ? (
                       campoEtapa(draft.coluna?.id, id => patch({ coluna: etapas.find(c => c.id === id) }))
@@ -510,7 +592,7 @@ export default function TaskModal({ D, salvar, t, p, T, close, del, tog, papel, 
                         <SeloEtapa coluna={t.coluna} />
                       </div>
                     )
-                  ) : (
+                  ) : criando ? null : (
                     <L l="Situação">
                       <select
                         className="form-select mt-1"
@@ -576,21 +658,24 @@ export default function TaskModal({ D, salvar, t, p, T, close, del, tog, papel, 
                     <fieldset className="mb-3" disabled={!papel.organiza}>
                       <div className="form-label">Responsáveis</div>
                       <Multi opts={gente} value={draft.responsaveis || []} onChange={mudarResponsaveis} />
+                      {criando && <small className="d-block mt-1">A % ao lado do nome é a ocupação desta semana.</small>}
                     </fieldset>
-                    <L l="Depende de">
-                      <select
-                        className="form-select mt-1"
-                        value={draft.dependeDe || ''}
-                        onChange={e => patch({ dependeDe: e.target.value || undefined })}
-                      >
-                        <option value="">Nenhuma</option>
-                        {opts.map(c => (
-                          <option key={c.id} value={c.id}>
-                            {c.titulo}
-                          </option>
-                        ))}
-                      </select>
-                    </L>
+                    {!criando && (
+                      <L l="Depende de">
+                        <select
+                          className="form-select mt-1"
+                          value={draft.dependeDe || ''}
+                          onChange={e => patch({ dependeDe: e.target.value || undefined })}
+                        >
+                          <option value="">Nenhuma</option>
+                          {opts.map(c => (
+                            <option key={c.id} value={c.id}>
+                              {c.titulo}
+                            </option>
+                          ))}
+                        </select>
+                      </L>
+                    )}
                   </fieldset>
                   {deps.length > 0 && (
                     <div>
@@ -605,8 +690,50 @@ export default function TaskModal({ D, salvar, t, p, T, close, del, tog, papel, 
                 </div>
               </div>
               {t.id && <AnexosTarefa t={t} papel={papel} aoMudar={recarregar} />}
-              <Comentarios t={t} papel={papel} />
-              {podeEditar ? (
+              {criando && (
+                <div className="mt-4">
+                  <h4 className="h6 fw-bold">
+                    <Ic k="clip" />
+                    Anexos{arquivos.length > 0 && <span className={chip()}>{arquivos.length}</span>}
+                  </h4>
+                  {arquivos.map((a, i) => (
+                    <div className="d-flex align-items-center justify-content-between gap-2 py-1 border-bottom" key={i + a.name}>
+                      <span style={{ minWidth: 0, overflowWrap: 'anywhere' }}>
+                        {a.name} <small>· {tamanhoLegivel(a.size)}</small>
+                      </span>
+                      <button
+                        className="dots"
+                        aria-label={'Remover ' + a.name}
+                        title="Remover"
+                        disabled={salvando}
+                        onClick={() => setArquivos(l => l.filter((_, j) => j !== i))}
+                      >
+                        <Ic k="x" />
+                      </button>
+                    </div>
+                  ))}
+                  <div className="mt-2">
+                    <ZonaEnvio aoEscolher={escolherArquivos} ocupado={salvando ? { atual: 1, total: 1 } : undefined} />
+                  </div>
+                  <small className="d-block mt-1">Os arquivos sobem quando a tarefa for criada.</small>
+                </div>
+              )}
+              {!criando && <Comentarios t={t} papel={papel} />}
+              {criando ? (
+                <div className="d-flex flex-wrap justify-content-end gap-2 mt-4">
+                  <button className="btn btn-g" disabled={salvando} onClick={fechar}>
+                    Cancelar
+                  </button>
+                  <button
+                    className="btn btn-primary"
+                    disabled={salvando || !draft.titulo?.trim() || !draft.inicio || !draft.fim || !draft.projetoId}
+                    title={!draft.titulo?.trim() || !draft.inicio || !draft.fim ? 'Preencha título, início e fim' : undefined}
+                    onClick={save}
+                  >
+                    {salvando ? 'Criando…' : 'Criar tarefa'}
+                  </button>
+                </div>
+              ) : podeEditar ? (
                 <div className="d-flex flex-wrap justify-content-end gap-2 mt-4">
                   <button className="btn btn-g" onClick={remove}>
                     <Ic k="trash" />

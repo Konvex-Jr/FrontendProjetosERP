@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react'
 import { useApp } from '../context/AppContext'
-import { DAY, PC, ST, chip, d, fm, hj, iso, nm } from '../lib/utils'
+import { DAY, PC, ST, chip, fm, hj, iso, nm } from '../lib/utils'
 import { consumir } from '../lib/atalho'
-import { fimDaSemana } from '../lib/indicadores'
+import { PRAZOS, noPrazo } from '../lib/prazo'
 import Ic from '../components/Icon'
 import Table from '../components/Table'
 import TaskModal from '../components/TaskModal'
@@ -16,28 +16,13 @@ import { adaptColuna } from '../lib/colunas'
 import SeloEtapa from '../components/SeloEtapa'
 import { STATUS_ATIVOS, projetos } from '../services/projetos'
 import { gruposDeProjetos } from '../lib/projetosInternos'
-import { apoioTarefa } from '../services/ocupacao'
-import { comCarga, opcoesDificuldade } from '../lib/ocupacao'
-import { acoesTarefa, avisarOcupacao, origemTarefa, papelNaTarefa, quadroDesatualizado, tarefas } from '../services/tarefas'
+import { rascunhoNovo } from '../lib/rascunhoTarefa'
+import { acoesTarefa, avisarOcupacao, criarDaJanela, origemTarefa, papelNaTarefa, quadroDesatualizado, tarefas } from '../services/tarefas'
 
 const VISOES = [
   ['kanban', 'Kanban'],
   ['lista', 'Lista'],
 ]
-const PRAZOS = [
-  ['', 'Prazo: todos'],
-  ['atrasadas', 'Atrasadas'],
-  ['semana', 'Vencem esta semana'],
-]
-
-/** Filtro de prazo (só na tela): atrasadas = abertas com prazo antes de hoje; semana = abertas que vencem de hoje até domingo. */
-export function noPrazo(t, prazo, hoje) {
-  if (!prazo) return true
-  if (t.status == 'concluida') return false
-  const fim = d(t.fim)
-  if (prazo == 'atrasadas') return fim < hoje
-  return fim >= hoje && fim <= fimDaSemana(hoje)
-}
 const equipeAtual = projeto => (projeto?.participacoes || []).filter(x => !x.dataSaida).map(x => x.usuario.codigo)
 
 /** Filtro de "origem" do painel → parâmetros do GET /tarefas. */
@@ -68,11 +53,12 @@ export function dadosDaTela({ me }, filtro = { pessoa: me, origem: '', status: '
  * Padrão "Minhas tarefas"; a gestão filtra por pessoa, projeto e situação.
  */
 export default function Tarefas() {
-  const { D, form, me, pode, refresh } = useApp()
+  const { D, me, pode, refresh } = useApp()
   const gestao = pode('tarefas.gerirTodas')
   const [filtro, setFiltro] = useState(() => ({ pessoa: me, origem: '', status: '', prazo: '', ...consumir('tarefas') }))
   const [visao, setVisao] = useState('kanban'),
-    [tk, setTk] = useState(null)
+    [tk, setTk] = useState(null),
+    [criando, setCriando] = useState(null)
   const set = (k, v) => setFiltro(f => ({ ...f, [k]: v }))
 
   const tela = dadosDaTela({ me }, filtro)
@@ -103,55 +89,36 @@ export default function Tarefas() {
   // Onde a pessoa pode criar: gestão em qualquer projeto ativo; os demais onde participam (equipe atual ou liderança da área).
   const ativos = (dados?.projetos || []).filter(p => STATUS_ATIVOS.includes(p.status))
   const meus = gestao ? ativos : ativos.filter(p => papelNaTarefa({ me, gestao, projeto: p }).participa)
-  const gruposCriar = gruposDeProjetos(meus).map(g => ({ rotulo: g.rotulo, opcoes: g.projetos.map(p => ['proj:' + p.codigo, p.nome]) }))
-  const tipos = gruposCriar.flatMap(g => g.opcoes)
-  const organizaEm = tipo => {
-    if (!tipo) return false
-    const p = porCodigo.get(tipo.slice(5))
-    return gestao || p?.lider?.codigo === me || (p?.lideresDaArea || []).includes(me)
+  const gruposCriar = gruposDeProjetos(meus).map(g => ({ rotulo: g.rotulo, opcoes: g.projetos.map(p => [p.codigo, p.nome]) }))
+  const codigosCriar = gruposCriar.flatMap(g => g.opcoes.map(([codigo]) => codigo))
+  // Equipe, papel e etapas do projeto escolhido na janela de criação.
+  const projetoDe = codigo => {
+    const projeto = porCodigo.get(codigo)
+    return {
+      p: projeto ? { id: projeto.codigo, nome: projeto.nome, membros: equipeAtual(projeto) } : null,
+      papel: papelNaTarefa({ me, gestao, projeto }),
+      colunas: projeto?.colunas?.map(adaptColuna),
+    }
   }
-  const genteDe = tipo => (tipo?.startsWith('proj:') ? D.u.filter(u => equipeAtual(porCodigo.get(tipo.slice(5))).includes(u.id)) : [])
 
+  // Nova tarefa: projeto do filtro (se a pessoa cria nele) ou o primeiro; `i` = semana clicada no quadro (padrão das datas).
   const { m } = semanas(D)
-  const nova = async i => {
-    const { horas, carga } = await apoioTarefa(D.c.hoje)
-    const inicial = tipos.find(([k]) => k === filtro.origem)?.[0] || tipos[0]?.[0]
-    return form(
-      'Nova tarefa',
-      [
-        {
-          k: 'tipo',
-          l: 'Projeto',
-          grupos: gruposCriar,
-          h: 'Você cria tarefas nos projetos de que participa.',
-        },
-        { k: 'titulo', l: 'Título' },
-        { k: 'prioridade', l: 'Prioridade', o: ['P1', 'P2', 'P3', 'P4'].map(x => [x, x]) },
-        {
-          k: 'responsaveis',
-          l: 'Responsáveis',
-          c: v => comCarga(genteDe(v.tipo), carga),
-          s: v => organizaEm(v.tipo),
-          h: 'A % ao lado do nome é a ocupação desta semana.',
-        },
-        { k: 'dificuldade', l: 'Dificuldade', o: opcoesDificuldade(horas), opt: true },
-        { k: 'inicio', l: 'Início', t: 'date' },
-        { k: 'fim', l: 'Fim', t: 'date' },
-      ],
-      {
-        tipo: inicial,
-        prioridade: 'P3',
+  const nova = i => {
+    const codigo = codigosCriar.find(c => 'proj:' + c === filtro.origem) || codigosCriar[0]
+    const { p, papel, colunas } = projetoDe(codigo)
+    setCriando(
+      rascunhoNovo({
+        projetoId: codigo,
+        organiza: papel.organiza,
+        membros: p?.membros,
+        me,
+        colunas,
         responsaveis: filtro.pessoa && filtro.pessoa !== me && gestao ? [filtro.pessoa] : [],
         ...(typeof i == 'number' && i < 3 ? { inicio: D.c.hoje, fim: iso(m + (7 * i + 4) * DAY) } : {}),
-      },
-      o => {
-        const projeto = o.tipo?.startsWith('proj:') ? o.tipo.slice(5) : null
-        const dados = { ...o, responsaveis: organizaEm(o.tipo) ? o.responsaveis : [me] }
-        return salvarTarefa(() => tarefas.criar(projeto, dados), 'Tarefa criada')
-      },
+      }),
     )
   }
-  const podeCriar = tipos.length > 0
+  const podeCriar = codigosCriar.length > 0
 
   const pessoas = [
     ['', 'Pessoa: todas'],
@@ -258,6 +225,27 @@ export default function Tarefas() {
         <div className="card card-body">
           <Table cols={colunas} rows={T} vazio="Nenhuma tarefa para mostrar." />
         </div>
+      )}
+      {criando && (
+        <TaskModal
+          D={D}
+          modo="criar"
+          me={me}
+          t={criando}
+          T={T}
+          projetos={gruposCriar}
+          projetoDe={projetoDe}
+          criar={(rascunho, arquivos) =>
+            criarDaJanela(rascunho, arquivos, {
+              aoCriar: async () => {
+                await recarregar()
+                refresh().catch(() => {})
+              },
+              abrir: setTk,
+            })
+          }
+          close={() => setCriando(null)}
+        />
       )}
       {aberta && (
         <TaskModal
