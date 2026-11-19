@@ -52,3 +52,11 @@ test('gruposDeProjetos: clientes, depois áreas em ordem alfabética, geral prim
     ['Inovação'],
   )
 })
+
+test('gruposDeProjetos agrupa pelo id da área, não pelo nome', () => {
+  const g = gruposDeProjetos([
+    { id: 1, nome: 'A', tipo: 'interno', ...area(1, 'Mesma') },
+    { id: 2, nome: 'B', tipo: 'interno', ...area(2, 'Mesma') },
+  ])
+  assert.equal(g.length, 2)
+})

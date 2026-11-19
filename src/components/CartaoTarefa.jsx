@@ -11,7 +11,7 @@ import { Av } from './Ui'
 /**
  * Cartão de tarefa dos quadros (por semana e por etapa).
  * `papel` diz o que a pessoa pode nesta tarefa; `acoes` vem de `acoesTarefa`.
- * `origem`: mostra o projeto ou a categoria. `etapa`: mostra o selo da etapa (só tarefa de projeto). `colunas`: liga o item "Mover para…" (quadro por etapa).
+ * `origem`: mostra o projeto. `etapa`: mostra o selo da etapa (só tarefa de projeto). `colunas`: liga o item "Mover para…" (quadro por etapa).
  * `aoArrastar(t)` e `aoSoltar()` avisam o quadro do início e do fim do arrasto.
  */
 export default function CartaoTarefa({ D, t, papel, acoes, abrir, origem = false, etapa = false, colunas, aoArrastar, aoSoltar }) {
@@ -34,14 +34,11 @@ export default function CartaoTarefa({ D, t, papel, acoes, abrir, origem = false
     >
       <span className={chip(PC[t.prioridade])}>{t.prioridade}</span>
       {origem && (
-        <span
-          className={chip(t.avulsa ? 'p3 ms-1 kb-or' : 'ms-1 kb-or')}
-          title={(t.avulsa ? 'Tarefa avulsa: ' : 'Projeto: ') + origemTarefa(t)}
-        >
+        <span className={chip('ms-1 kb-or')} title={'Projeto: ' + origemTarefa(t)}>
           {origemTarefa(t)}
         </span>
       )}
-      {etapa && !t.avulsa && (
+      {etapa && (
         <span className="ms-1">
           <SeloEtapa coluna={t.coluna} />
         </span>

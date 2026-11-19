@@ -19,7 +19,7 @@ export default function Estrategia() {
     ativos = D.u.filter(u => u.ativo),
     [tab, setTab] = useState('late')
   const late = t => t.status != 'concluida' && d(t.fim) < h,
-    pn = id => D.p.find(p => p.id == id)?.nome || 'Tarefa avulsa'
+    pn = id => D.p.find(p => p.id == id)?.nome || 'Projeto'
   const G = { late: T.filter(late), and: T.filter(t => t.status != 'concluida' && !late(t)), done: T.filter(t => t.status == 'concluida') }
   // Cartões somam as contagens dos resumos de sigiloso; a lista e o burndown ficam só com as tarefas vistas.
   const N = contagemTarefas(D, h)
@@ -103,7 +103,7 @@ export default function Estrategia() {
             <div className="lst">
               {G[tab].length ? (
                 G[tab].map(t => (
-                  <div className="ag" key={t.id} onClick={() => (t.avulsa ? go('tarefas') : go('projeto', t.projetoId))}>
+                  <div className="ag" key={t.id} onClick={() => go('projeto', t.projetoId)}>
                     <span className={chip(PC[t.prioridade])}>{t.prioridade}</span>
                     <div>
                       <b>{t.titulo}</b>

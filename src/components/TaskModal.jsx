@@ -144,10 +144,10 @@ function AnexosTarefa({ t, papel, aoMudar }) {
 }
 
 /**
- * Detalhes de uma tarefa (de projeto ou avulsa). Edita uma cópia (`draft`) e só envia ao salvar:
+ * Detalhes de uma tarefa (sempre de um projeto). Edita uma cópia (`draft`) e só envia ao salvar:
  * `salvar(antes, depois)` escolhe PATCH (só status) ou PUT (ver services/tarefas).
  * `papel` vem de papelNaTarefa/papelNasTarefas: sem `organiza`, os campos ficam travados.
- * `colunas` = etapas do projeto da tarefa (sem elas, ou em tarefa avulsa, vale a Situação);
+ * `colunas` = etapas do projeto da tarefa (sem elas vale a Situação);
  * `mover(t, codigoColuna)` grava a etapa na hora para quem só conclui/reabre.
  * `T` = tarefas carregadas na tela (para as dependências); `p` = projeto no formato do contexto.
  */
@@ -160,7 +160,7 @@ export default function TaskModal({ D, salvar, t, p, T, close, del, tog, papel, 
     setCl = f => patch({ checklist: f(cl) })
   // A data de conclusão aqui é só para a tela; ela não vai no corpo, a API grava a data real.
   const st = value => patch({ status: value, conclusao: value == 'concluida' ? D.c.hoje : undefined })
-  const etapas = !t.avulsa && colunas?.length ? colunas : null
+  const etapas = colunas?.length ? colunas : null
   // Coluna apagada enquanto a janela estava aberta: a recarga traz as colunas novas e o rascunho volta à etapa da tarefa.
   useEffect(() => {
     if (etapas && draft.coluna && !etapas.some(c => c.id === draft.coluna.id)) patch({ coluna: t.coluna })
@@ -201,14 +201,12 @@ export default function TaskModal({ D, salvar, t, p, T, close, del, tog, papel, 
     }
     return o
   }
-  // Dependência só entre tarefas do mesmo projeto (o painel global mistura projetos e avulsas).
-  const doProjeto = t.avulsa ? [] : T.filter(c => c.projetoId == t.projetoId)
+  // Dependência só entre tarefas do mesmo projeto (o painel global mistura projetos).
+  const doProjeto = T.filter(c => c.projetoId == t.projetoId)
   const opts = doProjeto.filter(c => c.id != t.id && !chain(c.id).includes(t.id)),
     deps = doProjeto.filter(x => x.dependeDe == t.id)
-  // Avulsa: qualquer pessoa ativa; de projeto: equipe atual.
-  const gente = t.avulsa
-    ? D.u.filter(u => u.ativo !== false || (t.responsaveis || []).includes(u.id))
-    : D.u.filter(u => (p?.membros || []).includes(u.id))
+  // Responsáveis: equipe atual do projeto.
+  const gente = D.u.filter(u => (p?.membros || []).includes(u.id))
   const origem = 'em ' + (p?.nome || t.projetoNome || 'projeto')
   const addI = () => {
     const v = nv.trim()
@@ -359,22 +357,20 @@ export default function TaskModal({ D, salvar, t, p, T, close, del, tog, papel, 
                       <div className="form-label">Responsáveis</div>
                       <Multi opts={gente} value={draft.responsaveis || []} onChange={z => patch({ responsaveis: z })} />
                     </div>
-                    {!t.avulsa && (
-                      <L l="Depende de">
-                        <select
-                          className="form-select mt-1"
-                          value={draft.dependeDe || ''}
-                          onChange={e => patch({ dependeDe: e.target.value || undefined })}
-                        >
-                          <option value="">Nenhuma</option>
-                          {opts.map(c => (
-                            <option key={c.id} value={c.id}>
-                              {c.titulo}
-                            </option>
-                          ))}
-                        </select>
-                      </L>
-                    )}
+                    <L l="Depende de">
+                      <select
+                        className="form-select mt-1"
+                        value={draft.dependeDe || ''}
+                        onChange={e => patch({ dependeDe: e.target.value || undefined })}
+                      >
+                        <option value="">Nenhuma</option>
+                        {opts.map(c => (
+                          <option key={c.id} value={c.id}>
+                            {c.titulo}
+                          </option>
+                        ))}
+                      </select>
+                    </L>
                     {deps.length > 0 && (
                       <div>
                         <div className="form-label">Tarefas que dependem desta</div>

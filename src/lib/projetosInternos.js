@@ -12,12 +12,14 @@ export function gruposDeProjetos(projetos) {
   const clientes = (projetos || []).filter(p => p.tipo !== 'interno').sort(porNome)
   const porArea = new Map()
   for (const p of (projetos || []).filter(p => p.tipo === 'interno')) {
-    const rotulo = p.areaNome || 'Sem área'
-    porArea.set(rotulo, [...(porArea.get(rotulo) || []), p])
+    const chave = p.areaId ?? ''
+    const g = porArea.get(chave) || { rotulo: p.areaNome || 'Sem área', lista: [] }
+    g.lista.push(p)
+    porArea.set(chave, g)
   }
-  const areas = [...porArea.entries()]
-    .sort((a, b) => a[0].localeCompare(b[0], 'pt-BR'))
-    .map(([rotulo, lista]) => ({
+  const areas = [...porArea.values()]
+    .sort((a, b) => a.rotulo.localeCompare(b.rotulo, 'pt-BR'))
+    .map(({ rotulo, lista }) => ({
       rotulo,
       projetos: lista.sort((a, b) => Number(Boolean(b.geralDaArea)) - Number(Boolean(a.geralDaArea)) || porNome(a, b)),
     }))

@@ -43,6 +43,20 @@ export default function FormModal({ t, fs, init, save, close, largo }) {
       ...(x.min ? { min: x.min } : {}),
       ...(x.max ? { max: x.max } : {}),
     }
+    if (x.grupos)
+      return (
+        <select className="form-select mt-1" value={v[x.k] ?? ''} onChange={e => set(x.k, e.target.value)}>
+          {x.grupos.map(g => (
+            <optgroup key={g.rotulo} label={g.rotulo}>
+              {g.opcoes.map(o => (
+                <option key={o[0]} value={o[0]}>
+                  {o[1]}
+                </option>
+              ))}
+            </optgroup>
+          ))}
+        </select>
+      )
     if (x.o)
       return (
         <select className="form-select mt-1" disabled={Boolean(x.disabled)} value={v[x.k] ?? ''} onChange={e => set(x.k, e.target.value)}>

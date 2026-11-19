@@ -15,6 +15,7 @@ import { adaptTask } from '../lib/apiMappers'
 import { adaptColuna } from '../lib/colunas'
 import SeloEtapa from '../components/SeloEtapa'
 import { STATUS_ATIVOS, projetos } from '../services/projetos'
+import { gruposDeProjetos } from '../lib/projetosInternos'
 import { acoesTarefa, origemTarefa, papelNaTarefa, quadroDesatualizado, tarefas } from '../services/tarefas'
 
 const VISOES = [
@@ -61,8 +62,8 @@ export function dadosDaTela({ me }, filtro = { pessoa: me, origem: '', status: '
 }
 
 /**
- * Painel global de Tarefas (sessão 8c): tarefas de projetos e avulsas num lugar só.
- * Padrão "Minhas tarefas"; a gestão filtra por pessoa, origem (projeto ou categoria) e situação.
+ * Painel global de Tarefas (sessão 8c): tarefas de todos os projetos num lugar só.
+ * Padrão "Minhas tarefas"; a gestão filtra por pessoa, projeto e situação.
  */
 export default function Tarefas() {
   const { D, form, me, pode, refresh } = useApp()
@@ -96,19 +97,17 @@ export default function Tarefas() {
   }
   const acoes = acoesTarefa(salvarTarefa)
 
-  // Onde a pessoa pode criar: gestão em qualquer categoria ou projeto ativo; membro só nos projetos da sua equipe atual.
+  // Onde a pessoa pode criar: gestão em qualquer projeto ativo; os demais onde participam (equipe atual ou liderança da área).
   const ativos = (dados?.projetos || []).filter(p => STATUS_ATIVOS.includes(p.status))
-  const meus = gestao ? ativos : ativos.filter(p => equipeAtual(p).includes(me))
-  const tipos = [...meus.map(p => ['proj:' + p.codigo, 'Projeto: ' + p.nome])]
+  const meus = gestao ? ativos : ativos.filter(p => papelNaTarefa({ me, gestao, projeto: p }).participa)
+  const gruposCriar = gruposDeProjetos(meus).map(g => ({ rotulo: g.rotulo, opcoes: g.projetos.map(p => ['proj:' + p.codigo, p.nome]) }))
+  const tipos = gruposCriar.flatMap(g => g.opcoes)
   const organizaEm = tipo => {
     if (!tipo) return false
     const p = porCodigo.get(tipo.slice(5))
     return gestao || p?.lider?.codigo === me || (p?.lideresDaArea || []).includes(me)
   }
-  const genteDe = tipo =>
-    tipo?.startsWith('proj:')
-      ? D.u.filter(u => equipeAtual(porCodigo.get(tipo.slice(5))).includes(u.id))
-      : D.u.filter(u => u.ativo !== false)
+  const genteDe = tipo => (tipo?.startsWith('proj:') ? D.u.filter(u => equipeAtual(porCodigo.get(tipo.slice(5))).includes(u.id)) : [])
 
   const { m } = semanas(D)
   const nova = i => {
@@ -118,8 +117,8 @@ export default function Tarefas() {
       [
         {
           k: 'tipo',
-          l: 'Tipo',
-          o: tipos,
+          l: 'Projeto',
+          grupos: gruposCriar,
           h: 'Você cria tarefas nos projetos de que participa.',
         },
         { k: 'titulo', l: 'Título' },
@@ -148,8 +147,11 @@ export default function Tarefas() {
     [me, 'Minhas tarefas'],
     ...D.u.filter(u => u.id !== me && u.ativo !== false).map(u => [u.id, u.nome]),
   ]
-  const origens = [['', 'Origem: todas'], ...(dados?.projetos || []).map(p => ['proj:' + p.codigo, 'Projeto: ' + p.nome])]
-  const sel = (rotulo, k, opcoes) => (
+  const gruposOrigem = gruposDeProjetos(dados?.projetos || []).map(g => ({
+    rotulo: g.rotulo,
+    opcoes: g.projetos.map(p => ['proj:' + p.codigo, p.nome]),
+  }))
+  const sel = (rotulo, k, opcoes, grupos) => (
     <select
       className="form-select w-auto"
       style={{ maxWidth: 260 }}
@@ -161,6 +163,15 @@ export default function Tarefas() {
         <option key={v} value={v}>
           {l}
         </option>
+      ))}
+      {(grupos || []).map(g => (
+        <optgroup key={g.rotulo} label={g.rotulo}>
+          {g.opcoes.map(([v, l]) => (
+            <option key={v} value={v}>
+              {l}
+            </option>
+          ))}
+        </optgroup>
       ))}
     </select>
   )
@@ -175,7 +186,7 @@ export default function Tarefas() {
         </button>
       ),
     },
-    { k: 'origem', l: 'Projeto / categoria', fl: 'Origem', get: origemTarefa, filter: true },
+    { k: 'origem', l: 'Projeto', fl: 'Projeto', get: origemTarefa, filter: true },
     { k: 'resp', l: 'Responsáveis', get: t => nm(D, t.responsaveis) },
     { k: 'fim', l: 'Prazo', render: t => fm(t.fim) },
     { k: 'prioridade', l: 'Prioridade', filter: true, render: t => <span className={chip(PC[t.prioridade])}>{t.prioridade}</span> },
@@ -214,7 +225,7 @@ export default function Tarefas() {
             onChange={v => set('pessoa', v)}
           />
         )}
-        {sel('Projeto ou categoria', 'origem', origens)}
+        {sel('Projeto', 'origem', [['', 'Projeto: todos']], gruposOrigem)}
         {sel('Situação', 'status', [['', 'Situação: todas'], ...Object.entries(ST)])}
         {sel('Prazo', 'prazo', PRAZOS)}
       </div>
