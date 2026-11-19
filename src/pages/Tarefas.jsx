@@ -251,7 +251,11 @@ export default function Tarefas() {
                 await recarregar()
                 refresh().catch(() => {})
               },
-              abrir: setTk,
+              // A tarefa criada pode estar fora dos filtros: limpa para a janela achá-la.
+              abrir: codigo => {
+                setFiltro(f => ({ ...f, pessoa: '', origem: '', status: '', prazo: '' }))
+                setTk(codigo)
+              },
             })
           }
           close={() => setCriando(null)}

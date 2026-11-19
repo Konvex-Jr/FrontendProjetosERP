@@ -216,7 +216,7 @@ export default function Projeto() {
     ) : (
       <div className="card gt">
         {T.map(t => {
-          const dep = T.find(x => x.id == t.dependeDe),
+          const dep = todas.find(x => x.id == t.dependeDe),
             x1 = dep && pc(+d(dep.fim) + DAY),
             x2 = dep && pc(+d(t.inicio))
           return (
