@@ -82,6 +82,7 @@ export function adaptTask(task) {
     id: task.codigo,
     projetoId: userCode(task.projeto) || undefined,
     projetoNome: task.projeto?.nome,
+    criadaPorId: userCode(task.criadaPor) || undefined,
     criadaPor: task.criadaPor ? task.criadaPor.nomeExibicao || task.criadaPor.nome : undefined,
     titulo: task.titulo,
     descricao: task.descricao || '',
@@ -100,6 +101,7 @@ export function adaptTask(task) {
       id: item.codigo ?? item.id,
       texto: item.texto,
       feito: Boolean(item.feito),
+      responsavel: userCode(item.responsavel) || undefined,
     })),
   }
 }

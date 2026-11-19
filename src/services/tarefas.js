@@ -37,6 +37,11 @@ export const corpoNovaTarefa = (codigoProjeto, t) => ({
   codigoProjeto,
   ...base(t),
   ...(t.colunaId ? { codigoColuna: t.colunaId } : {}),
+  checklist: (t.checklist || []).map(i => ({
+    texto: i.texto,
+    feito: Boolean(i.feito),
+    ...(i.responsavel ? { codigoResponsavel: i.responsavel } : {}),
+  })),
 })
 
 /**
@@ -50,7 +55,13 @@ export const corpoTarefa = (t, antes) => ({
   status: t.status,
   ...(t.coluna && t.coluna.id !== antes?.coluna?.id ? { codigoColuna: t.coluna.id } : {}),
   codigoDependencia: t.dependeDe || null,
-  checklist: (t.checklist || []).map(i => ({ codigo: i.id, texto: i.texto, feito: Boolean(i.feito) })),
+  checklist: (t.checklist || []).map(i => ({
+    codigo: i.id,
+    texto: i.texto,
+    feito: Boolean(i.feito),
+    codigoResponsavel: i.responsavel || null,
+  })),
+  ...(t.status === 'concluida' && t.conclusao ? { dataConclusao: dataApi(t.conclusao) } : {}),
 })
 
 /**
@@ -71,6 +82,18 @@ export function soMudouEtapa(antes, depois) {
   return antes.coluna?.id !== depois.coluna?.id && Boolean(depois.coluna) && semEtapa(antes) === semEtapa(depois)
 }
 
+/** Só a data de conclusão mudou (continua concluída)? Então basta o PATCH da conclusão. */
+export function soMudouConclusao(antes, depois) {
+  const semData = t => JSON.stringify({ ...t, conclusao: undefined })
+  return (
+    antes.status === 'concluida' &&
+    depois.status === 'concluida' &&
+    Boolean(depois.conclusao) &&
+    antes.conclusao !== depois.conclusao &&
+    semData(antes) === semData(depois)
+  )
+}
+
 export const tarefas = {
   listar: (filtro = {}) => {
     const qs = new URLSearchParams(Object.entries(filtro).filter(([, v]) => v)).toString()
@@ -80,35 +103,44 @@ export const tarefas = {
   editar: (t, antes) => send('PUT', `/tarefas/${t.id}`, corpoTarefa(t, antes)),
   alterarStatus: (codigo, status) => send('PATCH', `/tarefas/${codigo}/status`, { status }),
   mover: (codigo, codigoColuna) => send('PATCH', `/tarefas/${codigo}/coluna`, { codigoColuna }),
+  corrigirConclusao: (codigo, data) => send('PATCH', `/tarefas/${codigo}/conclusao`, { dataConclusao: dataApi(data) }),
+  marcarItem: (codigo, item, feito) => send('PATCH', `/tarefas/${codigo}/checklist/${item}`, { feito: Boolean(feito) }),
   excluir: codigo => send('DELETE', `/tarefas/${codigo}`),
   comentarios: codigo => get(`/tarefas/${codigo}/comentarios`),
   comentar: (codigo, texto) => send('POST', `/tarefas/${codigo}/comentarios`, { texto }),
   anexos: codigo => get(`/tarefas/${codigo}/anexos`),
   apagarComentario: (codigo, codigoComentario) => send('DELETE', `/tarefas/${codigo}/comentarios/${codigoComentario}`),
-  /** Salva usando PATCH quando só a etapa ou só o status mudou; senão PUT. */
+  /** Salva usando PATCH quando só a etapa, só o status ou só a data de conclusão mudou; senão PUT. */
   salvar: (antes, depois) =>
-    soMudouEtapa(antes, depois)
-      ? tarefas.mover(depois.id, depois.coluna.id)
-      : soMudouStatus(antes, depois)
-        ? tarefas.alterarStatus(depois.id, depois.status)
-        : tarefas.editar(depois, antes),
+    soMudouConclusao(antes, depois)
+      ? tarefas.corrigirConclusao(depois.id, depois.conclusao)
+      : soMudouEtapa(antes, depois)
+        ? tarefas.mover(depois.id, depois.coluna.id)
+        : soMudouStatus(antes, depois)
+          ? tarefas.alterarStatus(depois.id, depois.status)
+          : tarefas.editar(depois, antes),
 }
 
 /**
  * O que a pessoa pode fazer nas tarefas do projeto (mesmas regras da API, sessão 8b).
  * Gestão (tarefas.gerirTodas) e líder (ou líder da área, no projeto geral) organizam tudo; participante da equipe atual cria,
- * conclui/reabre só as suas e comenta; quem está fora só vê.
+ * conclui/reabre só as suas e comenta; quem está fora só vê. Quem criou a tarefa e segue na equipe também edita
+ * (`podeEditar`); `podeMarcar` vale para marcar item do checklist e corrigir a data de conclusão.
  */
 export function papelNasTarefas({ me, gestao, projeto }) {
   const membros = (projeto?.participacoes || []).filter(x => !x.dataSaida).map(x => x.usuario.codigo)
   const lider = Boolean(me) && (projeto?.lider?.codigo === me || (projeto?.lideresDaArea || []).includes(me))
   const organiza = Boolean(gestao) || lider
   const participa = organiza || membros.includes(me)
+  const podeStatus = t => organiza || (participa && (t.responsaveis || []).includes(me))
+  const podeEditar = t => organiza || (Boolean(me) && membros.includes(me) && t.criadaPorId === me)
   return {
     lider,
     organiza,
     participa,
-    podeStatus: t => organiza || (participa && (t.responsaveis || []).includes(me)),
+    podeStatus,
+    podeEditar,
+    podeMarcar: t => podeStatus(t) || podeEditar(t),
     podeApagarComentario: c => organiza || c.autor?.codigo === me,
   }
 }
