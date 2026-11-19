@@ -64,3 +64,12 @@ export function semanaAtual() {
   const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
   return segundaDaSemana(iso)
 }
+
+/** Opções do select de dificuldade: [valor, rótulo] com "Sem classificação" primeiro. `horas` pode faltar. */
+export const opcoesDificuldade = horas => [['', 'Sem classificação'], ...DIFICULDADES.map(([v]) => [v, rotuloDificuldade(v, horas?.[v])])]
+
+/** Pessoas com " · N%" no nome (percentual por código); quem não tem % fica igual. */
+export const comCarga = (pessoas, carga = {}) => pessoas.map(u => (carga[u.id] == null ? u : { ...u, nome: `${u.nome} · ${carga[u.id]}%` }))
+
+/** Lista da API de ocupação → { codigo: percentual arredondado }. */
+export const cargaPorPessoa = lista => Object.fromEntries(lista.map(o => [o.codigoUsuario, Math.round(o.percentual)]))

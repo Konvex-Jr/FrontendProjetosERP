@@ -13,6 +13,8 @@ import alerts from '../lib/alerts'
 import useCarregar from '../lib/useCarregar'
 import Esqueleto from '../components/Esqueleto'
 import { projetos, rotuloPrioridade } from '../services/projetos'
+import { apoioTarefa } from '../services/ocupacao'
+import { comCarga, opcoesDificuldade, segundaDaSemana } from '../lib/ocupacao'
 import { acoesTarefa, avisarOcupacao, papelNasTarefas, quadroDesatualizado, tarefas } from '../services/tarefas'
 import { ErroAcessoParcial, gravarProjeto } from '../lib/gravarProjeto'
 import { carregarProjeto } from '../lib/carregarProjeto'
@@ -133,13 +135,26 @@ export default function Projeto() {
   const T = dados.tarefas,
     h = hj(D)
 
-  const add = colunaId =>
-    form(
+  const add = async colunaId => {
+    const { horas, carga } = await apoioTarefa(segundaDaSemana(h))
+    return form(
       'Nova tarefa',
       [
         { k: 'titulo', l: 'Título' },
         { k: 'prioridade', l: 'Prioridade', o: ['P1', 'P2', 'P3', 'P4'].map(x => [x, x]) },
-        ...(papel.organiza ? [{ k: 'responsaveis', l: 'Responsáveis', c: D.u.filter(u => p.membros.includes(u.id)) }] : []),
+        ...(papel.organiza
+          ? [
+              {
+                k: 'responsaveis',
+                l: 'Responsáveis',
+                c: comCarga(
+                  D.u.filter(u => p.membros.includes(u.id)),
+                  carga,
+                ),
+              },
+            ]
+          : []),
+        { k: 'dificuldade', l: 'Dificuldade', o: opcoesDificuldade(horas), opt: true },
         { k: 'inicio', l: 'Início', t: 'date' },
         { k: 'fim', l: 'Fim', t: 'date' },
       ],
@@ -150,6 +165,7 @@ export default function Projeto() {
       },
       o => salvarTarefa(() => tarefas.criar(pid, o), 'Tarefa criada'),
     )
+  }
   // Toda alteração de tarefa vai direto para a API; depois recarrega a tela e o painel.
   const salvarTarefa = async (chamada, ok) => {
     try {

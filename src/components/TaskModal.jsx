@@ -8,7 +8,7 @@ import { ST, chip, fm } from '../lib/utils'
 import { tarefas } from '../services/tarefas'
 import { configuracoes } from '../services/pessoas'
 import { ocupacao } from '../services/ocupacao'
-import { DIFICULDADES, rotuloDificuldade, segundaDaSemana } from '../lib/ocupacao'
+import { cargaPorPessoa, comCarga, opcoesDificuldade, segundaDaSemana } from '../lib/ocupacao'
 import alerts from '../lib/alerts'
 
 const L = ({ l, children }) => (
@@ -175,7 +175,7 @@ export default function TaskModal({ D, salvar, t, p, T, close, del, tog, papel, 
     let vivo = true
     ocupacao
       .todas(semana)
-      .then(l => vivo && setCarga(Object.fromEntries(l.map(o => [o.codigoUsuario, Math.round(o.percentual)]))))
+      .then(l => vivo && setCarga(cargaPorPessoa(l)))
       .catch(() => vivo && setCarga({}))
     return () => {
       vivo = false
@@ -233,9 +233,10 @@ export default function TaskModal({ D, salvar, t, p, T, close, del, tog, papel, 
   const opts = doProjeto.filter(c => c.id != t.id && !chain(c.id).includes(t.id)),
     deps = doProjeto.filter(x => x.dependeDe == t.id)
   // Responsáveis: equipe atual do projeto.
-  const gente = D.u
-    .filter(u => (p?.membros || []).includes(u.id))
-    .map(u => (carga[u.id] == null ? u : { ...u, nome: `${u.nome} · ${carga[u.id]}%` }))
+  const gente = comCarga(
+    D.u.filter(u => (p?.membros || []).includes(u.id)),
+    carga,
+  )
   const origem = 'em ' + (p?.nome || t.projetoNome || 'projeto')
   const addI = () => {
     const v = nv.trim()
@@ -377,10 +378,9 @@ export default function TaskModal({ D, salvar, t, p, T, close, del, tog, papel, 
                         value={draft.dificuldade || ''}
                         onChange={e => patch({ dificuldade: e.target.value })}
                       >
-                        <option value="">Sem classificação</option>
-                        {DIFICULDADES.map(([v]) => (
+                        {opcoesDificuldade(horas).map(([v, r]) => (
                           <option key={v} value={v}>
-                            {rotuloDificuldade(v, horas?.[v])}
+                            {r}
                           </option>
                         ))}
                       </select>

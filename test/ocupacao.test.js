@@ -2,6 +2,8 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import {
   DIFICULDADES,
+  comCarga,
+  opcoesDificuldade,
   faixaOcupacao,
   formatarHoras,
   proximaSemana,
@@ -64,5 +66,22 @@ test('textoAviso', () => {
   assert.equal(
     textoAviso({ nome: 'Ana', horas: 12, teto: 10, percentual: 120, semana: '2026-11-23' }),
     'Ana fica com 120% na semana de 23/11 (12 h de 10 h).',
+  )
+})
+
+test('opcoesDificuldade e comCarga', () => {
+  assert.deepEqual(opcoesDificuldade({ media: 4 })[0], ['', 'Sem classificação'])
+  assert.deepEqual(opcoesDificuldade({ media: 4 })[3], ['media', 'Média (4 h)'])
+  assert.equal(opcoesDificuldade(null)[3][1], 'Média')
+  const l = comCarga(
+    [
+      { id: 1, nome: 'Ana' },
+      { id: 2, nome: 'Bia' },
+    ],
+    { 1: 120 },
+  )
+  assert.deepEqual(
+    l.map(u => u.nome),
+    ['Ana · 120%', 'Bia'],
   )
 })
