@@ -83,11 +83,23 @@ export default function Configuracoes() {
           opt: true,
         },
         { k: 'ativa', l: 'Situação', o: SIM_NAO, h: 'Áreas inativas somem das opções, mas o histórico das pessoas continua.' },
+        { k: 'temGeral', l: 'Projeto geral', o: LIDERA, h: 'Não exclui o projeto geral da área (só se ele não tiver tarefas).' },
       ],
-      { nome: a?.nome || '', codigoAreaPai: a?.codigoAreaPai || '', ativa: String(a?.ativa ?? true) },
+      {
+        nome: a?.nome || '',
+        codigoAreaPai: a?.codigoAreaPai || '',
+        ativa: String(a?.ativa ?? true),
+        temGeral: String(a?.temGeral ?? true),
+      },
       v =>
         salvar(
-          () => configuracoes.salvarArea(a?.codigo, { nome: v.nome, codigoAreaPai: v.codigoAreaPai || null, ativa: v.ativa === 'true' }),
+          () =>
+            configuracoes.salvarArea(a?.codigo, {
+              nome: v.nome,
+              codigoAreaPai: v.codigoAreaPai || null,
+              ativa: v.ativa === 'true',
+              temGeral: v.temGeral === 'true',
+            }),
           'Área salva',
         ),
     )
@@ -170,6 +182,7 @@ export default function Configuracoes() {
       colunas: [
         { k: 'nome', l: 'Nome' },
         { k: 'sup', l: 'Área superior', get: a => (a.codigoAreaPai ? nomeArea(a.codigoAreaPai) : '—') },
+        { k: 'ge', l: 'Projeto geral', filter: 1, get: a => (a.temGeral === false ? 'Não' : 'Sim') },
         { k: 'st', l: 'Situação', filter: 1, get: a => (a.ativa ? 'Ativo' : 'Inativo'), render: a => situacao(a.ativa) },
         { l: 'Ações', render: a => editarBotao(() => editarArea(a)) },
       ],
