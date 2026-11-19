@@ -124,6 +124,11 @@
         justify-content: flex-end
     }
 
+  /* Checklist da tarefa: responsável, avatar e remover descem para a linha de baixo, alinhados ao texto. */
+  .ck-item { flex-wrap: wrap }
+  .ck-meta { flex-basis: 100%; padding-left: 24px }
+  .ck-resp { flex: 1; max-width: none }
+
   /* Capacitações: a grade do mês vira agenda (sessão 13). */
   .cal { display: none }
   .cal-ag { display: block }

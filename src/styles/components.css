@@ -828,6 +828,70 @@ svg.i {
     color: var(--mu)
 }
 
+/* Checklist da tarefa (sessão 24b): caixa e texto à esquerda; responsável, avatar e remover à direita. */
+.ck-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 4px 0
+}
+
+.ck-txt {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1 1 auto;
+    min-width: 0
+}
+
+.ck-txt .form-check-input {
+    flex: none
+}
+
+.ck-txt > span,
+.ck-editar {
+    min-width: 0;
+    overflow-wrap: anywhere
+}
+
+/* Texto do item clicável (quem edita): parece texto, vira campo ao clicar. */
+.ck-editar {
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    padding: 1px 4px;
+    margin-left: -4px;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: text
+}
+
+.ck-editar:hover {
+    border-color: var(--ln)
+}
+
+.ck-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: none
+}
+
+.ck-resp {
+    width: auto;
+    max-width: 160px
+}
+
+.av.av-item {
+    width: 22px;
+    height: 22px;
+    font-size: 9px;
+    margin: 0;
+    flex: none
+}
+
 .ag {
     display: flex;
     gap: 10px;
