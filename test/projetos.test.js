@@ -1,14 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import {
-  alocacaoPorPessoa,
-  corpoParticipacao,
-  corpoProjeto,
-  equipe,
-  mesmaLista,
-  projetos,
-  rotuloStatusProjeto,
-} from '../src/services/projetos.js'
+import { corpoParticipacao, corpoProjeto, equipe, mesmaLista, projetos, rotuloStatusProjeto } from '../src/services/projetos.js'
 import { sessao } from '../src/services/api.js'
 
 const capturar = async fn => {
@@ -38,8 +30,8 @@ test('projetos e equipe chamam as rotas certas com a sessão', async () => {
     await projetos.listar()
     await projetos.editar('p1', { nome: 'Site', codigoArea: '', progresso: '' })
     await projetos.alterarStatus('p1', 'atencao')
-    await equipe.adicionar('p1', { codigoUsuario: 'u1', funcao: '', alocacao: '40', dataEntrada: '' })
-    await equipe.editar('p1', 'pa1', { funcao: 'Dev', responsabilidades: '', alocacao: '' })
+    await equipe.adicionar('p1', { codigoUsuario: 'u1', funcao: '', dataEntrada: '' })
+    await equipe.editar('p1', 'pa1', { funcao: 'Dev', responsabilidades: '' })
     await equipe.encerrar('p1', 'pa1', '')
   })
   sessao.limpar()
@@ -60,35 +52,19 @@ test('projetos e equipe chamam as rotas certas com a sessão', async () => {
   // Projeto não manda mais codigosMembros; equipe vai pela aba Equipe.
   assert.deepEqual(chamadas[2].body, { nome: 'Site', codigoArea: null })
   assert.deepEqual(chamadas[3].body, { status: 'atencao' })
-  assert.deepEqual(chamadas[4].body, { codigoUsuario: 'u1', funcao: null, alocacao: 40, dataEntrada: null })
-  assert.deepEqual(chamadas[5].body, { funcao: 'Dev', responsabilidades: null, alocacao: 0 })
+  assert.deepEqual(chamadas[4].body, { codigoUsuario: 'u1', funcao: null, dataEntrada: null })
+  assert.deepEqual(chamadas[5].body, { funcao: 'Dev', responsabilidades: null })
   assert.deepEqual(chamadas[6].body, {})
-})
-
-test('alocação soma só participações em aberto de projetos ativos (RN-04)', () => {
-  const part = (codigo, alocacao, dataSaida = null) => ({ usuario: { codigo }, alocacao, dataSaida })
-  const totais = alocacaoPorPessoa([
-    { status: 'em_execucao', participacoes: [part('ana', 60), part('bia', 30)] },
-    { status: 'bloqueado', participacoes: [part('ana', 50), part('bia', 50, '2026-10-01')] },
-    { status: 'concluido', participacoes: [part('ana', 100)] },
-    { status: 'arquivado', participacoes: [part('bia', 100)] },
-  ])
-  assert.deepEqual(totais, { ana: 110, bia: 30 })
 })
 
 test('corpos e rótulos', () => {
   assert.deepEqual(corpoProjeto({ progresso: '25', objetivo: '' }), { progresso: 25, objetivo: null })
-  assert.deepEqual(corpoParticipacao({ alocacao: '100' }), { alocacao: 100 })
+  assert.deepEqual(corpoParticipacao({ funcao: '' }), { funcao: null })
   assert.equal(rotuloStatusProjeto('em_execucao'), 'Em andamento')
   assert.equal(rotuloStatusProjeto(undefined), '—')
 })
 
-test('resumo conta na alocação e corpoProjeto envia sigiloso', () => {
-  const lista = [
-    { status: 'em_execucao', resumo: true, participacoes: [{ usuario: { codigo: 'u1' }, alocacao: 40 }] },
-    { status: 'em_execucao', participacoes: [{ usuario: { codigo: 'u1' }, alocacao: 30 }] },
-  ]
-  assert.deepEqual(alocacaoPorPessoa(lista), { u1: 70 })
+test('corpoProjeto envia sigiloso', () => {
   assert.deepEqual(corpoProjeto({ nome: 'A', sigiloso: true, acesso: ['u1'] }), { nome: 'A', sigiloso: true, acesso: ['u1'] })
   assert.equal('acesso' in corpoProjeto({ nome: 'A', acesso: null }), false)
 })

@@ -25,29 +25,11 @@ export const PRIORIDADE_PROJETO = [
   ['baixa', 'Baixa'],
 ]
 
-/** Projetos que contam para a alocação (QA-35): Em andamento, Atenção e Bloqueado. */
+/** Projetos ativos: Em andamento, Atenção e Bloqueado. */
 export const STATUS_ATIVOS = ['em_execucao', 'atencao', 'bloqueado']
-export const LIMITE_ALOCACAO = 100
 
 export const rotuloStatusProjeto = s => STATUS_PROJETO.find(([k]) => k === s)?.[1] || s || '—'
 export const rotuloPrioridade = s => PRIORIDADE_PROJETO.find(([k]) => k === s)?.[1] || '—'
-
-/**
- * Soma a alocação de cada pessoa nas participações em aberto de projetos ativos (RN-04).
- * Devolve { [codigoPessoa]: total }. Mesmo cálculo do backend, para mostrar o alerta nas listas.
- */
-export function alocacaoPorPessoa(lista) {
-  const totais = {}
-  for (const projeto of lista || []) {
-    if (!STATUS_ATIVOS.includes(projeto.status)) continue
-    for (const p of projeto.participacoes || []) {
-      if (p.dataSaida) continue
-      const codigo = p.usuario?.codigo
-      if (codigo) totais[codigo] = (totais[codigo] || 0) + (p.alocacao || 0)
-    }
-  }
-  return totais
-}
 
 /** Converte o formulário do projeto no corpo da API. */
 export function corpoProjeto(dados) {
@@ -68,8 +50,7 @@ export const mesmaLista = (a = [], b = []) => a.length === b.length && a.every(x
 
 /** Converte o formulário da participação no corpo da API. */
 export function corpoParticipacao(dados) {
-  const { alocacao, ...resto } = vazioComoNull(dados)
-  return { ...resto, alocacao: numeroOuNada(alocacao) ?? 0 }
+  return vazioComoNull(dados)
 }
 
 export const projetos = {
@@ -90,7 +71,7 @@ export const projetos = {
   definirLider: (codigo, codigoUsuario) => send('PUT', `/projetos/${codigo}/lider`, { codigoUsuario: codigoUsuario || null }),
 }
 
-/** Aba Equipe. Cada chamada devolve { projeto, alocacao } com o alerta da pessoa (RN-04). */
+/** Aba Equipe. Cada chamada devolve { projeto }. */
 export const equipe = {
   adicionar: (codigoProjeto, dados) => send('POST', `/projetos/${codigoProjeto}/membros`, corpoParticipacao(dados)),
   editar: (codigoProjeto, codigoParticipacao, dados) =>
