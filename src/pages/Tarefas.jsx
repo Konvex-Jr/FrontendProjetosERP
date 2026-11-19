@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useApp } from '../context/AppContext'
 import { DAY, PC, ST, chip, fm, hj, iso, nm } from '../lib/utils'
 import { consumir } from '../lib/atalho'
+import { guardarFiltros, lerFiltros } from '../lib/filtrosTarefas'
 import { PRAZOS, noPrazo } from '../lib/prazo'
 import Ic from '../components/Icon'
 import Table from '../components/Table'
@@ -55,11 +56,20 @@ export function dadosDaTela({ me }, filtro = { pessoa: me, origem: '', status: '
 export default function Tarefas() {
   const { D, me, pode, refresh } = useApp()
   const gestao = pode('tarefas.gerirTodas')
-  const [filtro, setFiltro] = useState(() => ({ pessoa: me, origem: '', status: '', prazo: '', ...consumir('tarefas') }))
-  const [visao, setVisao] = useState('kanban'),
+  // Padrão ← filtros guardados na aba ← atalho de outra tela (o atalho vence).
+  const [filtro, setFiltro] = useState(() => ({
+    pessoa: me,
+    origem: '',
+    status: '',
+    prazo: '',
+    ...lerFiltros(me)?.filtro,
+    ...consumir('tarefas'),
+  }))
+  const [visao, setVisao] = useState(() => lerFiltros(me)?.visao || 'kanban'),
     [tk, setTk] = useState(null),
     [criando, setCriando] = useState(null)
   const set = (k, v) => setFiltro(f => ({ ...f, [k]: v }))
+  useEffect(() => guardarFiltros(me, { filtro, visao }), [me, filtro, visao])
 
   const tela = dadosDaTela({ me }, filtro)
   const { dados, carregando, recarregar } = useCarregar(tela.carregar, [filtro.pessoa, filtro.origem, filtro.status, me], {
