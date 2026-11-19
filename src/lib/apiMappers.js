@@ -89,6 +89,7 @@ export function adaptTask(task) {
     fim: dateOnly(task.dataFim),
     status: task.status,
     prioridade: task.prioridade,
+    dificuldade: task.dificuldade || '',
     conclusao: task.dataConclusao ? dateOnly(task.dataConclusao) : undefined,
     concluidaPor: task.concluidaPor ? task.concluidaPor.nomeExibicao || task.concluidaPor.nome : undefined,
     dependeDe: userCode(task.dependeDe) || undefined,

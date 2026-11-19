@@ -1997,3 +1997,8 @@ button.kc-tag {
     width: 24px;
     height: 24px
 }
+
+.konvex-aviso-linhas {
+  white-space: pre-line;
+  text-align: left;
+}

@@ -16,7 +16,9 @@ import { adaptColuna } from '../lib/colunas'
 import SeloEtapa from '../components/SeloEtapa'
 import { STATUS_ATIVOS, projetos } from '../services/projetos'
 import { gruposDeProjetos } from '../lib/projetosInternos'
-import { acoesTarefa, origemTarefa, papelNaTarefa, quadroDesatualizado, tarefas } from '../services/tarefas'
+import { apoioTarefa } from '../services/ocupacao'
+import { comCarga, opcoesDificuldade } from '../lib/ocupacao'
+import { acoesTarefa, avisarOcupacao, origemTarefa, papelNaTarefa, quadroDesatualizado, tarefas } from '../services/tarefas'
 
 const VISOES = [
   ['kanban', 'Kanban'],
@@ -84,8 +86,9 @@ export default function Tarefas() {
 
   const salvarTarefa = async (chamada, ok) => {
     try {
-      await chamada()
+      const resposta = await chamada()
       if (ok) alerts.toastSuccess(ok)
+      avisarOcupacao(resposta)
       await recarregar()
       refresh().catch(() => {})
     } catch (error) {
@@ -110,7 +113,8 @@ export default function Tarefas() {
   const genteDe = tipo => (tipo?.startsWith('proj:') ? D.u.filter(u => equipeAtual(porCodigo.get(tipo.slice(5))).includes(u.id)) : [])
 
   const { m } = semanas(D)
-  const nova = i => {
+  const nova = async i => {
+    const { horas, carga } = await apoioTarefa(D.c.hoje)
     const inicial = tipos.find(([k]) => k === filtro.origem)?.[0] || tipos[0]?.[0]
     return form(
       'Nova tarefa',
@@ -123,7 +127,14 @@ export default function Tarefas() {
         },
         { k: 'titulo', l: 'Título' },
         { k: 'prioridade', l: 'Prioridade', o: ['P1', 'P2', 'P3', 'P4'].map(x => [x, x]) },
-        { k: 'responsaveis', l: 'Responsáveis', c: v => genteDe(v.tipo), s: v => organizaEm(v.tipo) },
+        {
+          k: 'responsaveis',
+          l: 'Responsáveis',
+          c: v => comCarga(genteDe(v.tipo), carga),
+          s: v => organizaEm(v.tipo),
+          h: 'A % ao lado do nome é a ocupação desta semana.',
+        },
+        { k: 'dificuldade', l: 'Dificuldade', o: opcoesDificuldade(horas), opt: true },
         { k: 'inicio', l: 'Início', t: 'date' },
         { k: 'fim', l: 'Fim', t: 'date' },
       ],

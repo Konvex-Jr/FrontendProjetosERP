@@ -13,7 +13,9 @@ import alerts from '../lib/alerts'
 import useCarregar from '../lib/useCarregar'
 import Esqueleto from '../components/Esqueleto'
 import { projetos, rotuloPrioridade } from '../services/projetos'
-import { acoesTarefa, papelNasTarefas, quadroDesatualizado, tarefas } from '../services/tarefas'
+import { apoioTarefa } from '../services/ocupacao'
+import { comCarga, opcoesDificuldade } from '../lib/ocupacao'
+import { acoesTarefa, avisarOcupacao, papelNasTarefas, quadroDesatualizado, tarefas } from '../services/tarefas'
 import { ErroAcessoParcial, gravarProjeto } from '../lib/gravarProjeto'
 import { carregarProjeto } from '../lib/carregarProjeto'
 import Table from '../components/Table'
@@ -31,7 +33,7 @@ const ABAS = [
 
 const dia = s => (s ? String(s).slice(0, 10) : '')
 
-/** Gerente fora da lista do projeto sigiloso: só nome, status, datas, contagens e equipe com alocação. */
+/** Gerente fora da lista do projeto sigiloso: só nome, status, datas, contagens e equipe. */
 function ResumoSigiloso({ projeto, voltar }) {
   const t = projeto.tarefas || {}
   const pessoas = projeto.participacoes.map(x => ({ ...x, id: x.codigo ?? x.usuario.codigo + dia(x.dataEntrada) }))
@@ -67,7 +69,6 @@ function ResumoSigiloso({ projeto, voltar }) {
         vazio="Ninguém na equipe."
         cols={[
           { k: 'p', l: 'Pessoa', get: x => x.usuario.nome },
-          { k: 'a', l: 'Alocação', get: x => x.alocacao, render: x => x.alocacao + '%' },
           { k: 'e', l: 'Entrada', get: x => dia(x.dataEntrada), render: x => fm(dia(x.dataEntrada)) },
           { k: 's', l: 'Saída', get: x => dia(x.dataSaida), render: x => (x.dataSaida ? fm(dia(x.dataSaida)) : 'Em andamento') },
         ]}
@@ -121,7 +122,7 @@ export default function Projeto() {
         {carregando && <Esqueleto />}
       </>
     )
-  const { projeto, todos, gente, areas } = dados
+  const { projeto, gente, areas } = dados
   if (projeto.resumo) return <ResumoSigiloso projeto={projeto} voltar={voltar} />
   // Depois de salvar: recarrega o projeto e os dados compartilhados (tarefas, avatares, painel).
   const aoSalvar = async () => {
@@ -134,13 +135,27 @@ export default function Projeto() {
   const T = dados.tarefas,
     h = hj(D)
 
-  const add = colunaId =>
-    form(
+  const add = async colunaId => {
+    const { horas, carga } = await apoioTarefa(D.c.hoje)
+    return form(
       'Nova tarefa',
       [
         { k: 'titulo', l: 'Título' },
         { k: 'prioridade', l: 'Prioridade', o: ['P1', 'P2', 'P3', 'P4'].map(x => [x, x]) },
-        ...(papel.organiza ? [{ k: 'responsaveis', l: 'Responsáveis', c: D.u.filter(u => p.membros.includes(u.id)) }] : []),
+        ...(papel.organiza
+          ? [
+              {
+                k: 'responsaveis',
+                l: 'Responsáveis',
+                c: comCarga(
+                  D.u.filter(u => p.membros.includes(u.id)),
+                  carga,
+                ),
+                h: 'A % ao lado do nome é a ocupação desta semana.',
+              },
+            ]
+          : []),
+        { k: 'dificuldade', l: 'Dificuldade', o: opcoesDificuldade(horas), opt: true },
         { k: 'inicio', l: 'Início', t: 'date' },
         { k: 'fim', l: 'Fim', t: 'date' },
       ],
@@ -151,11 +166,13 @@ export default function Projeto() {
       },
       o => salvarTarefa(() => tarefas.criar(pid, o), 'Tarefa criada'),
     )
+  }
   // Toda alteração de tarefa vai direto para a API; depois recarrega a tela e o painel.
   const salvarTarefa = async (chamada, ok) => {
     try {
-      await chamada()
+      const resposta = await chamada()
       if (ok) alerts.toastSuccess(ok)
+      avisarOcupacao(resposta)
       await aoSalvar()
     } catch (error) {
       // Coluna apagada ou quadro mudado por outra pessoa: mostra o aviso da API e recarrega o quadro.
@@ -366,7 +383,7 @@ export default function Projeto() {
       {aba == 'geral' && geral()}
       {aba == 'biblioteca' && temBiblioteca && <ItensDoProjeto projeto={projeto} />}
       {aba == 'equipe' && ehGeral && <EquipeCalculada projeto={projeto} />}
-      {aba == 'equipe' && !ehGeral && <EquipeProjeto projeto={projeto} todos={todos} gente={gente} gestor={gestor} aoSalvar={aoSalvar} />}
+      {aba == 'equipe' && !ehGeral && <EquipeProjeto projeto={projeto} gente={gente} gestor={gestor} aoSalvar={aoSalvar} />}
       {editandoColunas && (
         <ColunasModal
           colunas={projeto.colunas.map(adaptColuna)}

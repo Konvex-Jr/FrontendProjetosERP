@@ -1,4 +1,6 @@
 import { request } from './api.js'
+import alerts from '../lib/alerts.js'
+import { textoAviso } from '../lib/ocupacao.js'
 
 /**
  * Chamadas diretas do módulo Tarefas.
@@ -17,8 +19,15 @@ const base = t => ({
   dataFim: dataApi(t.fim),
   prioridade: t.prioridade || 'P3',
   descricao: t.descricao || null,
+  dificuldade: t.dificuldade || null,
   codigosResponsaveis: t.responsaveis || [],
 })
+
+/** Aviso amarelo (não erro) para cada pessoa acima do teto, vindo da resposta de salvar/mover. Um toast só. */
+export function avisarOcupacao(resposta) {
+  const avisos = resposta?.avisosOcupacao
+  if (avisos?.length) alerts.toastWarning('Ocupação acima do teto', avisos.map(textoAviso).join('\n'))
+}
 
 /** De onde a tarefa é: o nome do projeto. */
 export const origemTarefa = t => t.projetoNome || 'Projeto'

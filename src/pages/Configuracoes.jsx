@@ -8,11 +8,13 @@ import alerts from '../lib/alerts'
 import useCarregar from '../lib/useCarregar'
 import Esqueleto from '../components/Esqueleto'
 import { configuracoes } from '../services/pessoas'
+import { DIFICULDADES, formatarHoras } from '../lib/ocupacao'
 
 const ABAS = [
   ['areas', 'Áreas'],
   ['cargos', 'Cargos'],
   ['senioridades', 'Senioridades'],
+  ['dificuldade', 'Dificuldade'],
 ]
 const LIDERA = [
   ['false', 'Não'],
@@ -28,8 +30,13 @@ export function dadosDaTela() {
   return {
     chave: 'configuracoes',
     carregar: async () => {
-      const [areas, cargos, senioridades] = await Promise.all([configuracoes.areas(), configuracoes.cargos(), configuracoes.senioridades()])
-      return { areas, cargos, senioridades }
+      const [areas, cargos, senioridades, horas] = await Promise.all([
+        configuracoes.areas(),
+        configuracoes.cargos(),
+        configuracoes.senioridades(),
+        configuracoes.horasDificuldade(),
+      ])
+      return { areas, cargos, senioridades, horas }
     },
   }
 }
@@ -49,7 +56,7 @@ export default function Configuracoes() {
       </>
     )
 
-  const { areas, cargos, senioridades } = dados
+  const { areas, cargos, senioridades, horas } = dados
   const nomeArea = codigo => areas.find(a => a.codigo === codigo)?.nome || '—'
 
   const salvar = async (acao, sucesso) => {
@@ -97,13 +104,44 @@ export default function Configuracoes() {
           o: LIDERA,
           h: 'Para gerentes e diretores de área: quem tem este cargo numa área lidera a área e as que estão abaixo dela.',
         },
+        {
+          k: 'tetoSemanalHoras',
+          l: 'Teto semanal (h)',
+          t: 'number',
+          min: 1,
+          max: 40,
+          step: 1,
+          h: 'Horas por semana que o cargo comporta, de 1 a 40. Base da ocupação das pessoas.',
+        },
       ],
-      { nome: c?.nome || '', ativo: String(c?.ativo ?? true), lideraArea: String(c?.lideraArea ?? false) },
+      {
+        nome: c?.nome || '',
+        ativo: String(c?.ativo ?? true),
+        lideraArea: String(c?.lideraArea ?? false),
+        tetoSemanalHoras: c?.tetoSemanalHoras ?? 10,
+      },
       v =>
         salvar(
-          () => configuracoes.salvarCargo(c?.codigo, { nome: v.nome, ativo: v.ativo === 'true', lideraArea: v.lideraArea === 'true' }),
+          () =>
+            configuracoes.salvarCargo(c?.codigo, {
+              nome: v.nome,
+              ativo: v.ativo === 'true',
+              lideraArea: v.lideraArea === 'true',
+              tetoSemanalHoras: Number(v.tetoSemanalHoras),
+            }),
           'Cargo salvo',
         ),
+    )
+
+  const editarHoras = () =>
+    form(
+      'Horas por dificuldade',
+      DIFICULDADES.map(([k, l]) => ({ k, l: `${l} (h)`, t: 'number', min: 0.5, max: 40, step: 0.5 })),
+      Object.fromEntries(DIFICULDADES.map(([k]) => [k, horas[k]])),
+      v => {
+        const novas = Object.fromEntries(DIFICULDADES.map(([k]) => [k, Number(v[k])]))
+        return salvar(() => configuracoes.salvarHorasDificuldade(novas), 'Horas salvas')
+      },
     )
 
   const editarSenioridade = s =>
@@ -142,6 +180,7 @@ export default function Configuracoes() {
       colunas: [
         { k: 'nome', l: 'Nome' },
         { k: 'li', l: 'Lidera a área', filter: 1, get: c => (c.lideraArea ? 'Sim' : 'Não') },
+        { k: 'teto', l: 'Teto semanal', get: c => (c.tetoSemanalHoras == null ? '—' : formatarHoras(c.tetoSemanalHoras)) },
         { k: 'st', l: 'Situação', filter: 1, get: c => (c.ativo ? 'Ativo' : 'Inativo'), render: c => situacao(c.ativo) },
         { l: 'Ações', render: c => editarBotao(() => editarCargo(c)) },
       ],
@@ -156,17 +195,26 @@ export default function Configuracoes() {
       ],
     },
   }
+  telas.dificuldade = {
+    novo: editarHoras,
+    rotulo: 'Editar horas',
+    linhas: DIFICULDADES.map(([k, l]) => ({ codigo: k, nome: l, horas: horas[k] })),
+    colunas: [
+      { k: 'nome', l: 'Dificuldade' },
+      { k: 'horas', l: 'Horas estimadas', get: r => formatarHoras(r.horas) },
+    ],
+  }
   const atual = telas[aba]
 
   return (
     <>
       <PageBar
         title="Configurações"
-        sub="Listas usadas no cadastro de pessoas. Valor-hora das senioridades fica para quando as taxas forem definidas."
+        sub="Listas do cadastro de pessoas, horas por dificuldade das tarefas e teto semanal de cada cargo. Valor-hora das senioridades fica para quando as taxas forem definidas."
       >
         <button className="btn btn-primary" onClick={atual.novo}>
-          <Ic k="plus" />
-          Novo item
+          <Ic k={aba === 'dificuldade' ? 'edit' : 'plus'} />
+          {atual.rotulo || 'Novo item'}
         </button>
       </PageBar>
       <div className="mb-3">
