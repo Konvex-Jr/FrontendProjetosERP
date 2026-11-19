@@ -18,6 +18,8 @@ import Clipe from '../components/Clipe'
 import { SeloSigiloso, SeloTipo } from '../components/SeloProjeto'
 import AreasPessoa from '../components/AreasPessoa'
 import { rotuloArea } from '../lib/periodos'
+import { ocupacao } from '../services/ocupacao'
+import { faixaOcupacao, formatarHoras, proximaSemana, rotuloSemana, semanaAnterior } from '../lib/ocupacao'
 
 const COR_STATUS = { ativo: 'ok', trainee: '', alumni: 'wa', inativo: 'er' }
 /** Links do perfil como cartões com logo; abrem em nova aba. */
@@ -33,6 +35,78 @@ function CartoesDeLinks({ cartoes }) {
           </span>
         </a>
       ))}
+    </div>
+  )
+}
+
+const COR_FAIXA = { ok: '', atencao: 'bg-warning', perigo: 'bg-danger' }
+const CHIP_FAIXA = { ok: 'ok', atencao: 'wa', perigo: 'er' }
+
+/** Uma linha do detalhe da ocupação: tarefa, projeto inteiro (sem tarefa visível) ou "outras". */
+function linhaOcupacao(i) {
+  if (i.tipo === 'tarefa') return `${i.titulo} · ${i.projeto?.nome || 'Projeto restrito'}`
+  if (i.tipo === 'projeto') return i.projeto?.nome || 'Projeto restrito'
+  return 'Outras tarefas'
+}
+
+/** Ocupação da semana (horas por dificuldade das tarefas abertas). `inicial` = semana atual, vinda do perfil. */
+function CartaoOcupacao({ codigo, inicial }) {
+  const [semana, setSemana] = useState(null)
+  const { dados: outra, carregando } = useCarregar(
+    () => (semana ? ocupacao.dePessoa(codigo, semana) : Promise.resolve(null)),
+    [codigo, semana],
+    { chave: semana ? `ocupacao:${codigo}:${semana}` : `ocupacao:${codigo}:atual` },
+  )
+  const o = semana ? outra : inicial
+  const mostrada = semana || inicial.semana
+  const faixa = o ? faixaOcupacao(o.percentual) : 'ok'
+  const voltarPara = s => setSemana(s === inicial.semana ? null : s)
+
+  return (
+    <div className="card card-body h-100">
+      <h2>Ocupação da semana</h2>
+      <div className="d-flex align-items-center justify-content-between gap-2 mb-2">
+        <button className="btn btn-g btn-sm" aria-label="Semana anterior" onClick={() => voltarPara(semanaAnterior(mostrada))}>
+          ‹
+        </button>
+        <small className="text-center">
+          {rotuloSemana(mostrada)}
+          {semana && (
+            <button className="btn btn-link btn-sm py-0" onClick={() => setSemana(null)}>
+              Esta semana
+            </button>
+          )}
+        </small>
+        <button className="btn btn-g btn-sm" aria-label="Próxima semana" onClick={() => voltarPara(proximaSemana(mostrada))}>
+          ›
+        </button>
+      </div>
+      {!o ? (
+        <small>{carregando ? 'Carregando…' : 'Não foi possível carregar esta semana.'}</small>
+      ) : (
+        <>
+          <div className="d-flex justify-content-between mb-1">
+            <b>
+              {Math.round(o.percentual)}% · {formatarHoras(o.horas)} de {formatarHoras(o.teto)}
+            </b>
+            {faixa === 'perigo' && <span className={chip(CHIP_FAIXA[faixa])}>Acima de 100%</span>}
+          </div>
+          <Prog v={Math.min(o.percentual, 100)} cls={COR_FAIXA[faixa]} />
+          <div className="mt-3">
+            {o.itens.length ? (
+              o.itens.map((i, n) => (
+                <div key={`${i.tipo}-${i.codigo ?? i.projeto?.codigo ?? ''}-${n}`} className="d-flex justify-content-between gap-2">
+                  <small>{linhaOcupacao(i)}</small>
+                  <small className="text-nowrap">{formatarHoras(i.horas)}</small>
+                </div>
+              ))
+            ) : (
+              <small>Sem tarefas abertas nesta semana.</small>
+            )}
+          </div>
+          <small className="text-mu d-block mt-2">Mostra só tarefas abertas.</small>
+        </>
+      )}
     </div>
   )
 }
@@ -81,7 +155,7 @@ export default function Perfil() {
       </>
     )
 
-  const { usuario: u, projetosAtuais, projetosAnteriores, periodos, podeGerirPeriodos, capacitacoes, alocacao } = perfil
+  const { usuario: u, projetosAtuais, projetosAnteriores, periodos, podeGerirPeriodos, capacitacoes, ocupacao: ocupacaoAtual } = perfil
 
   const editarDados = () =>
     form(
@@ -188,7 +262,6 @@ export default function Perfil() {
       key={p.codigo + p.dataEntrada}
       onClick={p.restrito ? undefined : () => go('projeto', p.codigo)}
     >
-      <span className={chip()}>{p.alocacao}%</span>
       <div>
         <b>{p.nome}</b>
         <small>
@@ -318,26 +391,7 @@ export default function Perfil() {
         </div>
 
         <div className="col-md-6">
-          <div className="card card-body h-100">
-            <h2>Alocação em projetos ativos</h2>
-            <div className="d-flex justify-content-between mb-1">
-              <b>{alocacao.total}%</b>
-              {alocacao.excedeu && <span className={chip('er')}>Acima de 100%</span>}
-            </div>
-            <Prog v={Math.min(alocacao.total, 100)} cls={alocacao.excedeu ? 'bg-danger' : ''} />
-            <div className="mt-3">
-              {alocacao.projetos.length ? (
-                alocacao.projetos.map(p => (
-                  <div key={p.codigo} className="d-flex justify-content-between">
-                    <small>{p.nome}</small>
-                    <small>{p.alocacao}%</small>
-                  </div>
-                ))
-              ) : (
-                <small>Sem alocação em projetos ativos.</small>
-              )}
-            </div>
-          </div>
+          <CartaoOcupacao key={codigo} codigo={codigo} inicial={ocupacaoAtual} />
         </div>
 
         <div className="col-md-6">

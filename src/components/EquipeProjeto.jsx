@@ -4,43 +4,32 @@ import Ic from './Icon'
 import Table from './Table'
 import ActionMenu from './ActionMenu'
 import alerts from '../lib/alerts'
-import { LIMITE_ALOCACAO, alocacaoPorPessoa, equipe, projetos, rotuloStatusProjeto } from '../services/projetos'
+import { equipe, projetos } from '../services/projetos'
+import { ocupacao } from '../services/ocupacao'
+import useCarregar from '../lib/useCarregar'
+import { semanaAtual } from '../lib/ocupacao'
+import ChipOcupacao from './ChipOcupacao'
 import { rotuloStatus } from '../services/pessoas'
 
-/** Mostra o alerta de RN-04 depois de salvar: avisa, mas não bloqueia. */
-export function avisarAlocacao(resultado, nome) {
-  const a = resultado?.alocacao
-  if (!a?.excedeu) return
-  const lista = a.projetos.map(p => `${p.nome}: ${p.alocacao}%`).join(' · ')
-  alerts.info('Alocação acima de 100%', `${nome} soma ${a.total}% em projetos ativos. ${lista}`)
-}
-
-const Total = ({ v }) =>
-  v > LIMITE_ALOCACAO ? (
-    <span className={chip('er')} title="Soma em projetos ativos acima de 100%">
-      {v}% · acima de 100%
-    </span>
-  ) : (
-    <span className={chip(v === LIMITE_ALOCACAO ? 'wa' : '')}>{v}%</span>
-  )
-
 /**
- * Aba Equipe (RF-022, PR-06): função, responsabilidades, alocação e histórico.
- * `todos` = lista de projetos, para somar a alocação de cada pessoa.
+ * Aba Equipe (RF-022, PR-06): função, responsabilidades, ocupação da semana e histórico.
  */
-export default function EquipeProjeto({ projeto, todos, gente, gestor, aoSalvar }) {
+export default function EquipeProjeto({ projeto, gente, gestor, aoSalvar }) {
   const { form, go } = useApp()
-  const totais = alocacaoPorPessoa(todos)
+  // Ocupação da semana atual; se a chamada falhar, a coluna mostra "—" e o resto da aba segue.
+  const semana = semanaAtual()
+  const { dados: ocupacoes } = useCarregar(() => ocupacao.todas(semana).catch(() => null), [semana], {
+    chave: `ocupacao:todas:${semana}`,
+  })
+  const percentuais = Object.fromEntries((ocupacoes || []).map(o => [o.codigoUsuario, o.percentual]))
   const ativas = projeto.participacoes.filter(p => !p.dataSaida).map(p => ({ ...p, id: p.codigo }))
   const encerradas = projeto.participacoes.filter(p => p.dataSaida).map(p => ({ ...p, id: p.codigo }))
-  const contaNaAlocacao = ['em_execucao', 'atencao', 'bloqueado'].includes(projeto.status)
 
-  const salvar = async (acao, sucesso, nome) => {
+  const salvar = async (acao, sucesso) => {
     try {
-      const r = await acao()
+      await acao()
       alerts.toastSuccess(sucesso)
       await aoSalvar()
-      avisarAlocacao(r, nome)
     } catch (error) {
       alerts.error('Não foi possível salvar', error.message)
       return false
@@ -50,12 +39,6 @@ export default function EquipeProjeto({ projeto, todos, gente, gestor, aoSalvar 
   const camposComuns = [
     { k: 'funcao', l: 'Função no projeto', opt: true, h: 'Ex.: Gerente de projeto, Desenvolvedor, Consultor.' },
     { k: 'responsabilidades', l: 'Responsabilidades', t: 'textarea', opt: true },
-    {
-      k: 'alocacao',
-      l: 'Alocação (%)',
-      t: 'number',
-      h: 'Quanto da dedicação da pessoa vai para este projeto, de 0 a 100. A soma acima de 100% gera alerta.',
-    },
   ]
 
   const adicionar = () => {
@@ -63,7 +46,7 @@ export default function EquipeProjeto({ projeto, todos, gente, gestor, aoSalvar 
     const opcoes = gente
       .filter(u => u.naEj && !dentro.has(u.codigo))
       .sort((a, b) => a.nome.localeCompare(b.nome))
-      .map(u => [u.codigo, `${u.nome} · ${totais[u.codigo] || 0}% alocado${u.status === 'trainee' ? ' · Trainee' : ''}`])
+      .map(u => [u.codigo, `${u.nome}${u.status === 'trainee' ? ' · Trainee' : ''}`])
     if (!opcoes.length) return alerts.info('Ninguém disponível', 'Todas as pessoas Ativas e Trainees já estão na equipe.')
     form(
       'Adicionar à equipe',
@@ -72,8 +55,8 @@ export default function EquipeProjeto({ projeto, todos, gente, gestor, aoSalvar 
         ...camposComuns,
         { k: 'dataEntrada', l: 'Entrada no projeto', t: 'date', opt: true, h: 'Vazio = hoje.' },
       ],
-      { codigoUsuario: opcoes[0][0], alocacao: 0, dataEntrada: '' },
-      v => salvar(() => equipe.adicionar(projeto.codigo, v), 'Pessoa adicionada', gente.find(u => u.codigo === v.codigoUsuario)?.nome),
+      { codigoUsuario: opcoes[0][0], dataEntrada: '' },
+      v => salvar(() => equipe.adicionar(projeto.codigo, v), 'Pessoa adicionada'),
     )
   }
 
@@ -81,8 +64,8 @@ export default function EquipeProjeto({ projeto, todos, gente, gestor, aoSalvar 
     form(
       `Editar participação de ${p.usuario.nome}`,
       camposComuns,
-      { funcao: p.funcao || '', responsabilidades: p.responsabilidades || '', alocacao: p.alocacao },
-      v => salvar(() => equipe.editar(projeto.codigo, p.codigo, v), 'Participação atualizada', p.usuario.nome),
+      { funcao: p.funcao || '', responsabilidades: p.responsabilidades || '' },
+      v => salvar(() => equipe.editar(projeto.codigo, p.codigo, v), 'Participação atualizada'),
     )
 
   const encerrar = p =>
@@ -98,7 +81,7 @@ export default function EquipeProjeto({ projeto, todos, gente, gestor, aoSalvar 
         },
       ],
       { dataSaida: '' },
-      v => salvar(() => equipe.encerrar(projeto.codigo, p.codigo, v.dataSaida), 'Participação encerrada', p.usuario.nome),
+      v => salvar(() => equipe.encerrar(projeto.codigo, p.codigo, v.dataSaida), 'Participação encerrada'),
     )
 
   // Líder (sessão 8b): organiza as tarefas do projeto. Só a gestão escolhe.
@@ -126,8 +109,12 @@ export default function EquipeProjeto({ projeto, todos, gente, gestor, aoSalvar 
     { k: 'nome', l: 'Pessoa', get: p => p.usuario.nome, render: pessoa },
     { k: 'funcao', l: 'Função', filter: 1, get: p => p.funcao || '—' },
     { k: 'resp', l: 'Responsabilidades', get: p => p.responsabilidades || '—', render: p => <small>{p.responsabilidades || '—'}</small> },
-    { k: 'alocacao', l: 'Neste projeto', render: p => p.alocacao + '%' },
-    { k: 'total', l: 'Total da pessoa', get: p => totais[p.usuario.codigo] || 0, render: p => <Total v={totais[p.usuario.codigo] || 0} /> },
+    {
+      k: 'ocupacao',
+      l: 'Ocupação na semana',
+      get: p => percentuais[p.usuario.codigo] ?? -1,
+      render: p => <ChipOcupacao percentual={percentuais[p.usuario.codigo]} />,
+    },
     { k: 'entrada', l: 'Entrada', get: p => String(p.dataEntrada), render: p => fd(p.dataEntrada) },
     ...(gestor
       ? [
@@ -149,10 +136,8 @@ export default function EquipeProjeto({ projeto, todos, gente, gestor, aoSalvar 
   const colsHistorico = [
     { k: 'nome', l: 'Pessoa', get: p => p.usuario.nome, render: pessoa },
     { k: 'funcao', l: 'Função', get: p => p.funcao || '—' },
-    { k: 'alocacao', l: 'Alocação', render: p => p.alocacao + '%' },
     { k: 'periodo', l: 'Período', get: p => String(p.dataEntrada), render: p => fd(p.dataEntrada) + ' a ' + fd(p.dataSaida) },
   ]
-  const excedidos = ativas.filter(p => (totais[p.usuario.codigo] || 0) > LIMITE_ALOCACAO)
 
   return (
     <>
@@ -160,7 +145,6 @@ export default function EquipeProjeto({ projeto, todos, gente, gestor, aoSalvar 
         <small>
           {ativas.length} {ativas.length === 1 ? 'pessoa' : 'pessoas'} na equipe.
           {gestor && !codigoLider && ativas.length > 0 && ' Sem líder: use o menu de ações para escolher quem organiza as tarefas.'}
-          {!contaNaAlocacao && ` Projeto ${rotuloStatusProjeto(projeto.status)}: não conta na alocação.`}
         </small>
         {gestor && (
           <button className="btn btn-primary" onClick={adicionar}>
@@ -169,14 +153,6 @@ export default function EquipeProjeto({ projeto, todos, gente, gestor, aoSalvar 
           </button>
         )}
       </div>
-      {excedidos.length > 0 && (
-        <div className="card card-body mb-3">
-          <span>
-            <span className={chip('er')}>Alerta</span> {excedidos.map(p => p.usuario.nome).join(', ')}{' '}
-            {excedidos.length === 1 ? 'está' : 'estão'} com mais de 100% de alocação somando os projetos ativos.
-          </span>
-        </div>
-      )}
       <Table
         cols={colsAtivas}
         rows={ativas}

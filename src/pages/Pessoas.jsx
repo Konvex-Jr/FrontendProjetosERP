@@ -13,6 +13,8 @@ import Avatar from '../components/Avatar'
 import { configuracoes, pessoas, rotuloStatus, STATUS_PESSOA } from '../services/pessoas'
 import { corpoNovaPessoa, opcoesMudarStatus, podeRedefinirSenha } from '../lib/cadastroPessoa'
 import { rotuloArea } from '../lib/periodos'
+import { ocupacao } from '../services/ocupacao'
+import ChipOcupacao from '../components/ChipOcupacao'
 
 const COR_STATUS = { ativo: 'ok', trainee: '', alumni: 'wa', inativo: 'er' }
 const PERFIS = [
@@ -27,8 +29,13 @@ export function dadosDaTela() {
   return {
     chave: 'pessoas',
     carregar: async () => {
-      const [lista, senioridades] = await Promise.all([pessoas.listar(), configuracoes.senioridades()])
-      return { lista, senioridades }
+      // Ocupação da semana atual é complemento: se falhar, a coluna mostra "—" e a tela abre igual.
+      const [lista, senioridades, ocupacoes] = await Promise.all([
+        pessoas.listar(),
+        configuracoes.senioridades(),
+        ocupacao.todas().catch(() => null),
+      ])
+      return { lista, senioridades, ocupacoes }
     },
   }
 }
@@ -48,7 +55,8 @@ export default function Pessoas() {
       </>
     )
 
-  const { lista, senioridades } = dados
+  const { lista, senioridades, ocupacoes } = dados
+  const percentuais = Object.fromEntries((ocupacoes || []).map(o => [o.codigoUsuario, o.percentual]))
   const gereDiretores = pode('pessoas.gerirDiretores')
   const perfis = gereDiretores ? PERFIS : PERFIS.filter(([k]) => k !== 'diretor')
   const podeMexer = p => gereDiretores || p.perfil !== 'diretor'
@@ -196,6 +204,12 @@ export default function Pessoas() {
       filter: 1,
       get: p => rotuloStatus(p.status),
       render: p => <span className={chip(COR_STATUS[p.status])}>{rotuloStatus(p.status)}</span>,
+    },
+    {
+      k: 'oc',
+      l: 'Ocupação',
+      get: p => percentuais[p.codigo] ?? -1,
+      render: p => <ChipOcupacao percentual={percentuais[p.codigo]} />,
     },
     { k: 'en', l: 'Entrada', get: p => p.dataEntrada || '', render: p => fd(p.dataEntrada) },
     {

@@ -163,7 +163,7 @@ export default function Projetos() {
   const mudarStatus = p =>
     form(
       'Mudar status',
-      [{ k: 'status', l: 'Status', o: STATUS_PROJETO, h: 'Em andamento, Atenção e Bloqueado contam na alocação das pessoas.' }],
+      [{ k: 'status', l: 'Status', o: STATUS_PROJETO, h: 'Concluído e Arquivado não contam na ocupação das pessoas.' }],
       { status: p.status },
       v => executar(() => projetos.alterarStatus(p.codigo, v.status), 'Status atualizado').then(r => (r === false ? false : undefined)),
     )

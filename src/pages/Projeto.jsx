@@ -31,7 +31,7 @@ const ABAS = [
 
 const dia = s => (s ? String(s).slice(0, 10) : '')
 
-/** Gerente fora da lista do projeto sigiloso: só nome, status, datas, contagens e equipe com alocação. */
+/** Gerente fora da lista do projeto sigiloso: só nome, status, datas, contagens e equipe. */
 function ResumoSigiloso({ projeto, voltar }) {
   const t = projeto.tarefas || {}
   const pessoas = projeto.participacoes.map(x => ({ ...x, id: x.codigo ?? x.usuario.codigo + dia(x.dataEntrada) }))
@@ -67,7 +67,6 @@ function ResumoSigiloso({ projeto, voltar }) {
         vazio="Ninguém na equipe."
         cols={[
           { k: 'p', l: 'Pessoa', get: x => x.usuario.nome },
-          { k: 'a', l: 'Alocação', get: x => x.alocacao, render: x => x.alocacao + '%' },
           { k: 'e', l: 'Entrada', get: x => dia(x.dataEntrada), render: x => fm(dia(x.dataEntrada)) },
           { k: 's', l: 'Saída', get: x => dia(x.dataSaida), render: x => (x.dataSaida ? fm(dia(x.dataSaida)) : 'Em andamento') },
         ]}
@@ -121,7 +120,7 @@ export default function Projeto() {
         {carregando && <Esqueleto />}
       </>
     )
-  const { projeto, todos, gente, areas } = dados
+  const { projeto, gente, areas } = dados
   if (projeto.resumo) return <ResumoSigiloso projeto={projeto} voltar={voltar} />
   // Depois de salvar: recarrega o projeto e os dados compartilhados (tarefas, avatares, painel).
   const aoSalvar = async () => {
@@ -367,7 +366,7 @@ export default function Projeto() {
       {aba == 'geral' && geral()}
       {aba == 'biblioteca' && temBiblioteca && <ItensDoProjeto projeto={projeto} />}
       {aba == 'equipe' && ehGeral && <EquipeCalculada projeto={projeto} />}
-      {aba == 'equipe' && !ehGeral && <EquipeProjeto projeto={projeto} todos={todos} gente={gente} gestor={gestor} aoSalvar={aoSalvar} />}
+      {aba == 'equipe' && !ehGeral && <EquipeProjeto projeto={projeto} gente={gente} gestor={gestor} aoSalvar={aoSalvar} />}
       {editandoColunas && (
         <ColunasModal
           colunas={projeto.colunas.map(adaptColuna)}

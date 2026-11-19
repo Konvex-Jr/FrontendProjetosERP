@@ -57,3 +57,10 @@ export function rotuloSemana(iso) {
 /** "Ana fica com 120% na semana de 23/11 (12 h de 10 h)." */
 export const textoAviso = a =>
   `${a.nome} fica com ${Math.round(a.percentual)}% na semana de ${ddmm(String(a.semana).slice(0, 10))} (${formatarHoras(a.horas)} de ${formatarHoras(a.teto)}).`
+
+/** Segunda-feira da semana de hoje (dia do relógio local). */
+export function semanaAtual() {
+  const d = new Date()
+  const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  return segundaDaSemana(iso)
+}
