@@ -17,7 +17,7 @@ import SeloEtapa from '../components/SeloEtapa'
 import { STATUS_ATIVOS, projetos } from '../services/projetos'
 import { gruposDeProjetos } from '../lib/projetosInternos'
 import { apoioTarefa } from '../services/ocupacao'
-import { comCarga, opcoesDificuldade, segundaDaSemana } from '../lib/ocupacao'
+import { comCarga, opcoesDificuldade } from '../lib/ocupacao'
 import { acoesTarefa, avisarOcupacao, origemTarefa, papelNaTarefa, quadroDesatualizado, tarefas } from '../services/tarefas'
 
 const VISOES = [
@@ -114,7 +114,7 @@ export default function Tarefas() {
 
   const { m } = semanas(D)
   const nova = async i => {
-    const { horas, carga } = await apoioTarefa(segundaDaSemana(D.c.hoje))
+    const { horas, carga } = await apoioTarefa(D.c.hoje)
     const inicial = tipos.find(([k]) => k === filtro.origem)?.[0] || tipos[0]?.[0]
     return form(
       'Nova tarefa',

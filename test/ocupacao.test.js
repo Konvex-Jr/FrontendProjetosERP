@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
+import { apoioTarefa } from '../src/services/ocupacao.js'
 import {
   DIFICULDADES,
   comCarga,
@@ -84,4 +85,12 @@ test('opcoesDificuldade e comCarga', () => {
     l.map(u => u.nome),
     ['Ana · 120%', 'Bia'],
   )
+})
+
+test('apoioTarefa nunca lança: Date, texto inválido ou chamadas falhando viram o vazio', async () => {
+  const vazio = { horas: null, carga: {} }
+  assert.deepEqual(await apoioTarefa(new Date()), vazio)
+  assert.deepEqual(await apoioTarefa('lixo'), vazio)
+  // Sem API no teste, as duas chamadas falham: mesmo assim resolve.
+  assert.deepEqual(await apoioTarefa('2026-11-19'), vazio)
 })

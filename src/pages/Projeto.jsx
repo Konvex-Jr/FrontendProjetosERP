@@ -14,7 +14,7 @@ import useCarregar from '../lib/useCarregar'
 import Esqueleto from '../components/Esqueleto'
 import { projetos, rotuloPrioridade } from '../services/projetos'
 import { apoioTarefa } from '../services/ocupacao'
-import { comCarga, opcoesDificuldade, segundaDaSemana } from '../lib/ocupacao'
+import { comCarga, opcoesDificuldade } from '../lib/ocupacao'
 import { acoesTarefa, avisarOcupacao, papelNasTarefas, quadroDesatualizado, tarefas } from '../services/tarefas'
 import { ErroAcessoParcial, gravarProjeto } from '../lib/gravarProjeto'
 import { carregarProjeto } from '../lib/carregarProjeto'
@@ -136,7 +136,7 @@ export default function Projeto() {
     h = hj(D)
 
   const add = async colunaId => {
-    const { horas, carga } = await apoioTarefa(segundaDaSemana(h))
+    const { horas, carga } = await apoioTarefa(D.c.hoje)
     return form(
       'Nova tarefa',
       [
