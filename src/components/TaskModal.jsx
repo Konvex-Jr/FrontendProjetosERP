@@ -5,7 +5,7 @@ import Multi from './Multi'
 import { Prog } from './Ui'
 import SeloEtapa from './SeloEtapa'
 import { ST, chip, fm } from '../lib/utils'
-import { CATEGORIAS, rotuloCategoria, tarefas } from '../services/tarefas'
+import { tarefas } from '../services/tarefas'
 import alerts from '../lib/alerts'
 
 const L = ({ l, children }) => (
@@ -209,7 +209,7 @@ export default function TaskModal({ D, salvar, t, p, T, close, del, tog, papel, 
   const gente = t.avulsa
     ? D.u.filter(u => u.ativo !== false || (t.responsaveis || []).includes(u.id))
     : D.u.filter(u => (p?.membros || []).includes(u.id))
-  const origem = t.avulsa ? 'Tarefa avulsa · ' + rotuloCategoria(t.categoria) : 'em ' + (p?.nome || t.projetoNome || 'projeto')
+  const origem = 'em ' + (p?.nome || t.projetoNome || 'projeto')
   const addI = () => {
     const v = nv.trim()
     if (!v) return
@@ -315,17 +315,6 @@ export default function TaskModal({ D, salvar, t, p, T, close, del, tog, papel, 
                     )}
                   </div>
                   <div className="col-md-4">
-                    {t.avulsa && (
-                      <L l="Categoria">
-                        <select className="form-select mt-1" value={draft.categoria} onChange={e => patch({ categoria: e.target.value })}>
-                          {CATEGORIAS.map(([k, l]) => (
-                            <option key={k} value={k}>
-                              {l}
-                            </option>
-                          ))}
-                        </select>
-                      </L>
-                    )}
                     {etapas ? (
                       papel.organiza ? (
                         campoEtapa(draft.coluna?.id, id => patch({ coluna: etapas.find(c => c.id === id) }))

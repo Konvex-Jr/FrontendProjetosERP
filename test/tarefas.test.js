@@ -117,39 +117,21 @@ test('papel nas tarefas: gestão e líder organizam; participante só as suas; d
   assert.equal(saiu.podeStatus({ responsaveis: ['saiu'] }), false)
 })
 
-test('tarefa avulsa (8c): corpo com categoria e regras de quem organiza', () => {
-  const nova = corpoNovaTarefa(null, {
-    titulo: 'Pesquisa',
-    categoria: 'inovacao',
-    iniciativaId: 'ini-1',
-    inicio: '2026-11-03',
-    fim: '2026-11-07',
-    responsaveis: ['u2'],
-  })
-  assert.equal(nova.codigoProjeto, undefined)
-  assert.equal(nova.categoria, 'inovacao')
-  assert.equal('codigoIniciativa' in nova, false)
-  assert.equal('codigoIniciativa' in corpoTarefa({ ...tarefa, avulsa: true, categoria: 'inovacao', iniciativaId: 'ini-1' }), false)
+test('toda tarefa tem projeto (23b): corpo, origem e líder da área', () => {
+  const nova = corpoNovaTarefa('p1', { titulo: 'Pesquisa', inicio: '2026-11-03', fim: '2026-11-07', responsaveis: ['u2'] })
+  assert.equal(nova.codigoProjeto, 'p1')
+  assert.equal('categoria' in nova, false)
   assert.deepEqual(nova.codigosResponsaveis, ['u2'])
-  assert.equal(corpoTarefa({ ...tarefa, avulsa: true, categoria: 'execucao' }).categoria, 'execucao')
-  assert.equal(corpoTarefa(tarefa).categoria, undefined)
+  assert.equal('categoria' in corpoTarefa(tarefa), false)
 
-  const avulsa = { ...tarefa, projetoId: undefined, avulsa: true, categoria: 'inovacao', responsaveis: ['u1'] }
-  const gestao = papelNaTarefa({ me: 'g', gestao: true, atribui: true, tarefa: avulsa })
-  assert.equal(gestao.organiza, true)
-  const resp = papelNaTarefa({ me: 'u1', tarefa: avulsa })
-  assert.equal(resp.organiza, false)
-  assert.equal(resp.participa, true)
-  assert.equal(resp.podeStatus(avulsa), true)
-  const outro = papelNaTarefa({ me: 'u9', tarefa: avulsa })
-  assert.equal(outro.participa, false)
-  assert.equal(outro.podeStatus(avulsa), false)
-  // Tarefa de projeto continua com as regras da 8b.
-  const projeto = { participacoes: [{ usuario: { codigo: 'u1' } }], lider: null }
+  const projeto = { participacoes: [{ usuario: { codigo: 'u1' } }], lider: null, lideresDaArea: ['ld'] }
   assert.equal(papelNaTarefa({ me: 'u1', projeto, tarefa }).podeStatus(tarefa), true)
   assert.equal(papelNaTarefa({ me: 'u1', projeto, tarefa }).organiza, false)
-  assert.equal(origemTarefa(avulsa), 'Inovação')
+  assert.equal(papelNaTarefa({ me: 'ld', projeto, tarefa }).organiza, true)
+  assert.equal(papelNasTarefas({ me: 'ld', projeto }).organiza, true)
+  assert.equal(papelNasTarefas({ me: 'ld', projeto }).lider, true)
   assert.equal(origemTarefa({ ...tarefa, projetoNome: 'Site' }), 'Site')
+  assert.equal(origemTarefa(tarefa), 'Projeto')
 })
 
 const entrada = { id: 'c1', nome: 'A fazer', cor: 'cinza', papel: 'entrada' }

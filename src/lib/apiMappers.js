@@ -54,6 +54,11 @@ export function adaptProject(project) {
     // Contagem de todas as tarefas do projeto (para o progresso; ver prog em lib/utils.js).
     tarefas: project.tarefas,
     // Sigilo: o resumo (gerente fora da lista) só traz nome, status, datas, contagens e equipe.
+    tipo: project.tipo || 'cliente',
+    geralDaArea: !!project.geralDaArea,
+    lideresDaArea: project.lideresDaArea || [],
+    areaId: project.area?.codigo ?? null,
+    areaNome: project.area?.nome ?? null,
     sigiloso: !!project.sigiloso,
     resumo: !!project.resumo,
     acesso: project.acesso || [],
@@ -77,8 +82,6 @@ export function adaptTask(task) {
     id: task.codigo,
     projetoId: userCode(task.projeto) || undefined,
     projetoNome: task.projeto?.nome,
-    avulsa: !task.projeto,
-    categoria: task.categoria || undefined,
     criadaPor: task.criadaPor ? task.criadaPor.nomeExibicao || task.criadaPor.nome : undefined,
     titulo: task.titulo,
     descricao: task.descricao || '',

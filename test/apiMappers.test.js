@@ -156,3 +156,23 @@ test('adaptTask traz a coluna (ou null) e adaptProject as colunas', () => {
   ])
   assert.deepEqual(adaptProject({ codigo: 'p', nome: 'X', resumo: true }).colunas, [])
 })
+
+test('adaptProject traz tipo, área e líderes da área; adaptTask sem avulsa/categoria (23b)', () => {
+  const p = adaptProject({
+    codigo: 4,
+    nome: 'Geral',
+    tipo: 'interno',
+    geralDaArea: true,
+    lideresDaArea: [7],
+    area: { codigo: 10, nome: 'Inovação' },
+  })
+  assert.equal(p.tipo, 'interno')
+  assert.equal(p.geralDaArea, true)
+  assert.deepEqual(p.lideresDaArea, [7])
+  assert.equal(p.areaId, 10)
+  assert.equal(p.areaNome, 'Inovação')
+  assert.equal(adaptProject({ codigo: 1, nome: 'X' }).tipo, 'cliente')
+  const t = adaptTask({ codigo: 1, titulo: 'T', projeto: { codigo: 4, nome: 'Geral' } })
+  assert.equal('avulsa' in t, false)
+  assert.equal('categoria' in t, false)
+})

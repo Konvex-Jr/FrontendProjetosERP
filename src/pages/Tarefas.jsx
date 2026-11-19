@@ -15,7 +15,7 @@ import { adaptTask } from '../lib/apiMappers'
 import { adaptColuna } from '../lib/colunas'
 import SeloEtapa from '../components/SeloEtapa'
 import { STATUS_ATIVOS, projetos } from '../services/projetos'
-import { CATEGORIAS, acoesTarefa, origemTarefa, papelNaTarefa, quadroDesatualizado, tarefas } from '../services/tarefas'
+import { acoesTarefa, origemTarefa, papelNaTarefa, quadroDesatualizado, tarefas } from '../services/tarefas'
 
 const VISOES = [
   ['kanban', 'Kanban'],
@@ -41,9 +41,7 @@ const equipeAtual = projeto => (projeto?.participacoes || []).filter(x => !x.dat
 export function filtroApi({ pessoa, origem, status }) {
   const f = { status }
   if (pessoa) f.codigoResponsavel = pessoa
-  if (origem === 'avulsas') f.categoria = 'avulsas'
-  else if (origem?.startsWith('cat:')) f.categoria = origem.slice(4)
-  else if (origem?.startsWith('proj:')) f.codigoProjeto = origem.slice(5)
+  if (origem?.startsWith('proj:')) f.codigoProjeto = origem.slice(5)
   return f
 }
 
@@ -68,8 +66,7 @@ export function dadosDaTela({ me }, filtro = { pessoa: me, origem: '', status: '
  */
 export default function Tarefas() {
   const { D, form, me, pode, refresh } = useApp()
-  const gestao = pode('tarefas.gerirTodas'),
-    atribui = pode('tarefas.atribuir')
+  const gestao = pode('tarefas.gerirTodas')
   const [filtro, setFiltro] = useState(() => ({ pessoa: me, origem: '', status: '', prazo: '', ...consumir('tarefas') }))
   const [visao, setVisao] = useState('kanban'),
     [tk, setTk] = useState(null)
@@ -82,7 +79,7 @@ export default function Tarefas() {
 
   const porCodigo = useMemo(() => new Map((dados?.projetos || []).map(p => [p.codigo, p])), [dados])
   const T = (dados?.tarefas || []).filter(t => noPrazo(t, filtro.prazo, hj(D)))
-  const papelDe = t => papelNaTarefa({ me, gestao, atribui, projeto: porCodigo.get(t.projetoId), tarefa: t })
+  const papelDe = t => papelNaTarefa({ me, gestao, projeto: porCodigo.get(t.projetoId) })
 
   const salvarTarefa = async (chamada, ok) => {
     try {
@@ -102,15 +99,11 @@ export default function Tarefas() {
   // Onde a pessoa pode criar: gestão em qualquer categoria ou projeto ativo; membro só nos projetos da sua equipe atual.
   const ativos = (dados?.projetos || []).filter(p => STATUS_ATIVOS.includes(p.status))
   const meus = gestao ? ativos : ativos.filter(p => equipeAtual(p).includes(me))
-  const tipos = [
-    ...(atribui ? CATEGORIAS.map(([k, l]) => ['cat:' + k, l + ' (tarefa avulsa)']) : []),
-    ...meus.map(p => ['proj:' + p.codigo, 'Projeto: ' + p.nome]),
-  ]
+  const tipos = [...meus.map(p => ['proj:' + p.codigo, 'Projeto: ' + p.nome])]
   const organizaEm = tipo => {
     if (!tipo) return false
-    if (tipo.startsWith('cat:')) return atribui
     const p = porCodigo.get(tipo.slice(5))
-    return gestao || p?.lider?.codigo === me
+    return gestao || p?.lider?.codigo === me || (p?.lideresDaArea || []).includes(me)
   }
   const genteDe = tipo =>
     tipo?.startsWith('proj:')
@@ -127,9 +120,7 @@ export default function Tarefas() {
           k: 'tipo',
           l: 'Tipo',
           o: tipos,
-          h: atribui
-            ? 'Tarefa avulsa (Inovação, Capacitação ou Execução) ou de um projeto.'
-            : 'Você cria tarefas nos projetos de que participa.',
+          h: 'Você cria tarefas nos projetos de que participa.',
         },
         { k: 'titulo', l: 'Título' },
         { k: 'prioridade', l: 'Prioridade', o: ['P1', 'P2', 'P3', 'P4'].map(x => [x, x]) },
@@ -140,12 +131,12 @@ export default function Tarefas() {
       {
         tipo: inicial,
         prioridade: 'P3',
-        responsaveis: filtro.pessoa && filtro.pessoa !== me && atribui ? [filtro.pessoa] : [],
+        responsaveis: filtro.pessoa && filtro.pessoa !== me && gestao ? [filtro.pessoa] : [],
         ...(typeof i == 'number' && i < 3 ? { inicio: D.c.hoje, fim: iso(m + (7 * i + 4) * DAY) } : {}),
       },
       o => {
         const projeto = o.tipo?.startsWith('proj:') ? o.tipo.slice(5) : null
-        const dados = { ...o, categoria: projeto ? undefined : o.tipo?.slice(4), responsaveis: organizaEm(o.tipo) ? o.responsaveis : [me] }
+        const dados = { ...o, responsaveis: organizaEm(o.tipo) ? o.responsaveis : [me] }
         return salvarTarefa(() => tarefas.criar(projeto, dados), 'Tarefa criada')
       },
     )
@@ -157,12 +148,7 @@ export default function Tarefas() {
     [me, 'Minhas tarefas'],
     ...D.u.filter(u => u.id !== me && u.ativo !== false).map(u => [u.id, u.nome]),
   ]
-  const origens = [
-    ['', 'Origem: todas'],
-    ['avulsas', 'Só avulsas'],
-    ...CATEGORIAS.map(([k, l]) => ['cat:' + k, l]),
-    ...(dados?.projetos || []).map(p => ['proj:' + p.codigo, 'Projeto: ' + p.nome]),
-  ]
+  const origens = [['', 'Origem: todas'], ...(dados?.projetos || []).map(p => ['proj:' + p.codigo, 'Projeto: ' + p.nome])]
   const sel = (rotulo, k, opcoes) => (
     <select
       className="form-select w-auto"
@@ -196,14 +182,14 @@ export default function Tarefas() {
     {
       k: 'etapa',
       l: 'Etapa',
-      get: t => (t.avulsa ? '' : t.coluna?.nome || ''),
-      render: t => (t.avulsa ? '' : <SeloEtapa coluna={t.coluna} />),
+      get: t => t.coluna?.nome || '',
+      render: t => <SeloEtapa coluna={t.coluna} />,
     },
     { k: 'situacao', l: 'Situação', get: t => ST[t.status], filter: true },
   ]
 
   const aberta = tk && T.find(x => x.id == tk)
-  const projetoAberto = aberta && !aberta.avulsa ? porCodigo.get(aberta.projetoId) : null
+  const projetoAberto = aberta ? porCodigo.get(aberta.projetoId) : null
   return (
     <>
       <PageBar title="Tarefas" sub={carregando && !dados ? '' : `${T.length} ${T.length == 1 ? 'tarefa' : 'tarefas'}`}>
