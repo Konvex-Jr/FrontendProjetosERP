@@ -13,7 +13,7 @@ import alerts from '../lib/alerts'
 import useCarregar from '../lib/useCarregar'
 import Esqueleto from '../components/Esqueleto'
 import { projetos, rotuloPrioridade } from '../services/projetos'
-import { acoesTarefa, papelNasTarefas, quadroDesatualizado, tarefas } from '../services/tarefas'
+import { acoesTarefa, avisarOcupacao, papelNasTarefas, quadroDesatualizado, tarefas } from '../services/tarefas'
 import { ErroAcessoParcial, gravarProjeto } from '../lib/gravarProjeto'
 import { carregarProjeto } from '../lib/carregarProjeto'
 import Table from '../components/Table'
@@ -154,8 +154,9 @@ export default function Projeto() {
   // Toda alteração de tarefa vai direto para a API; depois recarrega a tela e o painel.
   const salvarTarefa = async (chamada, ok) => {
     try {
-      await chamada()
+      const resposta = await chamada()
       if (ok) alerts.toastSuccess(ok)
+      avisarOcupacao(resposta)
       await aoSalvar()
     } catch (error) {
       // Coluna apagada ou quadro mudado por outra pessoa: mostra o aviso da API e recarrega o quadro.

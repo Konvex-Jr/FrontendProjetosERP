@@ -6,6 +6,9 @@ import { Prog } from './Ui'
 import SeloEtapa from './SeloEtapa'
 import { ST, chip, fm } from '../lib/utils'
 import { tarefas } from '../services/tarefas'
+import { configuracoes } from '../services/pessoas'
+import { ocupacao } from '../services/ocupacao'
+import { DIFICULDADES, rotuloDificuldade, segundaDaSemana } from '../lib/ocupacao'
 import alerts from '../lib/alerts'
 
 const L = ({ l, children }) => (
@@ -154,6 +157,30 @@ function AnexosTarefa({ t, papel, aoMudar }) {
 export default function TaskModal({ D, salvar, t, p, T, close, del, tog, papel, recarregar, colunas, mover }) {
   const [draft, setDraft] = useState({ ...t }),
     [nv, setNv] = useState('')
+  // Horas por dificuldade e % da semana do prazo; se falhar, a tela segue sem o complemento.
+  const [horas, setHoras] = useState(null),
+    [carga, setCarga] = useState({})
+  useEffect(() => {
+    let vivo = true
+    configuracoes
+      .horasDificuldade()
+      .then(h => vivo && setHoras(h))
+      .catch(() => {})
+    return () => {
+      vivo = false
+    }
+  }, [])
+  const semana = draft.fim ? segundaDaSemana(draft.fim) : undefined
+  useEffect(() => {
+    let vivo = true
+    ocupacao
+      .todas(semana)
+      .then(l => vivo && setCarga(Object.fromEntries(l.map(o => [o.codigoUsuario, Math.round(o.percentual)]))))
+      .catch(() => vivo && setCarga({}))
+    return () => {
+      vivo = false
+    }
+  }, [semana])
   const cl = draft.checklist || [],
     dn = cl.filter(x => x.feito).length
   const patch = o => setDraft(current => ({ ...current, ...o })),
@@ -206,7 +233,9 @@ export default function TaskModal({ D, salvar, t, p, T, close, del, tog, papel, 
   const opts = doProjeto.filter(c => c.id != t.id && !chain(c.id).includes(t.id)),
     deps = doProjeto.filter(x => x.dependeDe == t.id)
   // Responsáveis: equipe atual do projeto.
-  const gente = D.u.filter(u => (p?.membros || []).includes(u.id))
+  const gente = D.u
+    .filter(u => (p?.membros || []).includes(u.id))
+    .map(u => (carga[u.id] == null ? u : { ...u, nome: `${u.nome} · ${carga[u.id]}%` }))
   const origem = 'em ' + (p?.nome || t.projetoNome || 'projeto')
   const addI = () => {
     const v = nv.trim()
@@ -339,6 +368,20 @@ export default function TaskModal({ D, salvar, t, p, T, close, del, tog, papel, 
                       <select className="form-select mt-1" value={draft.prioridade} onChange={e => patch({ prioridade: e.target.value })}>
                         {['P1', 'P2', 'P3', 'P4'].map(x => (
                           <option key={x}>{x}</option>
+                        ))}
+                      </select>
+                    </L>
+                    <L l="Dificuldade">
+                      <select
+                        className="form-select mt-1"
+                        value={draft.dificuldade || ''}
+                        onChange={e => patch({ dificuldade: e.target.value })}
+                      >
+                        <option value="">Sem classificação</option>
+                        {DIFICULDADES.map(([v]) => (
+                          <option key={v} value={v}>
+                            {rotuloDificuldade(v, horas?.[v])}
+                          </option>
                         ))}
                       </select>
                     </L>

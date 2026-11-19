@@ -46,6 +46,13 @@ const tarefa = {
   checklist: [{ id: 'c1', texto: 'Levantar', feito: 1 }],
 }
 
+test('dificuldade vai no corpo: vazia vira null', () => {
+  assert.equal(corpoTarefa({ ...tarefa, dificuldade: '' }).dificuldade, null)
+  assert.equal(corpoTarefa({ ...tarefa, dificuldade: 'media' }).dificuldade, 'media')
+  assert.equal(corpoNovaTarefa('p1', { titulo: 'X', dificuldade: 'rapida' }).dificuldade, 'rapida')
+  assert.equal(corpoNovaTarefa('p1', { titulo: 'X' }).dificuldade, null)
+})
+
 test('corpos da tarefa seguem o contrato da API', () => {
   const nova = corpoNovaTarefa('p1', { titulo: 'X', inicio: '2026-11-03', fim: '2026-11-07' })
   assert.equal(nova.codigoProjeto, 'p1')

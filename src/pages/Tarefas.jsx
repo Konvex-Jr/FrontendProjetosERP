@@ -16,7 +16,7 @@ import { adaptColuna } from '../lib/colunas'
 import SeloEtapa from '../components/SeloEtapa'
 import { STATUS_ATIVOS, projetos } from '../services/projetos'
 import { gruposDeProjetos } from '../lib/projetosInternos'
-import { acoesTarefa, origemTarefa, papelNaTarefa, quadroDesatualizado, tarefas } from '../services/tarefas'
+import { acoesTarefa, avisarOcupacao, origemTarefa, papelNaTarefa, quadroDesatualizado, tarefas } from '../services/tarefas'
 
 const VISOES = [
   ['kanban', 'Kanban'],
@@ -84,8 +84,9 @@ export default function Tarefas() {
 
   const salvarTarefa = async (chamada, ok) => {
     try {
-      await chamada()
+      const resposta = await chamada()
       if (ok) alerts.toastSuccess(ok)
+      avisarOcupacao(resposta)
       await recarregar()
       refresh().catch(() => {})
     } catch (error) {

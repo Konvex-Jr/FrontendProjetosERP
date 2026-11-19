@@ -55,6 +55,19 @@ const alerts = {
   },
   toastSuccess: (title, text = '') =>
     show({ toast: true, position: 'top-end', icon: 'success', title, text, showConfirmButton: false, timer: 2400, timerProgressBar: true }),
+  /** Aviso amarelo no canto (ex.: ocupação acima de 100%). Uma linha por `\n`. */
+  toastWarning: (title, text = '') =>
+    show({
+      toast: true,
+      position: 'top-end',
+      icon: 'warning',
+      title,
+      text,
+      showConfirmButton: false,
+      timer: 6000,
+      timerProgressBar: true,
+      customClass: { ...baseOptions.customClass, htmlContainer: 'konvex-aviso-linhas' },
+    }),
   // Só fecha se o SweetAlert já foi baixado; não baixa nada só para fechar.
   close: () => {
     swal?.then(Swal => Swal.close())
