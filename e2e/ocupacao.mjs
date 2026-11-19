@@ -9,7 +9,7 @@
  *   5. Pessoas mostra a coluna Ocupação; Configurações: diretora muda Média para 5 h e a % da Bia sobe
  *   6. celular (375 px), tema escuro: perfil com a ocupação cabe na tela
  *
- * (A janela "Nova tarefa" não tem Dificuldade: o passo 1 cria e depois classifica nos detalhes.)
+ * (O passo 1 classifica a tarefa já na janela "Nova tarefa" da tela do projeto.)
  * Pré-requisitos: dados fictícios (Caio acima de 100% na semana atual; projeto "Proposta confidencial (fictício)"):
  *   API_URL=http://localhost:5002 APP_URL=http://localhost:5173 node e2e/ocupacao.mjs
  * Ao final devolve as horas padrão (Média 4 h) e apaga o que criou.
@@ -110,7 +110,6 @@ const resumoOcupacao = async page => {
   exigir(m, `resumo da ocupação fora do formato: "${texto}"`)
   return { percentual: Number(m[1]), horas: Number(m[2].replace(',', '.')), teto: Number(m[3].replace(',', '.')) }
 }
-const detalhes = page => page.getByRole('dialog', { name: 'Detalhes da tarefa' })
 const abrirPerfil = async (page, codigo) => {
   await page.goto(`${APP}/#/perfil/${codigo}`)
   await page.getByRole('heading', { name: 'Ocupação da semana' }).waitFor({ timeout: 15000 })
@@ -128,6 +127,7 @@ const caio = pessoas.find(p => p.email === 'caio@dev.konvex')
 const bia = pessoas.find(p => p.email === 'bia@dev.konvex')
 const projetos = await api('GET', '/projetos')
 const sigiloso = projetos.find(p => p.nome === SIGILOSO)
+const projetoSite = projetos.find(p => p.nome === PROJETO)
 if (!caio || !bia || !sigiloso) throw new Error('Rode antes: npm run dados:ficticios (no backend)')
 horasOriginais = await api('GET', '/config/horas-dificuldade')
 const antesCaio = (await api('GET', `/ocupacao/${caio.codigo}`)).percentual
@@ -161,37 +161,41 @@ try {
   browser = await chromium.launch()
   const page = await nova({ viewport: { width: 1280, height: 900 } })
 
-  await passo('1. diretora cria tarefa Difícil de duas semanas para o Caio e vê o aviso de ocupação', async () => {
+  await passo('1. diretora cria, no projeto, tarefa Difícil de duas semanas para o Caio e vê o aviso de ocupação', async () => {
     await entrar(page, ...DIRETORA)
+    // Nova tarefa nos dois lugares abre (Tarefas e Projeto); a criação que vale é a do projeto, já com Dificuldade.
     await page.goto(`${APP}/#/tarefas`)
     await page.getByRole('heading', { name: 'Tarefas' }).first().waitFor({ timeout: 15000 })
     await page.getByRole('button', { name: 'Nova tarefa' }).first().click()
-    await campo(page, 'Projeto').selectOption({ label: PROJETO })
+    await janela(page).waitFor({ timeout: 15000 })
+    exigir(await campo(page, 'Dificuldade').count(), 'Nova tarefa (Tarefas) sem o campo Dificuldade')
+    await janela(page).getByRole('button', { name: 'Cancelar' }).click()
+    await janela(page).waitFor({ state: 'detached', timeout: 15000 })
+    await page.goto(`${APP}/#/projetos/${projetoSite.codigo}`)
+    await page.getByRole('button', { name: 'Nova tarefa' }).first().click()
+    await janela(page).waitFor({ timeout: 15000 })
     await campo(page, 'Título').fill(TITULO)
     await campo(page, 'Início').fill(INICIO)
     await campo(page, 'Fim').fill(FIM)
+    const opcoes = await campo(page, 'Dificuldade').locator('option').allInnerTexts()
+    exigir(opcoes.includes('Sem classificação') && opcoes.includes('Difícil (8 h)'), `opções de dificuldade: ${opcoes.join(' | ')}`)
+    await campo(page, 'Dificuldade').selectOption({ label: 'Difícil (8 h)' })
     await janela(page).locator('.ms .mc').click()
+    exigir(
+      await janela(page)
+        .locator('.ms .mo')
+        .filter({ hasText: /Caio Membro · \d+%/ })
+        .count(),
+      'responsável sem a % na opção',
+    )
     await janela(page).locator('.ms .mo').filter({ hasText: 'Caio Membro' }).click()
     await janela(page).getByRole('button', { name: 'Salvar' }).click()
-    await janela(page).waitFor({ state: 'detached', timeout: 15000 })
-    // A janela de criação não tem Dificuldade: ela se escolhe nos detalhes da tarefa.
-    await page.getByLabel('Pessoa', { exact: true }).selectOption('')
-    await page.getByText(TITULO).first().click()
-    await detalhes(page).waitFor()
-    const dif = detalhes(page)
-      .locator('label')
-      .filter({ hasText: /^Dificuldade/ })
-      .locator('select')
-    const opcoes = await dif.locator('option').allInnerTexts()
-    exigir(opcoes.includes('Difícil (8 h)'), `opções de dificuldade: ${opcoes.join(' | ')}`)
-    await dif.selectOption({ label: 'Difícil (8 h)' })
-    await detalhes(page).getByRole('button', { name: 'Salvar alterações' }).click()
     const aviso = page.locator('.swal2-popup').filter({ hasText: 'Ocupação acima do teto' })
     await aviso.waitFor({ timeout: 15000 })
     const textoAviso = await aviso.innerText()
     exigir(/Caio Membro fica com \d+% na semana de/.test(textoAviso), `texto do aviso: ${textoAviso}`)
-    await detalhes(page).waitFor({ state: 'detached', timeout: 15000 })
-    const t = (await api('GET', `/tarefas?codigoProjeto=${projetos.find(p => p.nome === PROJETO).codigo}`)).find(x => x.titulo === TITULO)
+    await janela(page).waitFor({ state: 'detached', timeout: 15000 })
+    const t = (await api('GET', `/tarefas?codigoProjeto=${projetoSite.codigo}`)).find(x => x.titulo === TITULO)
     exigir(t && t.dificuldade === 'dificil', `API: dificuldade = ${t?.dificuldade}`)
     criadas.push(t.codigo)
     await page.screenshot({ path: `${PRINTS}ocupacao-1.png` })
