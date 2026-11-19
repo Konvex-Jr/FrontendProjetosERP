@@ -24,3 +24,10 @@ export function mudouRascunho(original, rascunho, anexosEscolhidos = []) {
   for (const chave of chaves) if (valor(original || {}, chave) !== valor(rascunho || {}, chave)) return true
   return false
 }
+
+/**
+ * Data de conclusão do rascunho ao trocar a Situação: concluir mostra hoje (a API grava a data real);
+ * tarefa que já estava concluída e volta a concluída mantém a data dela; outra situação limpa.
+ */
+export const conclusaoDoStatus = (status, original, hoje) =>
+  status === 'concluida' ? (original?.status === 'concluida' ? original.conclusao : hoje) : undefined

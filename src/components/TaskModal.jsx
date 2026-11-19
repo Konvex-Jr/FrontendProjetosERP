@@ -11,7 +11,7 @@ import { configuracoes } from '../services/pessoas'
 import { ocupacao } from '../services/ocupacao'
 import { cargaPorPessoa, comCarga, opcoesDificuldade, segundaDaSemana } from '../lib/ocupacao'
 import alerts from '../lib/alerts'
-import { mudouRascunho } from '../lib/rascunhoTarefa'
+import { conclusaoDoStatus, mudouRascunho } from '../lib/rascunhoTarefa'
 
 const L = ({ l, children }) => (
   <label className="form-label w-100 mb-3">
@@ -163,7 +163,7 @@ const comFeito = (lista, id, feito) => (lista || []).map(i => (i.id === id ? { .
  * `recarregar` atualiza a tela por trás (anexos e marcação do checklist).
  */
 export default function TaskModal({ D, salvar, t, p, T, close, del, tog, papel, recarregar, colunas, mover }) {
-  const [original, setOriginal] = useState(() => ({ ...t })),
+  const [inicial, setOriginal] = useState(() => ({ ...t })),
     [rascunho, setDraft] = useState(() => ({ ...t })),
     [nv, setNv] = useState(''),
     [marcando, setMarcando] = useState({}),
@@ -171,7 +171,9 @@ export default function TaskModal({ D, salvar, t, p, T, close, del, tog, papel, 
   const etapas = colunas?.length ? colunas : null
   // Coluna apagada enquanto a janela estava aberta: a recarga traz as colunas novas e o rascunho volta à etapa da tarefa.
   const colunaSumiu = etapas && rascunho.coluna && !etapas.some(c => c.id === rascunho.coluna.id)
+  // O original acompanha (senão a troca de coluna contaria como alteração e o "Salvar data" viraria PUT).
   const draft = colunaSumiu ? { ...rascunho, coluna: t.coluna } : rascunho
+  const original = colunaSumiu ? { ...inicial, coluna: t.coluna } : inicial
   const podeEditar = papel.podeEditar(t),
     podeStatus = papel.podeStatus(t),
     podeMarcar = papel.podeMarcar(t)
@@ -204,7 +206,7 @@ export default function TaskModal({ D, salvar, t, p, T, close, del, tog, papel, 
   const patch = o => setDraft(current => ({ ...current, ...o })),
     setCl = f => setDraft(current => ({ ...current, checklist: f(current.checklist || []) }))
   // Ao mudar a Situação, a data de conclusão do rascunho é só para a tela; a API grava a data real (hoje).
-  const st = value => patch({ status: value, conclusao: value == 'concluida' ? D.c.hoje : undefined })
+  const st = value => patch({ status: value, conclusao: conclusaoDoStatus(value, original, D.c.hoje) })
   const campoEtapa = (valor, aoMudar) => (
     <L l="Etapa">
       <select className="form-select mt-1" value={valor || ''} onChange={e => aoMudar(e.target.value)}>

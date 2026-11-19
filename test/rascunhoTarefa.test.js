@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { mudouRascunho } from '../src/lib/rascunhoTarefa.js'
+import { conclusaoDoStatus, mudouRascunho } from '../src/lib/rascunhoTarefa.js'
 
 const tarefa = {
   id: 't1',
@@ -55,4 +55,10 @@ test('mudouRascunho: anexo escolhido na criação conta', () => {
   assert.equal(mudouRascunho(inicial, { ...inicial }), false)
   assert.equal(mudouRascunho(inicial, { ...inicial }, [{ name: 'ata.pdf' }]), true)
   assert.equal(mudouRascunho(inicial, { ...inicial, titulo: 'Nova' }), true)
+})
+
+test('conclusaoDoStatus: concluir hoje; voltar a concluir uma concluída mantém a data dela', () => {
+  assert.equal(conclusaoDoStatus('concluida', { status: 'andamento' }, '2026-11-19'), '2026-11-19')
+  assert.equal(conclusaoDoStatus('andamento', { status: 'concluida', conclusao: '2026-11-10' }, '2026-11-19'), undefined)
+  assert.equal(conclusaoDoStatus('concluida', { status: 'concluida', conclusao: '2026-11-10' }, '2026-11-19'), '2026-11-10')
 })
