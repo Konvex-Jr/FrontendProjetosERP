@@ -152,7 +152,10 @@ export default function Projetos() {
           alerts.error('Não foi possível salvar', aviso)
           return false
         }
-        const r = await executar(() => gravarProjeto(p, v), p ? 'Projeto atualizado' : 'Projeto criado')
+        const r = await executar(
+          () => gravarProjeto(p, v.tipo === 'interno' ? { ...v, clienteNome: '' } : v),
+          p ? 'Projeto atualizado' : 'Projeto criado',
+        )
         if (r && !p) go('projeto', r.codigo)
         return r === false ? false : undefined
       },
@@ -190,7 +193,8 @@ export default function Projetos() {
       />
     )
   const pg = p => prog(D, { id: p.codigo, tarefas: p.tarefas })
-  const periodo = p => fm(dia(p.dataInicio)) + ' a ' + fm(dia(p.dataFim))
+  // O geral da área não tem fim (a data de 31/12/2099 é só técnica): mostra só o início.
+  const periodo = p => (p.geralDaArea ? 'Desde ' + fm(dia(p.dataInicio)) : fm(dia(p.dataInicio)) + ' a ' + fm(dia(p.dataFim)))
   const cols = [
     {
       k: 'nome',
