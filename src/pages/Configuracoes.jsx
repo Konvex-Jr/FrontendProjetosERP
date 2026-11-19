@@ -108,6 +108,9 @@ export default function Configuracoes() {
           k: 'tetoSemanalHoras',
           l: 'Teto semanal (h)',
           t: 'number',
+          min: 1,
+          max: 40,
+          step: 1,
           h: 'Horas por semana que o cargo comporta, de 1 a 40. Base da ocupação das pessoas.',
         },
       ],
@@ -115,7 +118,7 @@ export default function Configuracoes() {
         nome: c?.nome || '',
         ativo: String(c?.ativo ?? true),
         lideraArea: String(c?.lideraArea ?? false),
-        tetoSemanalHoras: c?.tetoSemanalHoras ?? 40,
+        tetoSemanalHoras: c?.tetoSemanalHoras ?? 10,
       },
       v =>
         salvar(
@@ -133,7 +136,7 @@ export default function Configuracoes() {
   const editarHoras = () =>
     form(
       'Horas por dificuldade',
-      DIFICULDADES.map(([k, l]) => ({ k, l: `${l} (h)`, t: 'number' })),
+      DIFICULDADES.map(([k, l]) => ({ k, l: `${l} (h)`, t: 'number', min: 0.5, max: 40, step: 0.5 })),
       Object.fromEntries(DIFICULDADES.map(([k]) => [k, horas[k]])),
       v => {
         const novas = Object.fromEntries(DIFICULDADES.map(([k]) => [k, Number(v[k])]))
@@ -207,7 +210,7 @@ export default function Configuracoes() {
     <>
       <PageBar
         title="Configurações"
-        sub="Listas usadas no cadastro de pessoas. Valor-hora das senioridades fica para quando as taxas forem definidas."
+        sub="Listas do cadastro de pessoas, horas por dificuldade das tarefas e teto semanal de cada cargo. Valor-hora das senioridades fica para quando as taxas forem definidas."
       >
         <button className="btn btn-primary" onClick={atual.novo}>
           <Ic k={aba === 'dificuldade' ? 'edit' : 'plus'} />
