@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useApp } from '../context/AppContext'
 import { consumir } from '../lib/atalho'
 import { chip, fd } from '../lib/utils'
@@ -44,6 +44,7 @@ export function dadosDaTela() {
 export default function Pessoas() {
   const { form, go, me, pode, refresh } = useApp()
   const [filtros] = useState(() => consumir('usuarios'))
+  const enviandoLink = useRef(false)
   const tela = dadosDaTela()
   const { dados, carregando, recarregar } = useCarregar(tela.carregar, [], { chave: tela.chave })
 
@@ -157,6 +158,8 @@ export default function Pessoas() {
 
   // Convite pendente = reenvia o convite; com senha = link de redefinição. A gestão nunca vê o link nem a senha.
   const enviarLink = async p => {
+    if (enviandoLink.current) return
+    enviandoLink.current = true
     try {
       const { enviado, tipo } = await pessoas.enviarLinkSenha(p.codigo)
       const oQue = tipo === 'convite' ? 'Convite' : 'Link de redefinição'
@@ -165,6 +168,8 @@ export default function Pessoas() {
       await recarregar()
     } catch (error) {
       alerts.error('Não foi possível enviar o link', error.message)
+    } finally {
+      enviandoLink.current = false
     }
   }
 

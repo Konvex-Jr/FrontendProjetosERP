@@ -571,13 +571,14 @@ test('/auth/login vai com credentials include e /tarefas não', async () => {
   await request('/auth/login', { method: 'POST', body: { email: 'a@b', senha: 'x', manterConectado: true } })
   await request('/auth/logout', { method: 'POST', body: {} })
   await request('/auth/link-senha/abc', { method: 'POST', body: { senha: 'x', confirmacao: 'x' } })
-  await request('/auth/link-senha/abc')
+  await request('/auth/link-senha/consulta')
   await request('/tarefas', { token: 'jwt' })
   assert.equal(vistos['/auth/login'], 'include')
   assert.equal(vistos['/auth/logout'], 'include')
   assert.equal(vistos['/tarefas'], undefined)
   // Só o POST do link troca o cookie; a consulta (GET) não precisa dele.
-  assert.equal(vistos['/auth/link-senha/abc'], undefined)
+  assert.equal(vistos['/auth/link-senha/consulta'], undefined)
+  assert.equal(vistos['/auth/link-senha/abc'], 'include')
 })
 
 test('POST do link de senha vai com credentials include', async () => {
