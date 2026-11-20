@@ -231,3 +231,15 @@ table, .hs b, .tnum, time { font-variant-numeric: tabular-nums }
 
 /* ---------- Logo no modo escuro: sempre toda branca ---------- */
 :root[data-theme=dark] img[src*="assets/logo"] { filter: brightness(0) invert(1) }
+
+/* ---------- Medidor de senha (Criar senha, troca de senha) ---------- */
+.senha-forca { display: grid; gap: 6px }
+.senha-barra { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px }
+.senha-barra span { height: 6px; border-radius: 3px; background: var(--col) }
+.senha-fraca .senha-barra .on { background: var(--er) }
+.senha-media .senha-barra .on { background: var(--wa) }
+.senha-forte .senha-barra .on { background: var(--ok) }
+.senha-texto { font-size: 13px; color: var(--mu); font-weight: 600 }
+.senha-regras { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; font-size: 13px; color: var(--mu) }
+.senha-regras li.ok { color: var(--ok); font-weight: 600 }
+.senha-aviso { color: var(--er) !important; font-weight: 600 }
