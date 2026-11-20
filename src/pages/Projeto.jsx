@@ -19,7 +19,7 @@ import { PRAZOS, noPrazo } from '../lib/prazo'
 import { ErroAcessoParcial, gravarProjeto } from '../lib/gravarProjeto'
 import { carregarProjeto } from '../lib/carregarProjeto'
 import Table from '../components/Table'
-import { camposProjeto, valoresProjeto } from './Projetos'
+import { camposProjeto, confirmarSigilo, valoresProjeto } from './Projetos'
 import { SeloSigiloso, SeloTipo, StatusProjeto } from '../components/SeloProjeto'
 import { ItensDoProjeto } from './Biblioteca'
 import { TEXTO_EQUIPE_GERAL } from '../lib/projetosInternos'
@@ -264,6 +264,7 @@ export default function Projeto() {
       camposProjeto({ lista: gente, areas, podeGerirAcesso: projeto.podeGerirAcesso }),
       valoresProjeto(projeto, gente),
       async v => {
+        if (!(await confirmarSigilo(projeto, v))) return false
         try {
           await gravarProjeto(projeto, v)
           alerts.toastSuccess('Projeto atualizado')

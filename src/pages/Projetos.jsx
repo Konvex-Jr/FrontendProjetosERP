@@ -24,10 +24,23 @@ const VISIBILIDADE = [
   ['sigiloso', 'Sigiloso'],
 ]
 
+/**
+ * Na edição, marcar o projeto como sigiloso pode esconder os detalhes de quem não é da equipe: pede confirmação.
+ * Resolve false se a pessoa desistir.
+ */
+export async function confirmarSigilo(p, v) {
+  if (!p || p.sigiloso || v.visibilidade !== 'sigiloso') return true
+  return alerts.confirm({
+    title: 'Marcar como sigiloso?',
+    text: 'Só a equipe, diretores e quem estiver na lista de acesso verão os detalhes e as tarefas.',
+    confirmText: 'Marcar como sigiloso',
+  })
+}
+
 /** Campos do formulário do projeto, usados aqui e na Visão geral do projeto. */
 export function camposProjeto({ lista, areas, novo, podeGerirAcesso }) {
   const opcoes = (itens, ok) => [['', '—'], ...itens.filter(ok).map(i => [i.codigo, i.nome])]
-  // Visibilidade e lista de acesso: na criação sempre; na edição só quem gere o acesso (senão a API recusa com 403).
+  // Visibilidade: na criação e em toda edição. Lista de acesso: na criação ou só para quem gere o acesso.
   const gereAcesso = novo || podeGerirAcesso
   return [
     { k: 'nome', l: 'Nome' },
@@ -48,7 +61,7 @@ export function camposProjeto({ lista, areas, novo, podeGerirAcesso }) {
       opt: true,
       h: 'Obrigatória no projeto interno.',
     },
-    { k: 'visibilidade', l: 'Visibilidade', o: VISIBILIDADE, s: () => gereAcesso },
+    { k: 'visibilidade', l: 'Visibilidade', o: VISIBILIDADE },
     {
       k: 'acesso',
       l: 'Quem mais pode ver o projeto',
@@ -152,6 +165,7 @@ export default function Projetos() {
           alerts.error('Não foi possível salvar', aviso)
           return false
         }
+        if (!(await confirmarSigilo(p, v))) return false
         const r = await executar(
           () => gravarProjeto(p, v.tipo === 'interno' ? { ...v, clienteNome: '' } : v),
           p ? 'Projeto atualizado' : 'Projeto criado',

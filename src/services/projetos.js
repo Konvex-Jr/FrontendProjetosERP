@@ -36,7 +36,7 @@ export function corpoProjeto(dados) {
   const { progresso, acesso, visibilidade, ...resto } = vazioComoNull(dados)
   return {
     ...resto,
-    // Visibilidade do formulário (Normal/Sigiloso) → `sigiloso`. Sem o campo, nada vai; gravarProjeto (src/lib) o tira do formulário de quem não gere o acesso, porque a API dá 403 a esse mudar o sigilo.
+    // Visibilidade do formulário (Normal/Sigiloso) → `sigiloso`. Sem o campo, nada vai; o PUT sempre manda a visibilidade (quem edita o projeto muda o sigilo).
     ...(visibilidade ? { sigiloso: visibilidade === 'sigiloso' } : {}),
     ...(numeroOuNada(progresso) !== undefined ? { progresso: Number(progresso) } : {}),
     // Lista de quem acessa o sigiloso: só array (a API recusa null com 400).
