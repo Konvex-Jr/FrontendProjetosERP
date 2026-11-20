@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { corpoNovaPessoa, opcoesMudarStatus, podeRedefinirSenha } from '../src/lib/cadastroPessoa.js'
+import { corpoEdicaoPerfil, corpoNovaPessoa, opcoesMudarStatus, podeRedefinirSenha } from '../src/lib/cadastroPessoa.js'
 
 test('mudar status não oferece trainee, salvo para quem já é trainee', () => {
   assert.deepEqual(
@@ -103,4 +103,15 @@ test('pedeMotivoSaida só ao mudar para inativo', async () => {
   assert.equal(pedeMotivoSaida('trainee', 'inativo'), true)
   assert.equal(pedeMotivoSaida('inativo', 'inativo'), false)
   assert.equal(pedeMotivoSaida('ativo', 'ativo'), false)
+})
+
+test('corpoEdicaoPerfil: curso, telefone e e-mail pessoal só vão se mudaram', () => {
+  const u = { curso: 'Curso Antigo', telefone: '1199', emailPessoal: null }
+  const v = { bio: 'oi', curso: 'Curso Antigo', telefone: '1199', emailPessoal: '' }
+  assert.deepEqual(corpoEdicaoPerfil(v, u), { bio: 'oi' })
+  assert.deepEqual(corpoEdicaoPerfil({ ...v, curso: 'Engenharia Elétrica', emailPessoal: 'a@b.co' }, u), {
+    bio: 'oi',
+    curso: 'Engenharia Elétrica',
+    emailPessoal: 'a@b.co',
+  })
 })

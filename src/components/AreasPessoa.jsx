@@ -11,7 +11,7 @@ const dataISO = s => (s ? s.slice(0, 10) : '')
  * Seção "Áreas e cargos" do perfil (sessão 23a): períodos atuais em cima, anteriores embaixo.
  * Com `podeGerir` (vem da API), a gestão adiciona, corrige, encerra e exclui períodos.
  */
-export default function AreasPessoa({ periodos, podeGerir, codigoPessoa, onMudou }) {
+export default function AreasPessoa({ periodos, podeGerir, codigoPessoa, onMudou, trainee }) {
   const { form } = useApp()
   const { atuais, anteriores } = separarPeriodos(periodos)
   const hoje = iso(new Date())
@@ -137,6 +137,16 @@ export default function AreasPessoa({ periodos, podeGerir, codigoPessoa, onMudou
           </button>
         )}
       </div>
+      {trainee && (
+        <div className="ag periodo">
+          <div>
+            <b>Trainee</b>
+            <small>
+              {fd(trainee.inicio)} a {trainee.fim ? fd(trainee.fim) : 'até hoje'}
+            </small>
+          </div>
+        </div>
+      )}
       {atuais.length ? atuais.map(linha) : <small>Sem área no momento.</small>}
       {anteriores.length > 0 && (
         <>

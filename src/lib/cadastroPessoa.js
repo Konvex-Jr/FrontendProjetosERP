@@ -55,3 +55,13 @@ export function corpoEdicaoPessoa(v, pessoa) {
 
 /** Motivo da saída: pedido só ao mudar para Inativo (quem já é inativo só corrige a data). */
 export const pedeMotivoSaida = (statusAtual, destino) => destino === 'inativo' && statusAtual !== 'inativo'
+
+/** Corpo do PUT /auth/perfil (a própria pessoa): curso, telefone e e-mail pessoal só vão se mudaram. */
+export function corpoEdicaoPerfil(v, u) {
+  const { curso, telefone, emailPessoal, ...resto } = v
+  const corpo = { ...resto }
+  if (curso !== undefined && curso !== (u.curso ?? '')) corpo.curso = curso
+  if (telefone !== undefined && !igual(telefone, u.telefone)) corpo.telefone = telefone
+  if (emailPessoal !== undefined && !igual(emailPessoal, u.emailPessoal)) corpo.emailPessoal = emailPessoal
+  return corpo
+}

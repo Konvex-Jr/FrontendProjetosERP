@@ -19,7 +19,9 @@ import { itensDoAutor } from '../services/biblioteca'
 import Clipe from '../components/Clipe'
 import { SeloSigiloso, SeloTipo } from '../components/SeloProjeto'
 import AreasPessoa from '../components/AreasPessoa'
-import { rotuloArea } from '../lib/periodos'
+import { periodoTrainee, rotuloArea, rotuloMotivo } from '../lib/periodos'
+import { copiarTexto, mascararTelefone, telefoneParaMostrar } from '../lib/pessoaContato'
+import { corpoEdicaoPerfil, erroCadastro, opcoesCurso } from '../lib/cadastroPessoa'
 import { ocupacao } from '../services/ocupacao'
 import { faixaOcupacao, formatarHoras, proximaSemana, rotuloSemana, semanaAnterior, semanaAtual } from '../lib/ocupacao'
 
@@ -167,7 +169,25 @@ export default function Perfil() {
       'Editar meus dados',
       [
         { k: 'nomeExibicao', l: 'Como prefere ser chamado(a)', opt: true },
-        { k: 'telefone', l: 'Telefone', t: 'tel', opt: true },
+        {
+          k: 'telefone',
+          l: 'Telefone',
+          campo: (v, set) => (
+            <label className="form-label w-100 mb-0">
+              Telefone
+              <input
+                className="form-control mt-1"
+                type="tel"
+                inputMode="tel"
+                autoComplete="off"
+                placeholder="(00) 00000-0000"
+                value={v.telefone || ''}
+                onChange={e => set('telefone', mascararTelefone(e.target.value))}
+              />
+            </label>
+          ),
+        },
+        { k: 'emailPessoal', l: 'E-mail pessoal', t: 'email', opt: true, maxLength: 254 },
         { k: 'linkedinUrl', l: 'LinkedIn (link)', t: 'url', opt: true },
         { k: 'githubUrl', l: 'GitHub (link)', t: 'url', opt: true },
         {
@@ -177,13 +197,14 @@ export default function Perfil() {
           opt: true,
           h: 'Link público da sua agenda (Google Agenda, Calendly…), para marcarem reuniões com você.',
         },
-        { k: 'curso', l: 'Curso', opt: true },
+        { k: 'curso', l: 'Curso', o: opcoesCurso(u) },
         { k: 'semestre', l: 'Semestre', t: 'number', opt: true },
         { k: 'bio', l: 'Sobre você', t: 'textarea', opt: true },
       ],
       {
         nomeExibicao: u.nomeExibicao || '',
         telefone: u.telefone || '',
+        emailPessoal: u.emailPessoal || '',
         linkedinUrl: u.linkedinUrl || '',
         githubUrl: u.githubUrl || '',
         calendarioUrl: u.calendarioUrl || '',
@@ -192,8 +213,13 @@ export default function Perfil() {
         bio: u.bio || '',
       },
       async v => {
+        const erro = erroCadastro(v, u)
+        if (erro) {
+          alerts.error(erro.titulo, erro.texto)
+          return false
+        }
         try {
-          await minhaConta.editarPerfil(v)
+          await minhaConta.editarPerfil(corpoEdicaoPerfil(v, u))
           alerts.toastSuccess('Dados atualizados')
           await recarregar()
           refresh().catch(() => {})
@@ -266,12 +292,19 @@ export default function Perfil() {
       },
     )
 
+  const copiar = async texto => {
+    if (await copiarTexto(texto)) alerts.toastSuccess('Copiado')
+    else alerts.error('Não foi possível copiar', 'Selecione o texto e copie à mão.')
+  }
+  // [rótulo, valor, texto a copiar (opcional)]
   const info = [
     ['E-mail', u.email],
-    ['Telefone', u.telefone],
-    ['Curso', u.curso && (u.semestre ? `${u.curso} · ${u.semestre}º semestre` : u.curso)],
+    ['E-mail pessoal', u.emailPessoal, u.emailPessoal],
+    ['Telefone', u.telefone && telefoneParaMostrar(u.telefone), u.telefone && telefoneParaMostrar(u.telefone)],
+    ['Curso', (u.curso && (u.semestre ? `${u.curso} · ${u.semestre}º semestre` : u.curso)) || 'Curso não informado'],
     ['Na EJ desde', u.dataEntrada && fd(u.dataEntrada)],
     ['Saída', u.dataSaida && fd(u.dataSaida)],
+    ['Motivo da saída', rotuloMotivo(u)],
   ].filter(([, v]) => v)
   const cartoes = cartoesDeLinks(u)
 
@@ -381,10 +414,22 @@ export default function Perfil() {
               </div>
               <span className={'ms-auto ' + chip(COR_STATUS[u.status])}>{rotuloStatus(u.status)}</span>
             </div>
-            {info.map(([k, v]) => (
-              <div key={k} className="d-flex justify-content-between gap-3 mb-1">
+            {info.map(([k, v, c]) => (
+              <div key={k} className="d-flex justify-content-between align-items-center gap-3 mb-1">
                 <small>{k}</small>
-                <span className="text-end">{v}</span>
+                <span className="text-end d-inline-flex align-items-center gap-1" style={{ minWidth: 0, overflowWrap: 'anywhere' }}>
+                  {v}
+                  {c && (
+                    <button
+                      className="btn btn-g btn-sm"
+                      title={`Copiar ${k.toLowerCase()}`}
+                      aria-label={`Copiar ${k === 'Telefone' ? 'telefone' : 'e-mail pessoal'}`}
+                      onClick={() => copiar(c)}
+                    >
+                      <Ic k="copy" />
+                    </button>
+                  )}
+                </span>
               </div>
             ))}
             {cartoes.length > 0 ? (
@@ -440,7 +485,13 @@ export default function Perfil() {
           )}
         </div>
         <div className="col-md-6">
-          <AreasPessoa periodos={periodos} podeGerir={podeGerirPeriodos} codigoPessoa={u.codigo} onMudou={aoMudarPeriodos} />
+          <AreasPessoa
+            periodos={periodos}
+            trainee={periodoTrainee(u)}
+            podeGerir={podeGerirPeriodos}
+            codigoPessoa={u.codigo}
+            onMudou={aoMudarPeriodos}
+          />
         </div>
       </div>
       {trocandoFoto && <FotoModal aoFechar={() => setTrocandoFoto(false)} aoSalvo={aoMudarFoto} />}
