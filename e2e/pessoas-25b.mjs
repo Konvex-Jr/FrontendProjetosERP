@@ -4,7 +4,8 @@
  *   1. diretora cria "Tito" (trainee): sem curso o aviso "Curso obrigatório"; com curso e telefone digitado
  *      11987654321 o campo mostra (11) 98765-4321; salva
  *   2. Bia (membro), em "Editar meus dados": e-mail pessoal; o perfil mostra e o botão copiar põe no clipboard
- *   3. Caio, com curso e telefone antigos fora da regra (forçado no banco), edita só "Sobre você" e salva
+ *   3. Caio, com curso e telefone antigos fora da regra (forçado no banco), cai em "Complete seu perfil" (curso
+ *      antigo no select), corrige os dois e entra; depois edita só "Sobre você" e salva
  *   4. diretora muda Tito para Ativo: o cartão de períodos mostra "Trainee" da entrada até hoje
  *   5. bug da equipe: no projeto, filtra a Função e adiciona Tito sem função: o nome aparece
  *   6. diretora muda Tito para Inativo: sem motivo não deixa; com motivo, o perfil mostra o motivo
@@ -146,6 +147,7 @@ const novaPagina = async ctx => {
 tokenDir = await login(DIRETORA)
 const pessoas = await api('GET', '/usuarios')
 const caio = pessoas.find(p => p.email === CAIO[0])
+const antesBiaEmail = pessoas.find(p => p.email === BIA[0]).emailPessoal || ''
 const antesCaio = { curso: caio.curso, telefone: caio.telefone, bio: caio.bio || '' }
 const robo = (await api('GET', '/projetos')).find(p => p.nome === 'Robô')
 const site = (await api('GET', '/projetos')).find(p => p.nome === SITE)
@@ -206,17 +208,27 @@ try {
     sql(`UPDATE usuarios SET curso = 'Sistemas de Informação', telefone = '9100 2002' WHERE email = '${CAIO[0]}'`)
     const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } })
     const p = await novaPagina(ctx)
-    await entrar(p, CAIO)
+    await p.goto(`${APP}/#/login`)
+    await p.fill('input[type=email]', CAIO[0])
+    await p.fill('input[type=password]', CAIO[1])
+    await p.press('input[type=password]', 'Enter')
+    // Curso e telefone fora da regra contam como pendência: a tela de completar aparece com o curso antigo.
+    await p.getByRole('heading', { name: 'Complete seu perfil' }).waitFor({ timeout: 15000 })
+    const completar = rotulo => p.locator('label').filter({ hasText: new RegExp(`^${rotulo}`) })
+    exigir((await completar('Curso').locator('select').inputValue()) === 'Sistemas de Informação', 'o curso antigo sumiu do select')
+    await completar('Curso').locator('select').selectOption({ label: antesCaio.curso })
+    await completar('Telefone').locator('input').fill(antesCaio.telefone.replace(/\D/g, ''))
+    await p.getByRole('button', { name: 'Salvar e continuar' }).click()
+    await p.waitForSelector(SAIR, { state: 'attached', timeout: 15000 })
     await p.goto(`${APP}/#/perfil`)
     await p.getByRole('button', { name: 'Editar meus dados' }).click()
-    exigir((await campo(p, 'Curso').inputValue()) === 'Sistemas de Informação', 'o curso antigo sumiu do select')
     await campo(p, 'Sobre você').fill(BIO)
     await formulario(p).getByRole('button', { name: 'Salvar' }).click()
     await toast(p, 'Dados atualizados').waitFor({ timeout: 15000 })
     exigir(!(await alerta(p).count()), 'apareceu aviso ao salvar')
     await p.getByText(BIO).waitFor({ timeout: 10000 })
     const depois = (await api('GET', '/usuarios')).find(x => x.email === CAIO[0])
-    exigir(depois.curso === 'Sistemas de Informação' && depois.telefone === '9100 2002', 'curso/telefone antigos foram mexidos')
+    exigir(depois.curso === antesCaio.curso && depois.telefone === antesCaio.telefone, 'curso/telefone não ficaram corrigidos')
     await ctx.close()
   })
 
@@ -358,7 +370,7 @@ try {
     sql(
       "ALTER TABLE usuarios DROP CONSTRAINT IF EXISTS usuarios_curso_valido; ALTER TABLE usuarios ADD CONSTRAINT usuarios_curso_valido CHECK (curso IS NULL OR curso IN ('Ciência da Computação', 'Engenharia Mecânica', 'Engenharia Elétrica'))",
     )
-    sql(`UPDATE usuarios SET email_pessoal = NULL WHERE email = '${BIA[0]}'`)
+    sql(`UPDATE usuarios SET email_pessoal = '${antesBiaEmail.replace(/'/g, "''")}' WHERE email = '${BIA[0]}'`)
     sql(`UPDATE projetos SET sigiloso = false WHERE nome = 'Robô'`)
   } catch (e) {
     console.log(`AVISO  não restaurei o banco de dev: ${e.message}`)

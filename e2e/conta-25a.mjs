@@ -2,7 +2,8 @@
 /**
  * Conta (sessão 25a), ponta a ponta, tudo pela tela (a API só lê o e-mail de dev e confere):
  *   1. diretora cadastra "Nina Nova" -> selo "Convite pendente"
- *   2. link do convite: senha fraca deixa o botão desabilitado e o medidor diz "Fraca"; Konvex@123456 -> "Forte"; entra
+ *   2. link do convite: senha fraca deixa o botão desabilitado e o medidor diz "Fraca"; Konvex@123456 -> "Forte";
+ *      cai em "Complete seu perfil" e preenche e-mail pessoal, ingresso e agenda; entra
  *   3. sai; "Esqueci a senha" com o e-mail em maiúsculas -> mensagem fixa; link -> nova senha -> entra; link de novo -> "não vale mais"
  *   4. login com "Manter conectado"; fecha as páginas e abre duas juntas no mesmo contexto: as duas entram
  *   5. sai; entra como outra conta sem marcar; fecha e reabre: tela de login (não volta a Nina)
@@ -169,8 +170,34 @@ try {
     await nina.locator('.senha-texto').filter({ hasText: 'Forte' }).waitFor({ timeout: 3000 })
     exigir(await botao.isEnabled(), 'botão desabilitado com senha forte')
     await botao.click()
+    // Pessoa nova tem pendências (e-mail pessoal, ingresso, agenda): cai em "Complete seu perfil" e preenche.
+    await nina.getByRole('heading', { name: 'Complete seu perfil' }).waitFor({ timeout: 15000 })
+    exigir(
+      (await nina
+        .locator('label')
+        .filter({ hasText: /^Curso/ })
+        .locator('select')
+        .inputValue()) === 'Ciência da Computação',
+      'curso do cadastro não veio preenchido',
+    )
+    await nina
+      .locator('label')
+      .filter({ hasText: /^E-mail pessoal/ })
+      .locator('input')
+      .fill('nina.pessoal@exemplo.com')
+    await nina
+      .locator('label')
+      .filter({ hasText: /^Ingresso na faculdade/ })
+      .locator('input')
+      .fill('20251')
+    await nina
+      .locator('label')
+      .filter({ hasText: /^Link da agenda/ })
+      .locator('input')
+      .fill('https://cal.com/nina')
+    await nina.getByRole('button', { name: 'Salvar e continuar' }).click()
     await nina.waitForSelector(SAIR, { state: 'attached', timeout: 15000 })
-    exigir(!nina.url().includes('/senha/'), 'continuou na tela da senha')
+    exigir(!nina.url().includes('/senha/') && !nina.url().includes('/completar-perfil'), 'continuou na tela da senha ou do perfil')
     await nina.screenshot({ path: `${PRINTS}conta-25a-2-entrou.png` })
   })
 
