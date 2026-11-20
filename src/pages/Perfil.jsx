@@ -9,6 +9,8 @@ import { PageBar, Prog } from '../components/Ui'
 import alerts from '../lib/alerts'
 import useCarregar from '../lib/useCarregar'
 import Esqueleto from '../components/Esqueleto'
+import CampoNovaSenha from '../components/CampoNovaSenha'
+import { forcaSenha } from '../lib/senha'
 import { minhaConta, pessoas, rotuloStatus } from '../services/pessoas'
 import { cartoesDeLinks } from '../lib/linksPerfil'
 import LogoMarca from '../components/LogosMarcas'
@@ -231,11 +233,25 @@ export default function Perfil() {
       'Trocar senha',
       [
         { k: 'senhaAtual', l: 'Senha atual', t: 'password' },
-        { k: 'novaSenha', l: 'Nova senha', t: 'password', h: 'Mínimo de 8 caracteres.' },
-        { k: 'confirmar', l: 'Repita a nova senha', t: 'password' },
+        // Mesma regra e medidor do link de senha (lib/senha.js); a API confere de novo.
+        {
+          k: 'novaSenha',
+          campo: (v, set) => (
+            <CampoNovaSenha
+              valor={v.novaSenha || ''}
+              confirmacao={v.confirmar || ''}
+              onValor={z => set('novaSenha', z)}
+              onConfirmacao={z => set('confirmar', z)}
+            />
+          ),
+        },
       ],
       {},
       async v => {
+        if (forcaSenha(v.novaSenha) === 'fraca') {
+          alerts.error('Senha fraca', 'A nova senha precisa cumprir todas as regras da lista.')
+          return false
+        }
         if (v.novaSenha !== v.confirmar) {
           alerts.error('As senhas não conferem', 'Digite a mesma senha nos dois campos.')
           return false

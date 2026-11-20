@@ -25,7 +25,8 @@ export const pessoas = {
   editar: (codigo, dados) => send('PUT', `/usuarios/${codigo}`, vazioComoNull(dados)),
   alterarStatus: (codigo, status, dataSaida) =>
     send('PATCH', `/usuarios/${codigo}/status`, { status, ...(dataSaida ? { dataSaida } : {}) }),
-  redefinirSenha: (codigo, novaSenha) => send('PUT', `/usuarios/${codigo}/senha`, { novaSenha }),
+  /** Reenvia o convite (quem ainda não criou senha) ou manda link de redefinição: `{ enviado, tipo: 'convite' | 'redefinir' }`. */
+  enviarLinkSenha: codigo => send('POST', `/usuarios/${codigo}/link-senha`),
   /** Períodos nas áreas (sessão 23a): { codigoArea, codigoCargo, inicio, fim }. */
   periodos: codigo => get(`/usuarios/${codigo}/periodos`),
   criarPeriodo: (codigo, dados) => send('POST', `/usuarios/${codigo}/periodos`, vazioComoNull(dados)),
