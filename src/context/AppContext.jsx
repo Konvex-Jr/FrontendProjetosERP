@@ -22,7 +22,7 @@ const SEM_ACESSO = { permissoes: [], menu: [] }
  * - `me` (código da pessoa logada), `mb` (true quando não é gestão), `pode(permissao)` e `nav` (menu);
  * - `form(titulo, campos, inicial, salvar)`: abre o FormModal global (formato em components/FormModal.jsx);
  * - `go(tela, id)`: navega pela chave da tela (ver `path` em lib/utils);
- * - `entrar`, `sair`, `refresh` (recarrega D depois de salvar) e `recarregarCapacitacoes`.
+ * - `entrar(email, senha, manterConectado)`, `entrarComSessao(resposta)`, `encerrarSessao`, `sair`, `refresh` (recarrega D depois de salvar) e `recarregarCapacitacoes`.
  * Telas com dados próprios carregam com useCarregar; D serve aos avatares, ao Dashboard e à Visão Estratégica.
  */
 export function AppProvider({ children }) {
@@ -131,10 +131,11 @@ export function AppProvider({ children }) {
     setD(current => (current ? { ...current, ...VAZIO } : current))
   }
 
-  const entrar = async (email, senha) => {
+  // Fluxo único de entrada (login e Criar senha): `obter` devolve a resposta no formato do login.
+  const executarEntrada = async obter => {
     setLoading(true)
     try {
-      const result = await request('/auth/login', { method: 'POST', body: { email: email.trim().toLowerCase(), senha } })
+      const result = await obter()
       if (!result?.token || !result?.usuario?.codigo) throw new Error('A API não retornou uma sessão válida.')
       sessao.salvar({ token: result.token, refreshToken: result.refreshToken })
       // Troca a dona da memória antes de buscar dados: outra conta nesta aba apaga o que havia.
@@ -156,12 +157,28 @@ export function AppProvider({ children }) {
     }
   }
 
-  const sair = () => {
+  const entrar = (email, senha, manterConectado = false) =>
+    executarEntrada(() =>
+      request('/auth/login', {
+        method: 'POST',
+        body: { email: email.trim().toLowerCase(), senha, manterConectado: Boolean(manterConectado) },
+      }),
+    )
+
+  // Sessão que já veio pronta da API (Criar senha): mesma resposta do login.
+  const entrarComSessao = result => executarEntrada(async () => result)
+
+  // Encerra a sessão desta aba sem navegar (usado por `sair` e pela Criar senha).
+  const encerrarSessao = () => {
     const refreshToken = sessao.refreshToken
     sessao.limpar()
     // Encerra o refresh token no backend; se falhar, ele expira sozinho.
     if (refreshToken) request('/auth/logout', { method: 'POST', body: { refreshToken } }).catch(() => {})
     limparEstado()
+  }
+
+  const sair = () => {
+    encerrarSessao()
     navigate('/login')
     window.scrollTo(0, 0)
   }
@@ -197,7 +214,27 @@ export function AppProvider({ children }) {
   if (!sessionReady || !DF) return sessao.ativa ? <EsqueletoApp /> : null
 
   return (
-    <Ctx.Provider value={{ D, DF, form, go, me, mb, nav, entrar, sair, md, setMd, loading, refresh, pode, recarregarCapacitacoes }}>
+    <Ctx.Provider
+      value={{
+        D,
+        DF,
+        form,
+        go,
+        me,
+        mb,
+        nav,
+        entrar,
+        entrarComSessao,
+        encerrarSessao,
+        sair,
+        md,
+        setMd,
+        loading,
+        refresh,
+        pode,
+        recarregarCapacitacoes,
+      }}
+    >
       {children}
     </Ctx.Provider>
   )

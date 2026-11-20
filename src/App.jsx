@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import Layout from './components/Layout'
 import Login from './pages/Login'
@@ -5,7 +6,9 @@ import {
   Biblioteca,
   Capacitacoes,
   Configuracoes,
+  CriarSenha,
   Dashboard,
+  EsqueciSenha,
   Estrategia,
   Perfil,
   Pessoas,
@@ -27,6 +30,22 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route
+        path="/senha/:token"
+        element={
+          <Suspense fallback={null}>
+            <CriarSenha />
+          </Suspense>
+        }
+      />
+      <Route
+        path="/esqueci-senha"
+        element={
+          <Suspense fallback={null}>
+            <EsqueciSenha />
+          </Suspense>
+        }
+      />
       {/* Telas que viraram a Biblioteca (sessão 17), para não quebrar favoritos. Ficam fora do Layout:
           ele manda para / qualquer seção que não está no menu antes de a rota filha abrir. */}
       {['gestao', 'conhecimento', 'iniciativas'].map(antiga => (
