@@ -23,6 +23,8 @@ import { camposProjeto, confirmarSigilo, valoresProjeto } from './Projetos'
 import { SeloSigiloso, SeloTipo, StatusProjeto } from '../components/SeloProjeto'
 import { ItensDoProjeto } from './Biblioteca'
 import { TEXTO_EQUIPE_GERAL } from '../lib/projetosInternos'
+import { ocupacao } from '../services/ocupacao'
+import ChipOcupacao from '../components/ChipOcupacao'
 
 const ABAS = [
   ['tarefas', 'Tarefas'],
@@ -77,13 +79,31 @@ function ResumoSigiloso({ projeto, voltar }) {
   )
 }
 
-/** Projeto geral da área: a equipe vem dos períodos na área, sem editar aqui. */
+/**
+ * Projeto geral da área: a equipe vem dos períodos na área, sem editar aqui. A ocupação da semana é a
+ * mesma da aba Equipe dos outros projetos (total da pessoa, que todo logado vê); se a chamada falhar, "—".
+ */
 function EquipeCalculada({ projeto }) {
+  const { dados: ocupacoes } = useCarregar(() => ocupacao.todas().catch(() => null), [], { chave: 'ocupacao:todas' })
+  const percentuais = Object.fromEntries((ocupacoes || []).map(o => [o.codigoUsuario, o.percentual]))
   const pessoas = projeto.participacoes.filter(x => !x.dataSaida).map(x => ({ ...x, id: x.codigo ?? x.usuario.codigo }))
   return (
     <>
       <p className="text-mu">{TEXTO_EQUIPE_GERAL}</p>
-      <Table busca={false} rows={pessoas} vazio="Ninguém na área agora." cols={[{ k: 'p', l: 'Pessoa', get: x => x.usuario.nome }]} />
+      <Table
+        busca={false}
+        rows={pessoas}
+        vazio="Ninguém na área agora."
+        cols={[
+          { k: 'p', l: 'Pessoa', get: x => x.usuario.nome },
+          {
+            k: 'ocupacao',
+            l: 'Ocupação na semana',
+            get: x => percentuais[x.usuario.codigo] ?? -1,
+            render: x => <ChipOcupacao percentual={percentuais[x.usuario.codigo]} />,
+          },
+        ]}
+      />
     </>
   )
 }
