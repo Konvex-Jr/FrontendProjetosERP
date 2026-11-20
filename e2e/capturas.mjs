@@ -17,7 +17,7 @@ import { mkdirSync } from 'node:fs'
 
 const APP = (process.env.APP_URL || 'http://localhost:5173').replace(/\/$/, '')
 const SAIDA = new URL('../docs/capturas/', import.meta.url).pathname
-const BIA = ['bia@dev.konvex', 'Konvex123'] // membro líder: tem tarefas e projeto
+const BIA = ['bia@dev.konvex', 'Konvex@123'] // membro líder: tem tarefas e projeto
 const DIRETORA = [process.env.ADMIN_EMAIL || 'dev@konvexjr.com.br', process.env.ADMIN_PASSWORD || 'konvex-dev']
 const DESKTOP = { viewport: { width: 1366, height: 820 } }
 const CELULAR = { viewport: { width: 375, height: 812 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }

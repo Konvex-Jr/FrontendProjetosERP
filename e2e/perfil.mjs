@@ -21,7 +21,7 @@ import { mkdirSync } from 'node:fs'
 const APP = (process.env.APP_URL || 'http://localhost:5173').replace(/\/$/, '')
 const API = (process.env.API_URL || 'http://localhost:5001').replace(/\/$/, '')
 const PRINTS = new URL('./prints/', import.meta.url).pathname
-const SENHA = 'Konvex123'
+const SENHA = 'Konvex@123'
 const A = 'bia@dev.konvex'
 const B = 'caio@dev.konvex'
 const LINKS = {
