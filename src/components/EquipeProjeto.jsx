@@ -154,6 +154,7 @@ export default function EquipeProjeto({ projeto, gente, gestor, aoSalvar }) {
       <Table
         cols={colsAtivas}
         rows={ativas}
+        reiniciarAoIncluir
         vazio={gestor ? 'Ninguém na equipe ainda. Use “Adicionar pessoa”.' : 'Ninguém na equipe atual.'}
       />
       {encerradas.length > 0 && (
