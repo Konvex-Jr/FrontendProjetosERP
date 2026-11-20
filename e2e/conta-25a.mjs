@@ -130,9 +130,19 @@ try {
     await form.locator('label').filter({ hasText: /^Nome/ }).locator('input').fill('Nina Nova')
     await form
       .locator('label')
-      .filter({ hasText: /^E-mail/ })
+      .filter({ hasText: /^E-mail(?! pessoal)/ })
       .locator('input')
       .fill(EMAIL)
+    await form
+      .locator('label')
+      .filter({ hasText: /^Curso/ })
+      .locator('select')
+      .selectOption({ label: 'Ciência da Computação' })
+    await form
+      .locator('label')
+      .filter({ hasText: /^Telefone/ })
+      .locator('input')
+      .fill('11987654321')
     await form.getByRole('button', { name: 'Salvar' }).click()
     const linha = dir.locator('tr').filter({ hasText: EMAIL })
     await linha.getByText('Convite pendente').waitFor({ timeout: 15000 })
@@ -243,7 +253,7 @@ try {
   // Nina fica inativa (a API não exclui).
   try {
     const nina = (await api('GET', '/usuarios')).find(x => x.email === EMAIL)
-    if (nina) await api('DELETE', `/usuarios/${nina.codigo}`)
+    if (nina) await api('PATCH', `/usuarios/${nina.codigo}/status`, { status: 'inativo', motivoSaida: 'Limpeza do e2e' })
   } catch (e) {
     console.log('FALHA na limpeza:', e.message)
   }
