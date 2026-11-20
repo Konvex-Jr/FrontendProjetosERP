@@ -4,9 +4,9 @@ import CascaConta from '../components/CascaConta'
 import { useApp } from '../context/AppContext'
 import alerts from '../lib/alerts'
 import { corpoCompletarPerfil, erroCompletarPerfil, opcoesCurso } from '../lib/cadastroPessoa'
-import { mascararIngresso, mascararTelefone } from '../lib/pessoaContato'
+import { mascararIngresso, mascararTelefone, telefoneValido } from '../lib/pessoaContato'
 import { request } from '../services/api'
-import { minhaConta } from '../services/pessoas'
+import { CURSOS, minhaConta } from '../services/pessoas'
 
 const AJUDA_AGENDA = 'Link público da sua agenda (Google Agenda, Calendly…), para marcarem reuniões com você.'
 
@@ -18,9 +18,11 @@ const ROTULOS = {
   calendarioUrl: 'Link da agenda',
 }
 
+// Curso fora dos 3 e telefone fora da regra (ex.: com +55) começam vazios: a pessoa escolhe e digita de novo,
+// em vez de a máscara cortar o número antigo e gravar um telefone errado.
 const valoresDe = u => ({
-  curso: u.curso || '',
-  telefone: u.telefone ? mascararTelefone(u.telefone) : '',
+  curso: CURSOS.includes(u.curso) ? u.curso : '',
+  telefone: u.telefone && telefoneValido(u.telefone) ? mascararTelefone(u.telefone) : '',
   emailPessoal: u.emailPessoal || '',
   ingresso: u.ingresso || '',
   calendarioUrl: u.calendarioUrl || '',
@@ -92,7 +94,7 @@ export default function CompletarPerfil() {
             <label>
               Curso
               <select className="form-select" value={v.curso} onChange={e => set('curso', e.target.value)}>
-                {opcoesCurso(atual).map(([valor, rotulo]) => (
+                {opcoesCurso(null).map(([valor, rotulo]) => (
                   <option key={valor} value={valor}>
                     {rotulo}
                   </option>

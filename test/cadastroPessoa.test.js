@@ -150,6 +150,7 @@ test('corpoCompletarPerfil manda só o que mudou e erroCompletarPerfil cobra os 
     calendarioUrl: 'https://cal.com/a',
   })
   assert.equal(erroCompletarPerfil(v, new Date(2026, 10, 1)), null)
+  assert.equal(erroCompletarPerfil({ ...v, curso: 'Eng. de Software' }, new Date(2026, 10, 1)).titulo, 'Curso obrigatório')
   assert.equal(erroCompletarPerfil({ ...v, curso: '' }, new Date(2026, 10, 1)).titulo, 'Curso obrigatório')
   assert.equal(erroCompletarPerfil({ ...v, telefone: '(11) 9' }, new Date(2026, 10, 1)).titulo, 'Telefone inválido')
   assert.equal(erroCompletarPerfil({ ...v, emailPessoal: '' }, new Date(2026, 10, 1)).titulo, 'E-mail pessoal obrigatório')

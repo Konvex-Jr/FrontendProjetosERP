@@ -71,7 +71,7 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 /** Primeiro problema da tela "Complete seu perfil" (ou null): os cinco campos são obrigatórios. */
 export function erroCompletarPerfil(v, hoje = new Date()) {
-  if (!v.curso) return { titulo: 'Curso obrigatório', texto: 'Escolha o seu curso.' }
+  if (!CURSOS.includes(v.curso)) return { titulo: 'Curso obrigatório', texto: 'Escolha o seu curso na lista.' }
   if (!telefoneValido(v.telefone) || !(v.telefone ?? '').trim()) {
     return { titulo: 'Telefone inválido', texto: 'Use DDD e 10 ou 11 dígitos, como (11) 98765-4321.' }
   }
