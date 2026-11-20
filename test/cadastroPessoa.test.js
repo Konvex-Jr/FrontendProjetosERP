@@ -5,22 +5,21 @@ import { corpoNovaPessoa, opcoesMudarStatus, podeRedefinirSenha } from '../src/l
 test('mudar status não oferece trainee, salvo para quem já é trainee', () => {
   assert.deepEqual(
     opcoesMudarStatus('ativo').map(([k]) => k),
-    ['ativo', 'alumni', 'inativo'],
+    ['ativo', 'inativo'],
   )
   assert.deepEqual(
-    opcoesMudarStatus('alumni').map(([k]) => k),
-    ['ativo', 'alumni', 'inativo'],
+    opcoesMudarStatus('inativo').map(([k]) => k),
+    ['ativo', 'inativo'],
   )
   assert.deepEqual(
     opcoesMudarStatus('trainee').map(([k]) => k),
-    ['ativo', 'trainee', 'alumni', 'inativo'],
+    ['ativo', 'trainee', 'inativo'],
   )
 })
 
 test('a gestão manda link de senha a ativo e a trainee', () => {
   assert.equal(podeRedefinirSenha('ativo'), true)
   assert.equal(podeRedefinirSenha('trainee'), true)
-  assert.equal(podeRedefinirSenha('alumni'), false)
   assert.equal(podeRedefinirSenha('inativo'), false)
 })
 

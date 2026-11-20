@@ -13,9 +13,9 @@ const vazioComoNull = dados => Object.fromEntries(Object.entries(dados).map(([k,
 export const STATUS_PESSOA = [
   ['ativo', 'Ativo'],
   ['trainee', 'Trainee'],
-  ['alumni', 'Alumni'],
   ['inativo', 'Inativo'],
 ]
+export const CURSOS = ['Ciência da Computação', 'Engenharia Mecânica', 'Engenharia Elétrica']
 export const rotuloStatus = s => STATUS_PESSOA.find(([k]) => k === s)?.[1] || s || '—'
 
 export const pessoas = {
@@ -23,8 +23,12 @@ export const pessoas = {
   perfil: codigo => get(`/usuarios/${codigo}/perfil`),
   criar: dados => send('POST', '/usuarios', vazioComoNull(dados)),
   editar: (codigo, dados) => send('PUT', `/usuarios/${codigo}`, vazioComoNull(dados)),
-  alterarStatus: (codigo, status, dataSaida) =>
-    send('PATCH', `/usuarios/${codigo}/status`, { status, ...(dataSaida ? { dataSaida } : {}) }),
+  alterarStatus: (codigo, status, dataSaida, motivoSaida) =>
+    send('PATCH', `/usuarios/${codigo}/status`, {
+      status,
+      ...(dataSaida ? { dataSaida } : {}),
+      ...(motivoSaida ? { motivoSaida } : {}),
+    }),
   /** Reenvia o convite (quem ainda não criou senha) ou manda link de redefinição: `{ enviado, tipo: 'convite' | 'redefinir' }`. */
   enviarLinkSenha: codigo => send('POST', `/usuarios/${codigo}/link-senha`),
   /** Períodos nas áreas (sessão 23a): { codigoArea, codigoCargo, inicio, fim }. */
