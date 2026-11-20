@@ -21,7 +21,7 @@ import { SeloSigiloso, SeloTipo } from '../components/SeloProjeto'
 import AreasPessoa from '../components/AreasPessoa'
 import { periodoTrainee, rotuloArea, rotuloMotivo } from '../lib/periodos'
 import { copiarTexto, mascararIngresso, mascararTelefone, telefoneParaMostrar } from '../lib/pessoaContato'
-import { corpoEdicaoPerfil, erroCadastro, opcoesCurso } from '../lib/cadastroPessoa'
+import { corpoEdicaoPerfil, erroApagarObrigatorio, erroCadastro, opcoesCurso } from '../lib/cadastroPessoa'
 import { ocupacao } from '../services/ocupacao'
 import { faixaOcupacao, formatarHoras, proximaSemana, rotuloSemana, semanaAnterior, semanaAtual } from '../lib/ocupacao'
 
@@ -138,7 +138,7 @@ export function dadosDaTela({ me }, outro) {
 /** RF-013: perfil da pessoa. Em /perfil é o próprio; em /perfil/:codigo, o de outra pessoa. */
 export default function Perfil() {
   const { codigo: outro } = useParams()
-  const { me, form, go, refresh, nav } = useApp()
+  const { me, form, go, refresh, nav, setPendencias } = useApp()
   const [trocandoFoto, setTrocandoFoto] = useState(false)
   const codigo = codigoDoPerfil(me, outro)
   const meu = codigo === me
@@ -202,7 +202,6 @@ export default function Perfil() {
           k: 'ingresso',
           l: 'Ingresso na faculdade',
           opt: true,
-          h: 'Ex.: 2025/1 para o primeiro semestre de 2025.',
           campo: (v, set) => (
             <label className="form-label w-100 mb-0">
               Ingresso na faculdade
@@ -232,13 +231,14 @@ export default function Perfil() {
         bio: u.bio || '',
       },
       async v => {
-        const erro = erroCadastro(v, u)
+        const erro = erroApagarObrigatorio(v, u) || erroCadastro(v, u)
         if (erro) {
           alerts.error(erro.titulo, erro.texto)
           return false
         }
         try {
-          await minhaConta.editarPerfil(corpoEdicaoPerfil(v, u))
+          const gravada = await minhaConta.editarPerfil(corpoEdicaoPerfil(v, u))
+          setPendencias(gravada?.pendenciasPerfil || [])
           alerts.toastSuccess('Dados atualizados')
           await recarregar()
           refresh().catch(() => {})

@@ -95,3 +95,21 @@ export function corpoCompletarPerfil(v, u) {
   }
   return corpo
 }
+
+const OBRIGATORIOS = [
+  ['curso', 'Curso'],
+  ['telefone', 'Telefone'],
+  ['emailPessoal', 'E-mail pessoal'],
+  ['ingresso', 'Ingresso na faculdade'],
+  ['calendarioUrl', 'Link da agenda'],
+]
+
+/** Em "Editar meus dados": quem já tem um dos cinco campos obrigatórios não pode apagá-lo. */
+export function erroApagarObrigatorio(v, u) {
+  for (const [k, rotulo] of OBRIGATORIOS) {
+    if ((u[k] ?? '').toString().trim() && !(v[k] ?? '').toString().trim()) {
+      return { titulo: `${rotulo} obrigatório`, texto: `O campo ${rotulo} não pode ficar vazio.` }
+    }
+  }
+  return null
+}

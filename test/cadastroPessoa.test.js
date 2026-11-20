@@ -4,6 +4,7 @@ import {
   corpoCompletarPerfil,
   corpoEdicaoPerfil,
   corpoNovaPessoa,
+  erroApagarObrigatorio,
   erroCompletarPerfil,
   opcoesMudarStatus,
   podeRedefinirSenha,
@@ -154,4 +155,18 @@ test('corpoCompletarPerfil manda só o que mudou e erroCompletarPerfil cobra os 
   assert.equal(erroCompletarPerfil({ ...v, emailPessoal: '' }, new Date(2026, 10, 1)).titulo, 'E-mail pessoal obrigatório')
   assert.equal(erroCompletarPerfil({ ...v, ingresso: '2030/1' }, new Date(2026, 10, 1)).titulo, 'Ingresso inválido')
   assert.equal(erroCompletarPerfil({ ...v, calendarioUrl: 'cal.com' }, new Date(2026, 10, 1)).titulo, 'Link da agenda inválido')
+})
+
+test('erroApagarObrigatorio barra apagar campo que a pessoa já tem', () => {
+  const u = {
+    curso: 'Engenharia Elétrica',
+    telefone: '(11) 98765-4321',
+    emailPessoal: 'a@b.com',
+    ingresso: '2025/1',
+    calendarioUrl: 'https://c.com',
+  }
+  assert.equal(erroApagarObrigatorio({ ...u }, u), null)
+  assert.equal(erroApagarObrigatorio({ ...u, emailPessoal: '' }, u).titulo, 'E-mail pessoal obrigatório')
+  assert.equal(erroApagarObrigatorio({ ...u, ingresso: ' ' }, u).titulo, 'Ingresso na faculdade obrigatório')
+  assert.equal(erroApagarObrigatorio({ ...u, curso: '' }, { ...u, curso: null }), null)
 })

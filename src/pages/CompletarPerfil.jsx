@@ -10,6 +10,14 @@ import { minhaConta } from '../services/pessoas'
 
 const AJUDA_AGENDA = 'Link público da sua agenda (Google Agenda, Calendly…), para marcarem reuniões com você.'
 
+const ROTULOS = {
+  curso: 'Curso',
+  telefone: 'Telefone',
+  emailPessoal: 'E-mail pessoal',
+  ingresso: 'Ingresso na faculdade',
+  calendarioUrl: 'Link da agenda',
+}
+
 const valoresDe = u => ({
   curso: u.curso || '',
   telefone: u.telefone ? mascararTelefone(u.telefone) : '',
@@ -56,7 +64,12 @@ export default function CompletarPerfil() {
     try {
       const gravada = await minhaConta.editarPerfil(corpoCompletarPerfil(v, atual))
       refresh().catch(() => {})
-      setPendencias(gravada?.pendenciasPerfil || [])
+      const restantes = gravada?.pendenciasPerfil || []
+      if (restantes.length) {
+        alerts.error('Ainda faltam dados', `Preencha: ${restantes.map(k => ROTULOS[k] || k).join(', ')}.`)
+        return
+      }
+      setPendencias([])
       navigate('/', { replace: true })
     } catch (error) {
       alerts.error('Não foi possível salvar', error.message)

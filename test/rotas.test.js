@@ -16,7 +16,6 @@ test('podeAbrirSecao libera o perfil mesmo fora do menu', () => {
 
 test('destinoPorPendencia leva quem tem pendência à tela de completar', () => {
   assert.equal(destinoPorPendencia(['curso']), '/completar-perfil')
-  assert.equal(destinoPorPendencia(['curso']), '/completar-perfil')
   assert.equal(destinoPorPendencia([]), null)
   assert.equal(destinoPorPendencia(undefined), null)
 })
