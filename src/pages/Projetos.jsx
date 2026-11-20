@@ -32,7 +32,7 @@ export async function confirmarSigilo(p, v) {
   if (!p || p.sigiloso || v.visibilidade !== 'sigiloso') return true
   return alerts.confirm({
     title: 'Marcar como sigiloso?',
-    text: 'Só a equipe, diretores e quem estiver na lista de acesso verão os detalhes e as tarefas.',
+    text: 'Só a equipe, diretores, quem criou e quem estiver na lista de acesso verão os detalhes e as tarefas.',
     confirmText: 'Marcar como sigiloso',
   })
 }

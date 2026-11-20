@@ -296,11 +296,11 @@ export default function Perfil() {
     if (await copiarTexto(texto)) alerts.toastSuccess('Copiado')
     else alerts.error('Não foi possível copiar', 'Selecione o texto e copie à mão.')
   }
-  // [rótulo, valor, texto a copiar (opcional)]
+  // [rótulo, valor, texto a copiar e rótulo do botão (opcionais)]
   const info = [
     ['E-mail', u.email],
-    ['E-mail pessoal', u.emailPessoal, u.emailPessoal],
-    ['Telefone', u.telefone && telefoneParaMostrar(u.telefone), u.telefone && telefoneParaMostrar(u.telefone)],
+    ['E-mail pessoal', u.emailPessoal, u.emailPessoal, 'e-mail pessoal'],
+    ['Telefone', u.telefone && telefoneParaMostrar(u.telefone), u.telefone && telefoneParaMostrar(u.telefone), 'telefone'],
     ['Curso', (u.curso && (u.semestre ? `${u.curso} · ${u.semestre}º semestre` : u.curso)) || 'Curso não informado'],
     ['Na EJ desde', u.dataEntrada && fd(u.dataEntrada)],
     ['Saída', u.dataSaida && fd(u.dataSaida)],
@@ -414,16 +414,16 @@ export default function Perfil() {
               </div>
               <span className={'ms-auto ' + chip(COR_STATUS[u.status])}>{rotuloStatus(u.status)}</span>
             </div>
-            {info.map(([k, v, c]) => (
+            {info.map(([k, v, c, rotuloCopiar]) => (
               <div key={k} className="d-flex justify-content-between align-items-center gap-3 mb-1">
                 <small>{k}</small>
-                <span className="text-end d-inline-flex align-items-center gap-1" style={{ minWidth: 0, overflowWrap: 'anywhere' }}>
+                <span className="text-end d-inline-flex align-items-center gap-1 pf-info-v">
                   {v}
                   {c && (
                     <button
                       className="btn btn-g btn-sm"
-                      title={`Copiar ${k.toLowerCase()}`}
-                      aria-label={`Copiar ${k === 'Telefone' ? 'telefone' : 'e-mail pessoal'}`}
+                      title={`Copiar ${rotuloCopiar}`}
+                      aria-label={`Copiar ${rotuloCopiar}`}
                       onClick={() => copiar(c)}
                     >
                       <Ic k="copy" />
