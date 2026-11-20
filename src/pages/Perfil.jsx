@@ -23,7 +23,7 @@ import { rotuloArea } from '../lib/periodos'
 import { ocupacao } from '../services/ocupacao'
 import { faixaOcupacao, formatarHoras, proximaSemana, rotuloSemana, semanaAnterior, semanaAtual } from '../lib/ocupacao'
 
-const COR_STATUS = { ativo: 'ok', trainee: '', alumni: 'wa', inativo: 'er' }
+const COR_STATUS = { ativo: 'ok', trainee: '', inativo: 'er' }
 /** Links do perfil como cartões com logo; abrem em nova aba. */
 function CartoesDeLinks({ cartoes }) {
   return (

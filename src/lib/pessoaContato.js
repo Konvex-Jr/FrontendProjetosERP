@@ -21,9 +21,9 @@ export function telefoneParaMostrar(gravado) {
 
 /** Vazio ou 10/11 dígitos. */
 export function telefoneValido(texto) {
-  const texto0 = String(texto ?? '').trim()
-  if (!texto0) return true
-  const n = soDigitos(texto0).length
+  const limpo = String(texto ?? '').trim()
+  if (!limpo) return true
+  const n = soDigitos(limpo).length
   return n === 10 || n === 11
 }
 

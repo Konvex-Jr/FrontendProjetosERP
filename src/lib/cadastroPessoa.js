@@ -1,4 +1,5 @@
-import { STATUS_PESSOA } from '../services/pessoas.js'
+import { CURSOS, STATUS_PESSOA } from '../services/pessoas.js'
+import { telefoneValido } from './pessoaContato.js'
 
 /**
  * Regras do cadastro de pessoas que a tela segue (sessão 20). Trainee tem login com acesso de membro:
@@ -21,3 +22,36 @@ export function corpoNovaPessoa(valores) {
     ...(valores.status === 'trainee' ? { perfil: 'membro' } : {}),
   }
 }
+
+/** Opções do select de curso. Quem já tem curso mantém o atual na lista, mesmo fora dos três (dado antigo). */
+export function opcoesCurso(pessoa) {
+  const fixos = CURSOS.map(c => [c, c])
+  if (!pessoa) return [['', 'Selecione o curso'], ...fixos]
+  if (!pessoa.curso) return [['', 'Curso não informado'], ...fixos]
+  return CURSOS.includes(pessoa.curso) ? fixos : [[pessoa.curso, pessoa.curso], ...fixos]
+}
+
+const igual = (novo, antigo) => (novo ?? '').trim() === (antigo ?? '').trim()
+
+/** Primeiro problema do formulário (ou null). Curso e telefone só são cobrados na criação ou quando mudam: dado antigo não trava outra edição. */
+export function erroCadastro(v, pessoa) {
+  if (!pessoa && !v.curso) return { titulo: 'Curso obrigatório', texto: 'Escolha o curso da pessoa.' }
+  if ((!pessoa || !igual(v.telefone, pessoa.telefone)) && !telefoneValido(v.telefone)) {
+    return { titulo: 'Telefone inválido', texto: 'Use DDD e 10 ou 11 dígitos, como (11) 98765-4321.' }
+  }
+  return null
+}
+
+/** Corpo do PUT /usuarios/:codigo: curso, telefone, e-mail pessoal e fim do trainee só vão se mudaram. */
+export function corpoEdicaoPessoa(v, pessoa) {
+  const { status: _status, dataEntrada, curso, telefone, emailPessoal, fimTrainee, ...resto } = v
+  const corpo = { ...resto, ...(dataEntrada ? { dataEntrada } : {}) }
+  if (curso !== undefined && curso !== (pessoa.curso ?? '')) corpo.curso = curso
+  if (telefone !== undefined && !igual(telefone, pessoa.telefone)) corpo.telefone = telefone
+  if (emailPessoal !== undefined && !igual(emailPessoal, pessoa.emailPessoal)) corpo.emailPessoal = emailPessoal
+  if (fimTrainee && fimTrainee !== (pessoa.fimTrainee ?? '').slice(0, 10)) corpo.fimTrainee = fimTrainee
+  return corpo
+}
+
+/** Motivo da saída: pedido só ao mudar para Inativo (quem já é inativo só corrige a data). */
+export const pedeMotivoSaida = (statusAtual, destino) => destino === 'inativo' && statusAtual !== 'inativo'

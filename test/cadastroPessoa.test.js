@@ -36,3 +36,71 @@ test('nova pessoa: trainee vai como membro e ninguém leva senha (a pessoa cria 
     dataEntrada: '2026-11-01',
   })
 })
+
+test('opcoesCurso: criação, sem curso, curso antigo e curso válido', async () => {
+  const { opcoesCurso } = await import('../src/lib/cadastroPessoa.js')
+  assert.equal(opcoesCurso(null)[0][0], '')
+  assert.equal(opcoesCurso(null).length, 4)
+  assert.equal(opcoesCurso({ curso: null })[0][1], 'Curso não informado')
+  assert.equal(opcoesCurso({ curso: 'Direito' })[0][0], 'Direito')
+  assert.equal(opcoesCurso({ curso: 'Direito' }).length, 4)
+  assert.equal(opcoesCurso({ curso: 'Engenharia Mecânica' }).length, 3)
+})
+
+test('erroCadastro: curso obrigatório na criação; telefone só quando muda', async () => {
+  const { erroCadastro } = await import('../src/lib/cadastroPessoa.js')
+  assert.equal(erroCadastro({ curso: '', telefone: '' }, null).titulo, 'Curso obrigatório')
+  assert.equal(erroCadastro({ curso: 'Engenharia Mecânica', telefone: '123' }, null).titulo, 'Telefone inválido')
+  assert.equal(erroCadastro({ curso: 'Engenharia Mecânica', telefone: '(11) 98765-4321' }, null), null)
+  // pessoa antiga com telefone fora da máscara, sem mexer nele
+  assert.equal(erroCadastro({ curso: '', telefone: 'ramal 12' }, { curso: null, telefone: 'ramal 12' }), null)
+  assert.equal(erroCadastro({ curso: '', telefone: 'ramal 1' }, { curso: null, telefone: 'ramal 12' }).titulo, 'Telefone inválido')
+})
+
+test('corpoEdicaoPessoa só manda o que mudou', async () => {
+  const { corpoEdicaoPessoa } = await import('../src/lib/cadastroPessoa.js')
+  const p = { curso: 'Direito', telefone: 'ramal 12', emailPessoal: null, fimTrainee: '2026-03-01T00:00:00.000Z' }
+  const base = { nome: 'A', email: 'a@x', perfil: 'membro', codigoSenioridade: 1, dataEntrada: '' }
+  assert.deepEqual(
+    corpoEdicaoPessoa({ ...base, status: 'ativo', curso: 'Direito', telefone: 'ramal 12', emailPessoal: '', fimTrainee: '2026-03-01' }, p),
+    {
+      nome: 'A',
+      email: 'a@x',
+      perfil: 'membro',
+      codigoSenioridade: 1,
+    },
+  )
+  assert.deepEqual(
+    corpoEdicaoPessoa(
+      {
+        nome: 'A',
+        email: 'a@x',
+        perfil: 'membro',
+        codigoSenioridade: 1,
+        curso: 'Engenharia Elétrica',
+        telefone: '(11) 3456-7890',
+        emailPessoal: 'p@x.com',
+        fimTrainee: '2026-04-01',
+      },
+      p,
+    ),
+    {
+      nome: 'A',
+      email: 'a@x',
+      perfil: 'membro',
+      codigoSenioridade: 1,
+      curso: 'Engenharia Elétrica',
+      telefone: '(11) 3456-7890',
+      emailPessoal: 'p@x.com',
+      fimTrainee: '2026-04-01',
+    },
+  )
+})
+
+test('pedeMotivoSaida só ao mudar para inativo', async () => {
+  const { pedeMotivoSaida } = await import('../src/lib/cadastroPessoa.js')
+  assert.equal(pedeMotivoSaida('ativo', 'inativo'), true)
+  assert.equal(pedeMotivoSaida('trainee', 'inativo'), true)
+  assert.equal(pedeMotivoSaida('inativo', 'inativo'), false)
+  assert.equal(pedeMotivoSaida('ativo', 'ativo'), false)
+})

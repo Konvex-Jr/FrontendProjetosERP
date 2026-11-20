@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { useApp } from '../context/AppContext'
 import { consumir } from '../lib/atalho'
-import { chip, fd } from '../lib/utils'
+import { chip, fd, iso } from '../lib/utils'
 import Ic from '../components/Icon'
 import Table from '../components/Table'
 import ActionMenu from '../components/ActionMenu'
@@ -11,18 +11,27 @@ import useCarregar from '../lib/useCarregar'
 import Esqueleto from '../components/Esqueleto'
 import Avatar from '../components/Avatar'
 import { configuracoes, pessoas, rotuloStatus, STATUS_PESSOA } from '../services/pessoas'
-import { corpoNovaPessoa, opcoesMudarStatus, podeRedefinirSenha } from '../lib/cadastroPessoa'
+import {
+  corpoEdicaoPessoa,
+  corpoNovaPessoa,
+  erroCadastro,
+  opcoesCurso,
+  opcoesMudarStatus,
+  pedeMotivoSaida,
+  podeRedefinirSenha,
+} from '../lib/cadastroPessoa'
+import { mascararTelefone } from '../lib/pessoaContato'
 import { rotuloArea } from '../lib/periodos'
 import { ocupacao } from '../services/ocupacao'
 import ChipOcupacao from '../components/ChipOcupacao'
 
-const COR_STATUS = { ativo: 'ok', trainee: '', alumni: 'wa', inativo: 'er' }
+const COR_STATUS = { ativo: 'ok', trainee: '', inativo: 'er' }
 const PERFIS = [
   ['membro', 'Membro'],
   ['gerente', 'Gerente'],
   ['diretor', 'Diretor'],
 ]
-const SAIDA = ['alumni', 'inativo']
+const SAIDA = ['inativo']
 
 /** Chave e busca da tela; o menu (src/lib/antecipar.js) usa as mesmas para buscar antes do clique. */
 export function dadosDaTela() {
@@ -92,6 +101,36 @@ export default function Pessoas() {
         { k: 'perfil', l: 'Perfil de acesso', o: perfis, s: v => (p ? p.status : v.status) !== 'trainee' },
         { k: 'codigoSenioridade', l: 'Senioridade', o: senioridades.map(s => [s.codigo, s.nome]) },
         { k: 'dataEntrada', l: 'Data de entrada na EJ', t: 'date', opt: true },
+        // Fim do período de trainee: só a gestão edita, e só de quem já foi trainee (quem é trainee ainda não terminou).
+        {
+          k: 'fimTrainee',
+          l: 'Fim do período de trainee',
+          t: 'date',
+          opt: true,
+          max: iso(new Date()),
+          s: () => Boolean(p) && p.status !== 'trainee',
+          h: 'Gravado ao passar de Trainee para Ativo; corrija aqui se precisar.',
+        },
+        { k: 'curso', l: 'Curso', o: opcoesCurso(p) },
+        {
+          k: 'telefone',
+          l: 'Telefone',
+          campo: (v, set) => (
+            <label className="form-label w-100 mb-0">
+              Telefone
+              <input
+                className="form-control mt-1"
+                type="tel"
+                inputMode="tel"
+                autoComplete="off"
+                placeholder="(00) 00000-0000"
+                value={v.telefone || ''}
+                onChange={e => set('telefone', mascararTelefone(e.target.value))}
+              />
+            </label>
+          ),
+        },
+        { k: 'emailPessoal', l: 'E-mail pessoal', t: 'email', opt: true, maxLength: 254 },
       ],
       p
         ? {
@@ -100,18 +139,27 @@ export default function Pessoas() {
             perfil: p.perfil,
             codigoSenioridade: p.senioridade?.codigo || senioridades[0]?.codigo,
             dataEntrada: p.dataEntrada?.slice(0, 10) || '',
+            fimTrainee: p.fimTrainee?.slice(0, 10) || '',
+            curso: p.curso || '',
+            telefone: p.telefone || '',
+            emailPessoal: p.emailPessoal || '',
           }
         : {
             status: 'ativo',
             perfil: 'membro',
             codigoSenioridade: senioridades[0]?.codigo,
             dataEntrada: '',
+            curso: '',
+            telefone: '',
+            emailPessoal: '',
           },
       async v => {
-        if (p) {
-          const { status: _status, dataEntrada, ...resto } = v
-          return executar(() => pessoas.editar(p.codigo, { ...resto, ...(dataEntrada ? { dataEntrada } : {}) }), 'Pessoa atualizada')
+        const erro = erroCadastro(v, p)
+        if (erro) {
+          alerts.error(erro.titulo, erro.texto)
+          return false
         }
+        if (p) return executar(() => pessoas.editar(p.codigo, corpoEdicaoPessoa(v, p)), 'Pessoa atualizada')
         // A API cria a pessoa sem senha e manda o convite; se o e-mail não sair, a gestão reenvia pela lista.
         // O aviso vem depois do "Pessoa cadastrada" do executar: um toast novo substitui o anterior.
         let criada
@@ -138,8 +186,16 @@ export default function Pessoas() {
           s: v => SAIDA.includes(v.status),
           h: 'Encerra as participações em projetos abertos. A pessoa e o histórico continuam registrados.',
         },
+        {
+          k: 'motivoSaida',
+          l: 'Motivo da saída',
+          t: 'textarea',
+          maxLength: 500,
+          s: v => pedeMotivoSaida(p.status, v.status),
+          h: 'Obrigatório. Aparece no perfil da pessoa (até 500 caracteres).',
+        },
       ],
-      { status: p.status, dataSaida: '' },
+      { status: p.status, dataSaida: '', motivoSaida: '' },
       async v => {
         if (v.status === p.status) return
         if (
@@ -152,7 +208,11 @@ export default function Pessoas() {
           }))
         )
           return false
-        return executar(() => pessoas.alterarStatus(p.codigo, v.status, v.dataSaida), 'Status atualizado')
+        return executar(
+          () =>
+            pessoas.alterarStatus(p.codigo, v.status, v.dataSaida, pedeMotivoSaida(p.status, v.status) ? v.motivoSaida.trim() : undefined),
+          'Status atualizado',
+        )
       },
     )
 
@@ -207,6 +267,7 @@ export default function Pessoas() {
           '—'
         ),
     },
+    { k: 'cu', l: 'Curso', filter: 1, get: p => p.curso || 'Curso não informado' },
     { k: 'sn', l: 'Senioridade', filter: 1, get: p => p.senioridade?.nome || '—' },
     { k: 'pf', l: 'Perfil', filter: 1, get: p => PERFIS.find(([k]) => k === p.perfil)?.[1] || p.perfil },
     {

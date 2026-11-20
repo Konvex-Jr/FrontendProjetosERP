@@ -31,6 +31,16 @@ test('copiarTexto sem clipboard devolve false', async () => {
 })
 
 test('copiarTexto com clipboard', async () => {
+  const original = Object.getOwnPropertyDescriptor(globalThis, 'navigator')
+  try {
+    await comClipboard()
+  } finally {
+    if (original) Object.defineProperty(globalThis, 'navigator', original)
+    else delete globalThis.navigator
+  }
+})
+
+async function comClipboard() {
   let copiado
   Object.defineProperty(globalThis, 'navigator', { value: { clipboard: { writeText: async t => (copiado = t) } }, configurable: true })
   assert.equal(await copiarTexto('oi'), true)
@@ -46,4 +56,4 @@ test('copiarTexto com clipboard', async () => {
     configurable: true,
   })
   assert.equal(await copiarTexto('oi'), false)
-})
+}
