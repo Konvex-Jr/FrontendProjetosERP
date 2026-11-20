@@ -83,7 +83,7 @@ export default function Configuracoes() {
           opt: true,
         },
         { k: 'ativa', l: 'Situação', o: SIM_NAO, h: 'Áreas inativas somem das opções, mas o histórico das pessoas continua.' },
-        { k: 'temGeral', l: 'Projeto geral', o: LIDERA, h: 'Não exclui o projeto geral da área (só se ele não tiver tarefas).' },
+        { k: 'temGeral', l: 'Projeto geral', o: LIDERA, h: 'Escolher Não exclui o projeto geral da área (só se ele não tiver tarefas).' },
       ],
       {
         nome: a?.nome || '',
