@@ -104,7 +104,7 @@ export function dadosDaTela({ me, mb, pode }) {
 export default function Projetos() {
   const { D, me, mb, form, go, pode, refresh } = useApp()
   const [pv, setPv] = useState('grid'),
-    [grupo, setGrupo] = useState(() => consumir('projetos') || ''),
+    [grupo, setGrupo] = useState(() => consumir('projetos') || 'ativos'),
     [tipo, setTipo] = useState(''),
     [areaId, setAreaId] = useState('')
   const gestor = pode('projetos.editar')
