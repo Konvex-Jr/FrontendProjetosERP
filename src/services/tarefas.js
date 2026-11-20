@@ -33,6 +33,9 @@ export function avisarOcupacao(resposta) {
 /** De onde a tarefa é: o nome do projeto. */
 export const origemTarefa = t => t.projetoNome || 'Projeto'
 
+/** O responsável do item ainda é responsável da tarefa? (a janela mostra "Ninguém" quando não é) */
+const responsavelNaTarefa = (t, i) => Boolean(i.responsavel) && (t.responsaveis || []).includes(i.responsavel)
+
 /** Corpo do POST /tarefas: toda tarefa tem projeto. */
 export const corpoNovaTarefa = (codigoProjeto, t) => ({
   codigoProjeto,
@@ -41,7 +44,7 @@ export const corpoNovaTarefa = (codigoProjeto, t) => ({
   checklist: (t.checklist || []).map(i => ({
     texto: i.texto,
     feito: Boolean(i.feito),
-    ...(i.responsavel ? { codigoResponsavel: i.responsavel } : {}),
+    ...(responsavelNaTarefa(t, i) ? { codigoResponsavel: i.responsavel } : {}),
   })),
 })
 
@@ -60,9 +63,12 @@ export const corpoTarefa = (t, antes) => ({
     codigo: i.id,
     texto: i.texto,
     feito: Boolean(i.feito),
-    codigoResponsavel: i.responsavel || null,
+    codigoResponsavel: responsavelNaTarefa(t, i) ? i.responsavel : null,
   })),
-  ...(t.status === 'concluida' && t.conclusao ? { dataConclusao: dataApi(t.conclusao) } : {}),
+  // A data só vai quando foi corrigida: reenviá-la revalidaria uma tarefa concluída antes do início.
+  ...(antes?.status === 'concluida' && t.status === 'concluida' && t.conclusao && t.conclusao !== antes.conclusao
+    ? { dataConclusao: dataApi(t.conclusao) }
+    : {}),
 })
 
 /**

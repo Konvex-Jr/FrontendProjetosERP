@@ -249,24 +249,53 @@ test('24b: corpos mandam responsável do item, descrição, checklist e data de 
     status: 'concluida',
     conclusao: '2026-11-10',
     descricao: 'd',
+    responsaveis: ['u2'],
     checklist: [
       { id: 'i1', texto: 'a', feito: false, responsavel: 'u2' },
       { texto: 'b', feito: true },
     ],
   }
-  const c = corpoTarefa(t)
+  const antes = { ...t, conclusao: '2026-11-09' }
+  const c = corpoTarefa(t, antes)
   assert.deepEqual(c.checklist, [
     { codigo: 'i1', texto: 'a', feito: false, codigoResponsavel: 'u2' },
     { codigo: undefined, texto: 'b', feito: true, codigoResponsavel: null },
   ])
   assert.equal(c.dataConclusao, new Date('2026-11-10T12:00:00').toISOString())
-  assert.equal('dataConclusao' in corpoTarefa({ ...t, status: 'andamento' }), false)
+  assert.equal('dataConclusao' in corpoTarefa({ ...t, status: 'andamento' }, antes), false)
   const n = corpoNovaTarefa('p1', t)
   assert.equal(n.descricao, 'd')
   assert.deepEqual(n.checklist, [
     { texto: 'a', feito: false, codigoResponsavel: 'u2' },
     { texto: 'b', feito: true },
   ])
+})
+
+test('24b: dataConclusao só vai quando a tarefa já era concluída e a data mudou', () => {
+  const feita = { titulo: 'X', status: 'concluida', conclusao: '2026-11-10' }
+  assert.equal('dataConclusao' in corpoTarefa(feita, feita), false)
+  assert.equal('dataConclusao' in corpoTarefa(feita), false)
+  assert.equal('dataConclusao' in corpoTarefa(feita, { ...feita, status: 'andamento', conclusao: undefined }), false)
+  assert.equal(corpoTarefa(feita, { ...feita, conclusao: '2026-11-09' }).dataConclusao, new Date('2026-11-10T12:00:00').toISOString())
+})
+
+test('24b: item cujo responsável saiu da tarefa vai sem responsável', () => {
+  const t = {
+    titulo: 'X',
+    responsaveis: ['u2'],
+    checklist: [
+      { id: 'i1', texto: 'a', responsavel: 'u3' },
+      { id: 'i2', texto: 'b', responsavel: 'u2' },
+    ],
+  }
+  assert.deepEqual(
+    corpoTarefa(t, t).checklist.map(i => i.codigoResponsavel),
+    [null, 'u2'],
+  )
+  assert.deepEqual(
+    corpoNovaTarefa('p1', t).checklist.map(i => 'codigoResponsavel' in i && i.codigoResponsavel),
+    [false, 'u2'],
+  )
 })
 
 test('24b: soMudouConclusao e chamadas PATCH', async () => {
