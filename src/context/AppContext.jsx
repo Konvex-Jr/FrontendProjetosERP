@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { iso, path } from '../lib/utils'
-import { request, sessao } from '../services/api'
+import { comTravaDeSessao, request, retomarSessao, sessao } from '../services/api'
 import alerts from '../lib/alerts'
 import { readConfig } from '../lib/apiMappers'
 import { capacitacoes } from '../services/capacitacoes'
@@ -49,10 +49,12 @@ export function AppProvider({ children }) {
     let active = true
 
     // Abrir ou recarregar a página com sessão salva: confere a pessoa (/auth/me), os dados e o menu
-    // numa rodada só (services/inicio.js), antes de mostrar as telas.
+    // numa rodada só (services/inicio.js), antes de mostrar as telas. Aba sem sessão tenta antes
+    // retomar a sessão lembrada pelo cookie ("manter conectado"); sem cookie válido, vai ao login.
     const initialize = async () => {
       const defaultConfig = readConfig()
-      if (!sessao.ativa) {
+      if (!sessao.ativa && !(await retomarSessao())) {
+        if (!active) return
         sessao.limpar()
         setD({ c: defaultConfig, ...VAZIO })
         return
@@ -159,10 +161,13 @@ export function AppProvider({ children }) {
 
   const entrar = (email, senha, manterConectado = false) =>
     executarEntrada(() =>
-      request('/auth/login', {
-        method: 'POST',
-        body: { email: email.trim().toLowerCase(), senha, manterConectado: Boolean(manterConectado) },
-      }),
+      // Na mesma trava do retomar e do logout: o cookie de lembrete é um só para todas as abas.
+      comTravaDeSessao(() =>
+        request('/auth/login', {
+          method: 'POST',
+          body: { email: email.trim().toLowerCase(), senha, manterConectado: Boolean(manterConectado) },
+        }),
+      ),
     )
 
   // Sessão que já veio pronta da API (Criar senha): mesma resposta do login.
@@ -172,8 +177,10 @@ export function AppProvider({ children }) {
   const encerrarSessao = () => {
     const refreshToken = sessao.refreshToken
     sessao.limpar()
-    // Encerra o refresh token no backend; se falhar, ele expira sozinho.
-    if (refreshToken) request('/auth/logout', { method: 'POST', body: { refreshToken } }).catch(() => {})
+    // Encerra o refresh token e o lembrete do cookie no backend; vai mesmo sem refresh token na aba,
+    // para apagar o cookie do "manter conectado". Se falhar, os dois expiram sozinhos. Pela trava,
+    // um login logo depois (troca de conta) só sai quando este logout terminar.
+    comTravaDeSessao(() => request('/auth/logout', { method: 'POST', body: refreshToken ? { refreshToken } : {} })).catch(() => {})
     limparEstado()
   }
 
@@ -210,8 +217,8 @@ export function AppProvider({ children }) {
   }
 
   // Nada aparece antes de saber se há sessão: evita mostrar o login por um instante a quem já está logado.
-  // Com sessão salva, o esqueleto do layout ocupa o lugar; sem sessão a resposta é imediata e vai ao login.
-  if (!sessionReady || !DF) return sessao.ativa ? <EsqueletoApp /> : null
+  // O esqueleto do layout ocupa o lugar enquanto confere a sessão salva ou tenta retomar a lembrada.
+  if (!sessionReady || !DF) return <EsqueletoApp />
 
   return (
     <Ctx.Provider

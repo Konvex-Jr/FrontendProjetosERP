@@ -61,7 +61,8 @@ const gravar = (key, value) => {
 }
 
 // Cópia em memória da sessão. O sessionStorage só serve para sobreviver ao F5: ele é por aba
-// e some ao fechar, então uma aba aberta do zero pede login de novo.
+// e some ao fechar, então uma aba aberta do zero pede login de novo, a menos que a pessoa tenha
+// marcado "manter conectado" (ver retomarSessao).
 let memoria = { token: ler(ACCESS_KEY), refreshToken: ler(REFRESH_KEY) }
 // Promessa da renovação em andamento (ver renovarSessao); null quando não há nenhuma.
 let renovando = null
@@ -91,9 +92,18 @@ export const sessao = {
   onExpirada: null,
 }
 
+// Rotas que leem ou trocam o cookie de lembrete do "manter conectado" (HttpOnly, só em /auth).
+// Só elas vão com `credentials: 'include'`; quem já define `credentials` (ex.: 'omit') decide sozinho.
+const ROTAS_COM_COOKIE = ['/auth/login', '/auth/retomar', '/auth/logout']
+function levaCookie(path, method = 'GET') {
+  if (ROTAS_COM_COOKIE.includes(path)) return true
+  return method.toUpperCase() === 'POST' && path.startsWith('/auth/link-senha/')
+}
+
 async function chamar(path, init) {
+  const comCookie = !init.credentials && levaCookie(path, init.method) ? { ...init, credentials: 'include' } : init
   try {
-    return await fetch(`${API_URL}${path}`, init)
+    return await fetch(`${API_URL}${path}`, comCookie)
   } catch {
     // Detalhe técnico só no console; a pessoa vê uma frase simples.
     console.warn(`API inacessível em ${API_URL} (confira o backend e VITE_API_URL).`)
@@ -133,9 +143,11 @@ export function renovarSessao() {
           // A pessoa saiu (ou outra entrou) durante a renovação. Salvar aqui religaria a sessão
           // antiga nesta aba (o F5 entraria de novo como ela) ou trocaria a sessão de quem entrou.
           // A API já trocou o refresh token: o novo fica sem dono e é revogado, sem esperar.
+          // Sem o cookie: o lembrete do navegador pode ser de quem entrou agora e não pode ser revogado.
           if (data.refreshToken) {
             chamar('/auth/logout', {
               method: 'POST',
+              credentials: 'omit',
               headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
               body: JSON.stringify({ refreshToken: data.refreshToken }),
             }).catch(() => {})
@@ -152,6 +164,43 @@ export function renovarSessao() {
     })
   }
   return renovando
+}
+
+// Fila desta aba para quando o navegador não tem `navigator.locks`: mantém ao menos a ordem local
+// (ex.: o logout de quem saiu chega à API antes do login de quem entra).
+let filaSemLocks = Promise.resolve()
+
+/**
+ * Login, retomar e logout passam um de cada vez entre todas as abas (trava 'konvex-sessao'):
+ * o cookie de lembrete é um só no navegador, e um login numa aba durante o retomar de outra
+ * faria a API ver o lembrete antigo reusado e derrubar a sessão nova.
+ */
+export function comTravaDeSessao(fn) {
+  const locks = globalThis.navigator?.locks
+  if (locks?.request) return locks.request('konvex-sessao', () => fn())
+  const vez = filaSemLocks.then(() => fn())
+  filaSemLocks = vez.catch(() => {})
+  return vez
+}
+
+/**
+ * Aba aberta sem sessão: troca o cookie de lembrete ("manter conectado") por uma sessão nova.
+ * Devolve true se a aba tem sessão ao fim (salva agora ou já existente ao pegar a trava); false
+ * sem cookie válido (401) ou sem conexão. Uma sessão salva por outra entrada desta aba nunca é trocada.
+ */
+export function retomarSessao() {
+  return comTravaDeSessao(async () => {
+    if (sessao.ativa) return true
+    try {
+      const response = await chamar('/auth/retomar', { method: 'POST', headers: { Accept: 'application/json' } })
+      const data = await lerCorpo(response)
+      if (!response.ok || !data?.token || sessao.ativa) return false
+      sessao.salvar({ token: data.token, refreshToken: data.refreshToken })
+      return true
+    } catch {
+      return false
+    }
+  })
 }
 
 /**
