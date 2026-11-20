@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { podeAbrirSecao } from '../src/lib/rotas.js'
+import { destinoPorPendencia, podeAbrirSecao } from '../src/lib/rotas.js'
 
 const nav = [['projetos', 'Projetos', '/projetos']]
 
@@ -12,4 +12,11 @@ test('podeAbrirSecao libera o início e as telas do menu', () => {
 
 test('podeAbrirSecao libera o perfil mesmo fora do menu', () => {
   assert.equal(podeAbrirSecao('perfil', []), true)
+})
+
+test('destinoPorPendencia leva quem tem pendência à tela de completar', () => {
+  assert.equal(destinoPorPendencia(['curso']), '/completar-perfil')
+  assert.equal(destinoPorPendencia(['curso']), '/completar-perfil')
+  assert.equal(destinoPorPendencia([]), null)
+  assert.equal(destinoPorPendencia(undefined), null)
 })

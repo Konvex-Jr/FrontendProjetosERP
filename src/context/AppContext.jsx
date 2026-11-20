@@ -33,6 +33,8 @@ export function AppProvider({ children }) {
   const [loading, setLoading] = useState(false)
   const [sessionReady, setSessionReady] = useState(false)
   const [acesso, setAcesso] = useState(SEM_ACESSO)
+  // Dados obrigatórios do perfil que faltam (GET /auth/me, login, PUT /auth/perfil); com itens, só a tela de completar abre.
+  const [pendencias, setPendencias] = useState([])
 
   const refresh = async config => {
     const dona = memoria.pessoa()
@@ -66,6 +68,7 @@ export function AppProvider({ children }) {
         // A memória de dados passa a ser desta pessoa antes de qualquer tela montar e ler dela.
         definirPessoa(eu.codigo)
         setAcesso(permissoes)
+        setPendencias(eu.pendenciasPerfil || [])
         setMe(eu.codigo)
         setD({ ...data, c: readConfig(data.senioridades, false) })
       } catch (error) {
@@ -73,6 +76,7 @@ export function AppProvider({ children }) {
         sessao.limpar()
         apagarMemorias()
         setMe(null)
+        setPendencias([])
         setAcesso(SEM_ACESSO)
         setD({ c: defaultConfig, ...VAZIO })
         // 401 = sessão vencida: quem avisa é o onExpirada ("Sessão expirada"), se havia sessão; outro alerta aqui o repetiria.
@@ -128,6 +132,7 @@ export function AppProvider({ children }) {
   const limparEstado = () => {
     apagarMemorias()
     setMe(null)
+    setPendencias([])
     setMd(null)
     setAcesso(SEM_ACESSO)
     setD(current => (current ? { ...current, ...VAZIO } : current))
@@ -145,6 +150,7 @@ export function AppProvider({ children }) {
       const [data, permissoes] = await Promise.all([carregarDadosGlobais(), carregarAcesso()])
       setD({ ...data, c: readConfig(data.senioridades, false) })
       setAcesso(permissoes)
+      setPendencias(result.usuario.pendenciasPerfil || [])
       setMe(result.usuario.codigo)
       navigate('/')
       window.scrollTo(0, 0)
@@ -239,6 +245,8 @@ export function AppProvider({ children }) {
         loading,
         refresh,
         pode,
+        pendencias,
+        setPendencias,
         recarregarCapacitacoes,
       }}
     >

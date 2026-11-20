@@ -6,3 +6,10 @@ export function podeAbrirSecao(secao, nav) {
   if (!secao || SEMPRE_LIBERADAS.includes(secao)) return true
   return nav.some(([, , caminho]) => caminho === '/' + secao)
 }
+
+export const ROTA_COMPLETAR_PERFIL = '/completar-perfil'
+
+/** Pessoa com dados obrigatórios do perfil faltando só abre a tela de completar; devolve o caminho ou null. */
+export function destinoPorPendencia(pendencias) {
+  return pendencias?.length ? ROTA_COMPLETAR_PERFIL : null
+}

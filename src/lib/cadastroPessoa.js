@@ -1,5 +1,5 @@
 import { CURSOS, STATUS_PESSOA } from '../services/pessoas.js'
-import { telefoneValido } from './pessoaContato.js'
+import { ingressoValido, telefoneValido } from './pessoaContato.js'
 
 /**
  * Regras do cadastro de pessoas que a tela segue (sessão 20). Trainee tem login com acesso de membro:
@@ -63,5 +63,35 @@ export function corpoEdicaoPerfil(v, u) {
   if (curso !== undefined && curso !== (u.curso ?? '')) corpo.curso = curso
   if (telefone !== undefined && !igual(telefone, u.telefone)) corpo.telefone = telefone
   if (emailPessoal !== undefined && !igual(emailPessoal, u.emailPessoal)) corpo.emailPessoal = emailPessoal
+  return corpo
+}
+
+const LINK = /^https?:\/\/\S+$/i
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+/** Primeiro problema da tela "Complete seu perfil" (ou null): os cinco campos são obrigatórios. */
+export function erroCompletarPerfil(v, hoje = new Date()) {
+  if (!v.curso) return { titulo: 'Curso obrigatório', texto: 'Escolha o seu curso.' }
+  if (!telefoneValido(v.telefone) || !(v.telefone ?? '').trim()) {
+    return { titulo: 'Telefone inválido', texto: 'Use DDD e 10 ou 11 dígitos, como (11) 98765-4321.' }
+  }
+  if (!EMAIL.test((v.emailPessoal ?? '').trim())) {
+    return { titulo: 'E-mail pessoal obrigatório', texto: 'Informe um e-mail válido, como nome@gmail.com.' }
+  }
+  if (!ingressoValido(v.ingresso, hoje)) {
+    return { titulo: 'Ingresso inválido', texto: 'Use o formato AAAA/S, como 2025/1, sem passar do semestre atual.' }
+  }
+  if (!LINK.test((v.calendarioUrl ?? '').trim())) {
+    return { titulo: 'Link da agenda inválido', texto: 'Informe um link que comece com http:// ou https://.' }
+  }
+  return null
+}
+
+/** Corpo do PUT /auth/perfil da tela de completar: só o que mudou em relação à pessoa. */
+export function corpoCompletarPerfil(v, u) {
+  const corpo = {}
+  for (const k of ['curso', 'telefone', 'emailPessoal', 'ingresso', 'calendarioUrl', 'linkedinUrl', 'githubUrl']) {
+    if (v[k] !== undefined && !igual(v[k], u[k])) corpo[k] = v[k].trim()
+  }
   return corpo
 }

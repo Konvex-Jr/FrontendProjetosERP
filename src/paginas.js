@@ -13,6 +13,7 @@ export const Precificacao = carregarPagina(() => import('./pages/Precificacao'))
 export const Pessoas = carregarPagina(() => import('./pages/Pessoas'))
 export const Perfil = carregarPagina(() => import('./pages/Perfil'))
 export const Configuracoes = carregarPagina(() => import('./pages/Configuracoes'))
+export const CompletarPerfil = carregarPagina(() => import('./pages/CompletarPerfil'))
 export const CriarSenha = carregarPagina(() => import('./pages/CriarSenha'))
 export const EsqueciSenha = carregarPagina(() => import('./pages/EsqueciSenha'))
 

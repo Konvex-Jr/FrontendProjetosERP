@@ -20,7 +20,7 @@ import Clipe from '../components/Clipe'
 import { SeloSigiloso, SeloTipo } from '../components/SeloProjeto'
 import AreasPessoa from '../components/AreasPessoa'
 import { periodoTrainee, rotuloArea, rotuloMotivo } from '../lib/periodos'
-import { copiarTexto, mascararTelefone, telefoneParaMostrar } from '../lib/pessoaContato'
+import { copiarTexto, mascararIngresso, mascararTelefone, telefoneParaMostrar } from '../lib/pessoaContato'
 import { corpoEdicaoPerfil, erroCadastro, opcoesCurso } from '../lib/cadastroPessoa'
 import { ocupacao } from '../services/ocupacao'
 import { faixaOcupacao, formatarHoras, proximaSemana, rotuloSemana, semanaAnterior, semanaAtual } from '../lib/ocupacao'
@@ -198,7 +198,26 @@ export default function Perfil() {
           h: 'Link público da sua agenda (Google Agenda, Calendly…), para marcarem reuniões com você.',
         },
         { k: 'curso', l: 'Curso', o: opcoesCurso(u) },
-        { k: 'semestre', l: 'Semestre', t: 'number', opt: true },
+        {
+          k: 'ingresso',
+          l: 'Ingresso na faculdade',
+          opt: true,
+          h: 'Ex.: 2025/1 para o primeiro semestre de 2025.',
+          campo: (v, set) => (
+            <label className="form-label w-100 mb-0">
+              Ingresso na faculdade
+              <input
+                className="form-control mt-1"
+                inputMode="numeric"
+                autoComplete="off"
+                placeholder="AAAA/S"
+                value={v.ingresso || ''}
+                onChange={e => set('ingresso', mascararIngresso(e.target.value))}
+              />
+              <small className="text-muted">Ex.: 2025/1 para o primeiro semestre de 2025.</small>
+            </label>
+          ),
+        },
         { k: 'bio', l: 'Sobre você', t: 'textarea', opt: true },
       ],
       {
@@ -209,7 +228,7 @@ export default function Perfil() {
         githubUrl: u.githubUrl || '',
         calendarioUrl: u.calendarioUrl || '',
         curso: u.curso || '',
-        semestre: u.semestre ?? '',
+        ingresso: u.ingresso || '',
         bio: u.bio || '',
       },
       async v => {
@@ -301,7 +320,8 @@ export default function Perfil() {
     ['E-mail', u.email],
     ['E-mail pessoal', u.emailPessoal, u.emailPessoal, 'e-mail pessoal'],
     ['Telefone', u.telefone && telefoneParaMostrar(u.telefone), u.telefone && telefoneParaMostrar(u.telefone), 'telefone'],
-    ['Curso', (u.curso && (u.semestre ? `${u.curso} · ${u.semestre}º semestre` : u.curso)) || 'Curso não informado'],
+    ['Curso', u.curso || 'Curso não informado'],
+    ['Ingresso', u.ingresso],
     ['Na EJ desde', u.dataEntrada && fd(u.dataEntrada)],
     ['Saída', u.dataSaida && fd(u.dataSaida)],
     ['Motivo da saída', rotuloMotivo(u)],

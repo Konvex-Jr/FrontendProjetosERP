@@ -1,6 +1,13 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { corpoEdicaoPerfil, corpoNovaPessoa, opcoesMudarStatus, podeRedefinirSenha } from '../src/lib/cadastroPessoa.js'
+import {
+  corpoCompletarPerfil,
+  corpoEdicaoPerfil,
+  corpoNovaPessoa,
+  erroCompletarPerfil,
+  opcoesMudarStatus,
+  podeRedefinirSenha,
+} from '../src/lib/cadastroPessoa.js'
 
 test('mudar status não oferece trainee, salvo para quem já é trainee', () => {
   assert.deepEqual(
@@ -114,4 +121,37 @@ test('corpoEdicaoPerfil: curso, telefone e e-mail pessoal só vão se mudaram', 
     curso: 'Engenharia Elétrica',
     emailPessoal: 'a@b.co',
   })
+})
+
+test('corpoCompletarPerfil manda só o que mudou e erroCompletarPerfil cobra os obrigatórios', () => {
+  const u = {
+    curso: 'Engenharia Elétrica',
+    telefone: '',
+    emailPessoal: '',
+    ingresso: null,
+    calendarioUrl: '',
+    linkedinUrl: 'https://l.com/a',
+    githubUrl: '',
+  }
+  const v = {
+    curso: 'Engenharia Elétrica',
+    telefone: '(11) 98765-4321',
+    emailPessoal: 'a@b.com',
+    ingresso: '2025/1',
+    calendarioUrl: 'https://cal.com/a',
+    linkedinUrl: 'https://l.com/a',
+    githubUrl: '',
+  }
+  assert.deepEqual(corpoCompletarPerfil(v, u), {
+    telefone: '(11) 98765-4321',
+    emailPessoal: 'a@b.com',
+    ingresso: '2025/1',
+    calendarioUrl: 'https://cal.com/a',
+  })
+  assert.equal(erroCompletarPerfil(v, new Date(2026, 10, 1)), null)
+  assert.equal(erroCompletarPerfil({ ...v, curso: '' }, new Date(2026, 10, 1)).titulo, 'Curso obrigatório')
+  assert.equal(erroCompletarPerfil({ ...v, telefone: '(11) 9' }, new Date(2026, 10, 1)).titulo, 'Telefone inválido')
+  assert.equal(erroCompletarPerfil({ ...v, emailPessoal: '' }, new Date(2026, 10, 1)).titulo, 'E-mail pessoal obrigatório')
+  assert.equal(erroCompletarPerfil({ ...v, ingresso: '2030/1' }, new Date(2026, 10, 1)).titulo, 'Ingresso inválido')
+  assert.equal(erroCompletarPerfil({ ...v, calendarioUrl: 'cal.com' }, new Date(2026, 10, 1)).titulo, 'Link da agenda inválido')
 })

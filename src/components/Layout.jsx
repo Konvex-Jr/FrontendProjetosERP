@@ -4,7 +4,7 @@ import { useApp } from '../context/AppContext'
 import { fm, un, chip } from '../lib/utils'
 import Ic from './Icon'
 import Avatar from './Avatar'
-import { podeAbrirSecao } from '../lib/rotas'
+import { destinoPorPendencia, podeAbrirSecao } from '../lib/rotas'
 import FormModal from './FormModal'
 import Esqueleto from './Esqueleto'
 import { PAGINAS } from '../paginas'
@@ -181,9 +181,12 @@ function SideNav() {
  * global aberto por `form()` do contexto. Também é a guarda das rotas: sem login vai para /login.
  */
 export default function Layout() {
-  const { me, nav, md, setMd } = useApp(),
+  const { me, nav, md, setMd, pendencias } = useApp(),
     { pathname } = useLocation()
   if (!me) return <Navigate to="/login" replace />
+  // Dados obrigatórios faltando (primeiro acesso): nada abre antes da tela de completar o perfil.
+  const completar = destinoPorPendencia(pendencias)
+  if (completar) return <Navigate to={completar} replace />
   const secao = pathname.split('/')[1]
   // Só abre telas que vieram no menu da pessoa (GET /auth/permissoes), além do perfil.
   if (!podeAbrirSecao(secao, nav)) return <Navigate to="/" replace />
