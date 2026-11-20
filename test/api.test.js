@@ -549,3 +549,139 @@ test('baixar que para no meio vira ApiError com mensagem para a pessoa', async (
     e => e instanceof ApiError && e.status === 0 && /parou no meio/.test(e.message),
   )
 })
+
+// "Manter conectado" (sessão 25a): o cookie de lembrete só vai nas rotas de sessão.
+function comLocks(fn) {
+  const nomes = []
+  const antes = Object.getOwnPropertyDescriptor(globalThis, 'navigator')
+  Object.defineProperty(globalThis, 'navigator', {
+    configurable: true,
+    value: { locks: { request: (nome, cb) => (nomes.push(nome), cb()) } },
+  })
+  const restaurar = () => (antes ? Object.defineProperty(globalThis, 'navigator', antes) : delete globalThis.navigator)
+  return Promise.resolve(fn(nomes)).finally(restaurar)
+}
+
+test('/auth/login vai com credentials include e /tarefas não', async () => {
+  const vistos = {}
+  globalThis.fetch = async (url, options) => {
+    vistos[url.replace(apiUrl, '')] = options.credentials
+    return response(200, '{}')
+  }
+  await request('/auth/login', { method: 'POST', body: { email: 'a@b', senha: 'x', manterConectado: true } })
+  await request('/auth/logout', { method: 'POST', body: {} })
+  await request('/auth/link-senha/abc', { method: 'POST', body: { senha: 'x', confirmacao: 'x' } })
+  await request('/auth/link-senha/consulta')
+  await request('/tarefas', { token: 'jwt' })
+  assert.equal(vistos['/auth/login'], 'include')
+  assert.equal(vistos['/auth/logout'], 'include')
+  assert.equal(vistos['/tarefas'], undefined)
+  // Só o POST do link troca o cookie; a consulta (GET) não precisa dele.
+  assert.equal(vistos['/auth/link-senha/consulta'], undefined)
+  assert.equal(vistos['/auth/link-senha/abc'], 'include')
+})
+
+test('POST do link de senha vai com credentials include', async () => {
+  let credenciais
+  globalThis.fetch = async (_url, options) => {
+    credenciais = options.credentials
+    return response(200, '{}')
+  }
+  await request('/auth/link-senha/abc', { method: 'POST', body: { senha: 'x', confirmacao: 'x' } })
+  assert.equal(credenciais, 'include')
+})
+
+test('retomarSessao salva a sessão quando a API responde 200, dentro da trava konvex-sessao', async () => {
+  const { retomarSessao, sessao } = await import('../src/services/api.js')
+  sessao.limpar()
+  let chamada
+  globalThis.fetch = async (url, options) => {
+    chamada = { url, options }
+    return response(200, '{"token":"tk-r","refreshToken":"rf-r","usuario":{"codigo":"u1","nome":"Ana"}}')
+  }
+  try {
+    await comLocks(async nomes => {
+      assert.equal(await retomarSessao(), true)
+      assert.deepEqual(nomes, ['konvex-sessao'])
+    })
+    assert.equal(chamada.url, `${apiUrl}/auth/retomar`)
+    assert.equal(chamada.options.method, 'POST')
+    assert.equal(chamada.options.credentials, 'include')
+    assert.equal(sessao.token, 'tk-r')
+    assert.equal(sessao.refreshToken, 'rf-r')
+  } finally {
+    sessao.limpar()
+  }
+})
+
+test('retomarSessao devolve false em 401 sem limpar a sessão que houver', async () => {
+  const { retomarSessao, sessao } = await import('../src/services/api.js')
+  sessao.limpar()
+  globalThis.fetch = async () => {
+    // Outra entrada desta aba salvou sessão enquanto o retomar ia à API.
+    sessao.salvar({ token: 'outra', refreshToken: 'rf-outra' })
+    return response(401, '{"message":"Sessão expirada."}')
+  }
+  try {
+    assert.equal(await retomarSessao(), false)
+    assert.equal(sessao.token, 'outra')
+    assert.equal(sessao.refreshToken, 'rf-outra')
+  } finally {
+    sessao.limpar()
+  }
+})
+
+test('retomarSessao sem conexão devolve false', async () => {
+  const { retomarSessao, sessao } = await import('../src/services/api.js')
+  sessao.limpar()
+  globalThis.fetch = async () => {
+    throw new TypeError('Failed to fetch')
+  }
+  const aviso = console.warn
+  console.warn = () => {}
+  try {
+    assert.equal(await retomarSessao(), false)
+    assert.equal(sessao.ativa, false)
+  } finally {
+    console.warn = aviso
+  }
+})
+
+test('comTravaDeSessao usa navigator.locks e, sem ele, mantém a ordem das chamadas', async () => {
+  const { comTravaDeSessao } = await import('../src/services/api.js')
+  await comLocks(async nomes => {
+    assert.equal(await comTravaDeSessao(async () => 7), 7)
+    assert.deepEqual(nomes, ['konvex-sessao'])
+  })
+  const ordem = []
+  let soltar
+  const primeira = comTravaDeSessao(() => new Promise(r => (soltar = r)).then(() => ordem.push('logout')))
+  const segunda = comTravaDeSessao(async () => ordem.push('login'))
+  await new Promise(r => setTimeout(r, 0))
+  assert.deepEqual(ordem, [])
+  soltar()
+  await Promise.all([primeira, segunda])
+  assert.deepEqual(ordem, ['logout', 'login'])
+})
+
+test('logout de refresh token sem dono não leva o cookie de lembrete', async () => {
+  const { request: req, sessao } = await import('../src/services/api.js')
+  sessao.salvar({ token: 'vencido', refreshToken: 'refresh-1' })
+  const logouts = []
+  globalThis.fetch = async (url, options) => {
+    if (url.endsWith('/auth/refresh')) {
+      // Outra pessoa entra nesta aba enquanto a renovação vai à API.
+      sessao.salvar({ token: 'b', refreshToken: 'refresh-b' })
+      return response(200, '{"token":"novo","refreshToken":"refresh-2"}')
+    }
+    if (url.endsWith('/auth/logout')) logouts.push(options.credentials)
+    return response(401, '{"message":"Token inválido ou expirado."}')
+  }
+  try {
+    await req('/tarefas', { auth: true }).catch(() => {})
+    await new Promise(r => setTimeout(r, 0))
+    assert.deepEqual(logouts, ['omit'])
+  } finally {
+    sessao.limpar()
+  }
+})

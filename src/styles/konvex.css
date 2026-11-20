@@ -202,7 +202,7 @@ table, .hs b, .tnum, time { font-variant-numeric: tabular-nums }
   color: var(--tx);
 }
 /* No computador o formulário fica num cartão sobre o fundo. */
-.lgv-mold form {
+.lgv-mold form, .lgv-mold .lgv-form {
   display: grid; gap: 16px; width: 100%; max-width: 460px;
   padding: 40px;
   background: var(--c);
@@ -216,6 +216,10 @@ table, .hs b, .tnum, time { font-variant-numeric: tabular-nums }
 .lgv-mold .form-control { min-height: 44px }
 .lgv-mold .btn { min-height: 44px }
 .lgv-mold .lgv-foot { font-size: 13px; color: var(--mu); text-align: center }
+.lgv-opcoes { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; font-size: 13px }
+.lgv-opcoes a { color: var(--act); font-weight: 600 }
+.lgv-mold .lgv-manter { display: flex; align-items: center; gap: 8px; font-weight: 500 }
+.lgv-manter input { width: 18px; height: 18px; accent-color: var(--ac); flex: none }
 
 /* Celular e tablet: faixa da marca no topo e o formulário numa folha arredondada por cima dela. */
 @media (max-width: 991.98px) {
@@ -224,10 +228,22 @@ table, .hs b, .tnum, time { font-variant-numeric: tabular-nums }
   .lgv-tx, .lgv-glass { display: none }
   .lgv-mold { position: relative; z-index: 1; place-items: start center; padding: 32px 20px 40px; margin-top: -24px; border-radius: 24px 24px 0 0; background: var(--c) }
   /* No celular a própria folha branca é o fundo do formulário: o cartão some. */
-  .lgv-mold form { max-width: 380px; padding: 0; background: none; border: 0; border-radius: 0; box-shadow: none }
+  .lgv-mold form, .lgv-mold .lgv-form { max-width: 380px; padding: 0; background: none; border: 0; border-radius: 0; box-shadow: none }
   /* 16 px no campo: abaixo disso o Safari do iPhone dá zoom ao focar. */
   .lgv-mold .form-control { font-size: 16px }
 }
 
 /* ---------- Logo no modo escuro: sempre toda branca ---------- */
 :root[data-theme=dark] img[src*="assets/logo"] { filter: brightness(0) invert(1) }
+
+/* ---------- Medidor de senha (Criar senha, troca de senha) ---------- */
+.senha-forca { display: grid; gap: 6px }
+.senha-barra { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px }
+.senha-barra span { height: 6px; border-radius: 3px; background: var(--col) }
+.senha-fraca .senha-barra .on { background: var(--er) }
+.senha-media .senha-barra .on { background: var(--wa) }
+.senha-forte .senha-barra .on { background: var(--ok) }
+.senha-texto { font-size: 13px; color: var(--mu); font-weight: 600 }
+.senha-regras { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; font-size: 13px; color: var(--mu) }
+.senha-regras li.ok { color: var(--ok); font-weight: 600 }
+.senha-aviso { color: var(--er) !important; font-weight: 600 }

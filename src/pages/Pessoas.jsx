@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useApp } from '../context/AppContext'
 import { consumir } from '../lib/atalho'
 import { chip, fd } from '../lib/utils'
@@ -44,6 +44,7 @@ export function dadosDaTela() {
 export default function Pessoas() {
   const { form, go, me, pode, refresh } = useApp()
   const [filtros] = useState(() => consumir('usuarios'))
+  const enviandoLink = useRef(false)
   const tela = dadosDaTela()
   const { dados, carregando, recarregar } = useCarregar(tela.carregar, [], { chave: tela.chave })
 
@@ -79,20 +80,13 @@ export default function Pessoas() {
       p ? 'Editar pessoa' : 'Nova pessoa',
       [
         { k: 'nome', l: 'Nome' },
-        { k: 'email', l: 'E-mail', t: 'email' },
+        { k: 'email', l: 'E-mail', t: 'email', ...(p ? {} : { h: 'A pessoa recebe neste e-mail um convite para criar a própria senha.' }) },
         {
           k: 'status',
           l: 'Status',
           o: STATUS_PESSOA.slice(0, 2),
           s: () => !p,
           h: 'Trainee entra no sistema com acesso de membro e não lidera projetos. Só se entra como trainee no cadastro.',
-        },
-        {
-          k: 'senha',
-          l: 'Senha inicial',
-          t: 'password',
-          s: () => !p,
-          h: 'Mínimo de 8 caracteres. A pessoa pode trocar depois em Meu perfil.',
         },
         // Trainee é sempre membro: o campo some e o corpo vai com perfil membro (lib/cadastroPessoa.js).
         { k: 'perfil', l: 'Perfil de acesso', o: perfis, s: v => (p ? p.status : v.status) !== 'trainee' },
@@ -113,13 +107,21 @@ export default function Pessoas() {
             codigoSenioridade: senioridades[0]?.codigo,
             dataEntrada: '',
           },
-      v => {
+      async v => {
         if (p) {
-          const { senha: _senha, status: _status, dataEntrada, ...resto } = v
+          const { status: _status, dataEntrada, ...resto } = v
           return executar(() => pessoas.editar(p.codigo, { ...resto, ...(dataEntrada ? { dataEntrada } : {}) }), 'Pessoa atualizada')
         }
-        // Ativo e trainee entram no sistema com a senha que a gestão digitou.
-        return executar(() => pessoas.criar(corpoNovaPessoa(v)), 'Pessoa cadastrada')
+        // A API cria a pessoa sem senha e manda o convite; se o e-mail não sair, a gestão reenvia pela lista.
+        // O aviso vem depois do "Pessoa cadastrada" do executar: um toast novo substitui o anterior.
+        let criada
+        const resultado = await executar(async () => {
+          criada = await pessoas.criar(corpoNovaPessoa(v))
+        }, 'Pessoa cadastrada')
+        if (criada?.conviteEnviado === false) {
+          alerts.toastWarning('Convite não enviado', 'A pessoa foi cadastrada, mas o e-mail não saiu. Use "Reenviar convite".')
+        }
+        return resultado
       },
     )
 
@@ -154,13 +156,22 @@ export default function Pessoas() {
       },
     )
 
-  const redefinirSenha = p =>
-    form(
-      `Nova senha de ${p.nome}`,
-      [{ k: 'novaSenha', l: 'Nova senha', t: 'password', h: 'Mínimo de 8 caracteres. Passe para a pessoa por um canal seguro.' }],
-      {},
-      v => executar(() => pessoas.redefinirSenha(p.codigo, v.novaSenha), 'Senha redefinida'),
-    )
+  // Convite pendente = reenvia o convite; com senha = link de redefinição. A gestão nunca vê o link nem a senha.
+  const enviarLink = async p => {
+    if (enviandoLink.current) return
+    enviandoLink.current = true
+    try {
+      const { enviado, tipo } = await pessoas.enviarLinkSenha(p.codigo)
+      const oQue = tipo === 'convite' ? 'Convite' : 'Link de redefinição'
+      if (enviado) alerts.toastSuccess(`${oQue} enviado`, `Enviado para ${p.email}.`)
+      else alerts.toastWarning(`${oQue} não enviado`, 'O e-mail não saiu. Tente de novo em instantes; se continuar, avise a gestão.')
+      await recarregar()
+    } catch (error) {
+      alerts.error('Não foi possível enviar o link', error.message)
+    } finally {
+      enviandoLink.current = false
+    }
+  }
 
   const linhas = lista.map(p => ({ ...p, id: p.codigo }))
   const colunas = [
@@ -203,7 +214,12 @@ export default function Pessoas() {
       l: 'Status',
       filter: 1,
       get: p => rotuloStatus(p.status),
-      render: p => <span className={chip(COR_STATUS[p.status])}>{rotuloStatus(p.status)}</span>,
+      render: p => (
+        <span className="selos-area">
+          <span className={chip(COR_STATUS[p.status])}>{rotuloStatus(p.status)}</span>
+          {p.convitePendente && <span className={chip('wa')}>Convite pendente</span>}
+        </span>
+      ),
     },
     {
       k: 'oc',
@@ -222,7 +238,9 @@ export default function Pessoas() {
               ? [
                   ['edit', 'Editar', () => editar(p)],
                   ...(p.codigo !== me ? [['userok', 'Mudar status', () => mudarStatus(p)]] : []),
-                  ...(podeRedefinirSenha(p.status) && p.codigo !== me ? [['key', 'Redefinir senha', () => redefinirSenha(p)]] : []),
+                  ...(podeRedefinirSenha(p.status) && p.codigo !== me
+                    ? [['key', p.convitePendente ? 'Reenviar convite' : 'Enviar link de redefinição', () => enviarLink(p)]]
+                    : []),
                 ]
               : []),
           ]}

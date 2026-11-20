@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { iso, path } from '../lib/utils'
-import { request, sessao } from '../services/api'
+import { comTravaDeSessao, request, retomarSessao, sessao } from '../services/api'
 import alerts from '../lib/alerts'
 import { readConfig } from '../lib/apiMappers'
 import { capacitacoes } from '../services/capacitacoes'
@@ -22,7 +22,7 @@ const SEM_ACESSO = { permissoes: [], menu: [] }
  * - `me` (código da pessoa logada), `mb` (true quando não é gestão), `pode(permissao)` e `nav` (menu);
  * - `form(titulo, campos, inicial, salvar)`: abre o FormModal global (formato em components/FormModal.jsx);
  * - `go(tela, id)`: navega pela chave da tela (ver `path` em lib/utils);
- * - `entrar`, `sair`, `refresh` (recarrega D depois de salvar) e `recarregarCapacitacoes`.
+ * - `entrar(email, senha, manterConectado)`, `entrarComSessao(resposta)`, `encerrarSessao`, `sair`, `refresh` (recarrega D depois de salvar) e `recarregarCapacitacoes`.
  * Telas com dados próprios carregam com useCarregar; D serve aos avatares, ao Dashboard e à Visão Estratégica.
  */
 export function AppProvider({ children }) {
@@ -49,10 +49,12 @@ export function AppProvider({ children }) {
     let active = true
 
     // Abrir ou recarregar a página com sessão salva: confere a pessoa (/auth/me), os dados e o menu
-    // numa rodada só (services/inicio.js), antes de mostrar as telas.
+    // numa rodada só (services/inicio.js), antes de mostrar as telas. Aba sem sessão tenta antes
+    // retomar a sessão lembrada pelo cookie ("manter conectado"); sem cookie válido, vai ao login.
     const initialize = async () => {
       const defaultConfig = readConfig()
-      if (!sessao.ativa) {
+      if (!sessao.ativa && !(await retomarSessao())) {
+        if (!active) return
         sessao.limpar()
         setD({ c: defaultConfig, ...VAZIO })
         return
@@ -131,10 +133,11 @@ export function AppProvider({ children }) {
     setD(current => (current ? { ...current, ...VAZIO } : current))
   }
 
-  const entrar = async (email, senha) => {
+  // Fluxo único de entrada (login e Criar senha): `obter` devolve a resposta no formato do login.
+  const executarEntrada = async obter => {
     setLoading(true)
     try {
-      const result = await request('/auth/login', { method: 'POST', body: { email: email.trim().toLowerCase(), senha } })
+      const result = await obter()
       if (!result?.token || !result?.usuario?.codigo) throw new Error('A API não retornou uma sessão válida.')
       sessao.salvar({ token: result.token, refreshToken: result.refreshToken })
       // Troca a dona da memória antes de buscar dados: outra conta nesta aba apaga o que havia.
@@ -156,12 +159,33 @@ export function AppProvider({ children }) {
     }
   }
 
-  const sair = () => {
+  const entrar = (email, senha, manterConectado = false) =>
+    executarEntrada(() =>
+      // Na mesma trava do retomar e do logout: o cookie de lembrete é um só para todas as abas.
+      comTravaDeSessao(() =>
+        request('/auth/login', {
+          method: 'POST',
+          body: { email: email.trim().toLowerCase(), senha, manterConectado: Boolean(manterConectado) },
+        }),
+      ),
+    )
+
+  // Sessão que já veio pronta da API (Criar senha): mesma resposta do login.
+  const entrarComSessao = result => executarEntrada(async () => result)
+
+  // Encerra a sessão desta aba sem navegar (usado por `sair` e pela Criar senha).
+  const encerrarSessao = () => {
     const refreshToken = sessao.refreshToken
     sessao.limpar()
-    // Encerra o refresh token no backend; se falhar, ele expira sozinho.
-    if (refreshToken) request('/auth/logout', { method: 'POST', body: { refreshToken } }).catch(() => {})
+    // Encerra o refresh token e o lembrete do cookie no backend; vai mesmo sem refresh token na aba,
+    // para apagar o cookie do "manter conectado". Se falhar, os dois expiram sozinhos. Pela trava,
+    // um login logo depois (troca de conta) só sai quando este logout terminar.
+    comTravaDeSessao(() => request('/auth/logout', { method: 'POST', body: refreshToken ? { refreshToken } : {} })).catch(() => {})
     limparEstado()
+  }
+
+  const sair = () => {
+    encerrarSessao()
     navigate('/login')
     window.scrollTo(0, 0)
   }
@@ -193,11 +217,31 @@ export function AppProvider({ children }) {
   }
 
   // Nada aparece antes de saber se há sessão: evita mostrar o login por um instante a quem já está logado.
-  // Com sessão salva, o esqueleto do layout ocupa o lugar; sem sessão a resposta é imediata e vai ao login.
-  if (!sessionReady || !DF) return sessao.ativa ? <EsqueletoApp /> : null
+  // O esqueleto do layout ocupa o lugar enquanto confere a sessão salva ou tenta retomar a lembrada.
+  if (!sessionReady || !DF) return <EsqueletoApp />
 
   return (
-    <Ctx.Provider value={{ D, DF, form, go, me, mb, nav, entrar, sair, md, setMd, loading, refresh, pode, recarregarCapacitacoes }}>
+    <Ctx.Provider
+      value={{
+        D,
+        DF,
+        form,
+        go,
+        me,
+        mb,
+        nav,
+        entrar,
+        entrarComSessao,
+        encerrarSessao,
+        sair,
+        md,
+        setMd,
+        loading,
+        refresh,
+        pode,
+        recarregarCapacitacoes,
+      }}
+    >
       {children}
     </Ctx.Provider>
   )

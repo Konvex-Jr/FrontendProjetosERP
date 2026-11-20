@@ -13,6 +13,8 @@ export const Precificacao = carregarPagina(() => import('./pages/Precificacao'))
 export const Pessoas = carregarPagina(() => import('./pages/Pessoas'))
 export const Perfil = carregarPagina(() => import('./pages/Perfil'))
 export const Configuracoes = carregarPagina(() => import('./pages/Configuracoes'))
+export const CriarSenha = carregarPagina(() => import('./pages/CriarSenha'))
+export const EsqueciSenha = carregarPagina(() => import('./pages/EsqueciSenha'))
 
 /** Caminho do menu (`nav`, vindo da API) → página. O menu baixa essas páginas com antecedência. */
 export const PAGINAS = {

@@ -17,25 +17,23 @@ test('mudar status não oferece trainee, salvo para quem já é trainee', () => 
   )
 })
 
-test('a gestão redefine a senha de ativo e de trainee', () => {
+test('a gestão manda link de senha a ativo e a trainee', () => {
   assert.equal(podeRedefinirSenha('ativo'), true)
   assert.equal(podeRedefinirSenha('trainee'), true)
   assert.equal(podeRedefinirSenha('alumni'), false)
   assert.equal(podeRedefinirSenha('inativo'), false)
 })
 
-test('nova pessoa: trainee vai como membro e com a senha digitada', () => {
+test('nova pessoa: trainee vai como membro e ninguém leva senha (a pessoa cria pelo convite)', () => {
   assert.deepEqual(corpoNovaPessoa({ nome: 'Tê', status: 'trainee', perfil: 'gerente', senha: 'segredo123', dataEntrada: '' }), {
     nome: 'Tê',
     status: 'trainee',
     perfil: 'membro',
-    senha: 'segredo123',
   })
   assert.deepEqual(corpoNovaPessoa({ nome: 'Ana', status: 'ativo', perfil: 'gerente', senha: 'x', dataEntrada: '2026-11-01' }), {
     nome: 'Ana',
     status: 'ativo',
     perfil: 'gerente',
-    senha: 'x',
     dataEntrada: '2026-11-01',
   })
 })

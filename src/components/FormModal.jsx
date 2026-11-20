@@ -14,6 +14,7 @@ import { valoresIniciais } from '../lib/formulario'
  * preenchido, para um campo depender de outro; `disabled` trava um select. Campo sem `opt` é obrigatório.
  * `t: 'file'` usa a zona de envio (seletor ou arrastar e soltar) e guarda a lista escolhida (File[]); `multiple` e `accept` vão para a zona.
  * Campo de arquivo sem `opt` também é obrigatório: um input escondido leva o aviso do navegador e barra o envio.
+ * `campo(valores, set)`: desenha um campo próprio (ex.: CampoNovaSenha, com medidor) que lê e grava nos valores do formulário.
  * Select visível sem valor é enviado com a 1ª opção, a que a tela mostra (lib/formulario.js).
  * Normalmente não se usa direto: as telas chamam `form(titulo, campos, inicial, salvar)` do contexto.
  */
@@ -82,7 +83,11 @@ export default function FormModal({ t, fs, init, save, close, largo }) {
               {fs
                 .filter(x => !x.s || x.s(v))
                 .map(x =>
-                  x.c ? (
+                  x.campo ? (
+                    <div className="mb-3 d-grid gap-2" key={x.k}>
+                      {x.campo(v, set)}
+                    </div>
+                  ) : x.c ? (
                     <div className="mb-3" key={x.k}>
                       <div className="form-label">{x.l}</div>
                       <Multi opts={typeof x.c === 'function' ? x.c(v) : x.c} value={v[x.k] || []} onChange={z => set(x.k, z)} />

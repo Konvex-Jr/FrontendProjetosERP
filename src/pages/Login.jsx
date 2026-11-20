@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Navigate } from 'react-router-dom'
+import { Link, Navigate } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 
 const BASE = import.meta.env.BASE_URL + 'assets/'
@@ -11,13 +11,14 @@ const BASE = import.meta.env.BASE_URL + 'assets/'
 export default function Login() {
   const { me, entrar, loading } = useApp()
   const [em, setEm] = useState(''),
-    [sn, setSn] = useState('')
+    [sn, setSn] = useState(''),
+    [manter, setManter] = useState(false)
   if (me) return <Navigate to="/" replace />
 
   const send = async event => {
     event.preventDefault()
     try {
-      await entrar(em, sn)
+      await entrar(em, sn, manter)
     } catch {
       /* O contexto apresenta o alerta de erro. */
     }
@@ -69,6 +70,13 @@ export default function Login() {
               onChange={event => setSn(event.target.value)}
             />
           </label>
+          <div className="lgv-opcoes">
+            <label className="lgv-manter">
+              <input type="checkbox" checked={manter} onChange={event => setManter(event.target.checked)} />
+              Manter conectado por 15 dias
+            </label>
+            <Link to="/esqueci-senha">Esqueci a senha</Link>
+          </div>
           <button className="btn btn-dk w-100" disabled={loading}>
             {loading ? 'Entrando…' : 'Entrar'}
           </button>
