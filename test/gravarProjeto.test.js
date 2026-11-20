@@ -26,11 +26,11 @@ afterEach(() => {
   globalThis.fetch = original
 })
 
-test('sem podeGerirAcesso: só o PUT, sem sigiloso nem acesso no corpo', async () => {
+test('sem podeGerirAcesso: só o PUT, com sigiloso e sem acesso no corpo', async () => {
   simular()
   await gravarProjeto(projeto({ podeGerirAcesso: false }), form({ acesso: ['a', 'b'] }))
   assert.deepEqual(rotas(), ['PUT /projetos/p1'])
-  assert.deepEqual(chamadas[0].body, { nome: 'X' })
+  assert.deepEqual(chamadas[0].body, { nome: 'X', sigiloso: true })
 })
 
 test('lista igual (outra ordem): não chama definirAcesso', async () => {

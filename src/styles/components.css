@@ -2066,3 +2066,8 @@ button.kc-tag {
   white-space: pre-line;
   text-align: left;
 }
+
+.pf-info-v {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}

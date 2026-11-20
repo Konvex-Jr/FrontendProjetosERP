@@ -27,7 +27,7 @@ test('pessoas e configurações usam a sessão e a rota certa', async () => {
   sessao.salvar({ token: 'tk', refreshToken: 'rt' })
   const chamadas = await capturar(async () => {
     await pessoas.editar('p1', { nome: 'Ana', codigoArea: '', codigoCargo: 'c1' })
-    await pessoas.alterarStatus('p1', 'alumni', '')
+    await pessoas.alterarStatus('p1', 'inativo', '')
     await minhaConta.editarPerfil({ telefone: '', bio: 'Oi' })
     await configuracoes.salvarArea(null, { nome: 'Projetos' })
     await configuracoes.salvarCargo('c1', { nome: 'Assessor', ativo: false })
@@ -47,7 +47,7 @@ test('pessoas e configurações usam a sessão e a rota certa', async () => {
   assert.ok(chamadas.every(c => c.token === 'tk'))
   // Campo vazio vira null (a API limpa o valor); data de saída vazia não é enviada.
   assert.deepEqual(chamadas[0].body, { nome: 'Ana', codigoArea: null, codigoCargo: 'c1' })
-  assert.deepEqual(chamadas[1].body, { status: 'alumni' })
+  assert.deepEqual(chamadas[1].body, { status: 'inativo' })
   assert.deepEqual(chamadas[2].body, { telefone: null, bio: 'Oi' })
 })
 

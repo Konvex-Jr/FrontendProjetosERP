@@ -5,6 +5,7 @@ import Login from './pages/Login'
 import {
   Biblioteca,
   Capacitacoes,
+  CompletarPerfil,
   Configuracoes,
   CriarSenha,
   Dashboard,
@@ -51,6 +52,14 @@ export default function App() {
       {['gestao', 'conhecimento', 'iniciativas'].map(antiga => (
         <Route key={antiga} path={`/${antiga}/*`} element={<Navigate to="/biblioteca" replace />} />
       ))}
+      <Route
+        path="/completar-perfil"
+        element={
+          <Suspense fallback={null}>
+            <CompletarPerfil />
+          </Suspense>
+        }
+      />
       <Route element={<Layout />}>
         <Route index element={<Dashboard />} />
         <Route path="tarefas" element={<Tarefas />} />

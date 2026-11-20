@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { erroDatas, rotuloArea, separarPeriodos } from '../src/lib/periodos.js'
+import { erroDatas, periodoTrainee, rotuloArea, rotuloMotivo, separarPeriodos } from '../src/lib/periodos.js'
 
 const periodo = (area, inicio, fim = null, cargo = null) => ({
   codigo: `${area}-${inicio}`,
@@ -46,4 +46,20 @@ test('erroDatas segue as regras do back', () => {
   assert.equal(erroDatas({ inicio: '2026-01-01', fim: '' }, hoje), null)
   assert.equal(erroDatas({ inicio: '2026-01-01', fim: '2026-11-18' }, hoje), null)
   assert.equal(erroDatas({ inicio: '2026-11-18', fim: null }, hoje), null)
+})
+
+test('periodoTrainee', () => {
+  assert.equal(periodoTrainee({ status: 'trainee' }), null)
+  assert.deepEqual(periodoTrainee({ status: 'trainee', dataEntrada: '2026-01-05' }), { inicio: '2026-01-05', fim: null })
+  assert.deepEqual(periodoTrainee({ status: 'ativo', dataEntrada: '2026-01-05', fimTrainee: '2026-06-01' }), {
+    inicio: '2026-01-05',
+    fim: '2026-06-01',
+  })
+  assert.equal(periodoTrainee({ status: 'ativo', dataEntrada: '2026-01-05' }), null)
+})
+
+test('rotuloMotivo', () => {
+  assert.equal(rotuloMotivo({ status: 'inativo', motivoSaida: 'Mudou de cidade' }), 'Mudou de cidade')
+  assert.equal(rotuloMotivo({ status: 'inativo' }), 'Não informado')
+  assert.equal(rotuloMotivo({ status: 'ativo', motivoSaida: 'x' }), null)
 })

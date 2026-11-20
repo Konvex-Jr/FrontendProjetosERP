@@ -19,11 +19,13 @@ import { itensDoAutor } from '../services/biblioteca'
 import Clipe from '../components/Clipe'
 import { SeloSigiloso, SeloTipo } from '../components/SeloProjeto'
 import AreasPessoa from '../components/AreasPessoa'
-import { rotuloArea } from '../lib/periodos'
+import { periodoTrainee, rotuloArea, rotuloMotivo } from '../lib/periodos'
+import { copiarTexto, mascararIngresso, mascararTelefone, telefoneParaMostrar } from '../lib/pessoaContato'
+import { corpoEdicaoPerfil, erroApagarObrigatorio, erroCadastro, opcoesCurso } from '../lib/cadastroPessoa'
 import { ocupacao } from '../services/ocupacao'
 import { faixaOcupacao, formatarHoras, proximaSemana, rotuloSemana, semanaAnterior, semanaAtual } from '../lib/ocupacao'
 
-const COR_STATUS = { ativo: 'ok', trainee: '', alumni: 'wa', inativo: 'er' }
+const COR_STATUS = { ativo: 'ok', trainee: '', inativo: 'er' }
 /** Links do perfil como cartões com logo; abrem em nova aba. */
 function CartoesDeLinks({ cartoes }) {
   return (
@@ -136,7 +138,7 @@ export function dadosDaTela({ me }, outro) {
 /** RF-013: perfil da pessoa. Em /perfil é o próprio; em /perfil/:codigo, o de outra pessoa. */
 export default function Perfil() {
   const { codigo: outro } = useParams()
-  const { me, form, go, refresh, nav } = useApp()
+  const { me, form, go, refresh, nav, setPendencias } = useApp()
   const [trocandoFoto, setTrocandoFoto] = useState(false)
   const codigo = codigoDoPerfil(me, outro)
   const meu = codigo === me
@@ -167,7 +169,25 @@ export default function Perfil() {
       'Editar meus dados',
       [
         { k: 'nomeExibicao', l: 'Como prefere ser chamado(a)', opt: true },
-        { k: 'telefone', l: 'Telefone', t: 'tel', opt: true },
+        {
+          k: 'telefone',
+          l: 'Telefone',
+          campo: (v, set) => (
+            <label className="form-label w-100 mb-0">
+              Telefone
+              <input
+                className="form-control mt-1"
+                type="tel"
+                inputMode="tel"
+                autoComplete="off"
+                placeholder="(00) 00000-0000"
+                value={v.telefone || ''}
+                onChange={e => set('telefone', mascararTelefone(e.target.value))}
+              />
+            </label>
+          ),
+        },
+        { k: 'emailPessoal', l: 'E-mail pessoal', t: 'email', opt: true, maxLength: 254 },
         { k: 'linkedinUrl', l: 'LinkedIn (link)', t: 'url', opt: true },
         { k: 'githubUrl', l: 'GitHub (link)', t: 'url', opt: true },
         {
@@ -177,23 +197,48 @@ export default function Perfil() {
           opt: true,
           h: 'Link público da sua agenda (Google Agenda, Calendly…), para marcarem reuniões com você.',
         },
-        { k: 'curso', l: 'Curso', opt: true },
-        { k: 'semestre', l: 'Semestre', t: 'number', opt: true },
+        { k: 'curso', l: 'Curso', o: opcoesCurso(u) },
+        {
+          k: 'ingresso',
+          l: 'Ingresso na faculdade',
+          opt: true,
+          campo: (v, set) => (
+            <label className="form-label w-100 mb-0">
+              Ingresso na faculdade
+              <input
+                className="form-control mt-1"
+                inputMode="numeric"
+                autoComplete="off"
+                placeholder="AAAA/S"
+                value={v.ingresso || ''}
+                onChange={e => set('ingresso', mascararIngresso(e.target.value))}
+              />
+              <small className="text-muted">Ex.: 2025/1 para o primeiro semestre de 2025.</small>
+            </label>
+          ),
+        },
         { k: 'bio', l: 'Sobre você', t: 'textarea', opt: true },
       ],
       {
         nomeExibicao: u.nomeExibicao || '',
         telefone: u.telefone || '',
+        emailPessoal: u.emailPessoal || '',
         linkedinUrl: u.linkedinUrl || '',
         githubUrl: u.githubUrl || '',
         calendarioUrl: u.calendarioUrl || '',
         curso: u.curso || '',
-        semestre: u.semestre ?? '',
+        ingresso: u.ingresso || '',
         bio: u.bio || '',
       },
       async v => {
+        const erro = erroApagarObrigatorio(v, u) || erroCadastro(v, u)
+        if (erro) {
+          alerts.error(erro.titulo, erro.texto)
+          return false
+        }
         try {
-          await minhaConta.editarPerfil(v)
+          const gravada = await minhaConta.editarPerfil(corpoEdicaoPerfil(v, u))
+          setPendencias(gravada?.pendenciasPerfil || [])
           alerts.toastSuccess('Dados atualizados')
           await recarregar()
           refresh().catch(() => {})
@@ -266,12 +311,20 @@ export default function Perfil() {
       },
     )
 
+  const copiar = async texto => {
+    if (await copiarTexto(texto)) alerts.toastSuccess('Copiado')
+    else alerts.error('Não foi possível copiar', 'Selecione o texto e copie à mão.')
+  }
+  // [rótulo, valor, texto a copiar e rótulo do botão (opcionais)]
   const info = [
     ['E-mail', u.email],
-    ['Telefone', u.telefone],
-    ['Curso', u.curso && (u.semestre ? `${u.curso} · ${u.semestre}º semestre` : u.curso)],
+    ['E-mail pessoal', u.emailPessoal, u.emailPessoal, 'e-mail pessoal'],
+    ['Telefone', u.telefone && telefoneParaMostrar(u.telefone), u.telefone && telefoneParaMostrar(u.telefone), 'telefone'],
+    ['Curso', u.curso || 'Curso não informado'],
+    ['Ingresso', u.ingresso],
     ['Na EJ desde', u.dataEntrada && fd(u.dataEntrada)],
     ['Saída', u.dataSaida && fd(u.dataSaida)],
+    ['Motivo da saída', rotuloMotivo(u)],
   ].filter(([, v]) => v)
   const cartoes = cartoesDeLinks(u)
 
@@ -381,10 +434,22 @@ export default function Perfil() {
               </div>
               <span className={'ms-auto ' + chip(COR_STATUS[u.status])}>{rotuloStatus(u.status)}</span>
             </div>
-            {info.map(([k, v]) => (
-              <div key={k} className="d-flex justify-content-between gap-3 mb-1">
+            {info.map(([k, v, c, rotuloCopiar]) => (
+              <div key={k} className="d-flex justify-content-between align-items-center gap-3 mb-1">
                 <small>{k}</small>
-                <span className="text-end">{v}</span>
+                <span className="text-end d-inline-flex align-items-center gap-1 pf-info-v">
+                  {v}
+                  {c && (
+                    <button
+                      className="btn btn-g btn-sm"
+                      title={`Copiar ${rotuloCopiar}`}
+                      aria-label={`Copiar ${rotuloCopiar}`}
+                      onClick={() => copiar(c)}
+                    >
+                      <Ic k="copy" />
+                    </button>
+                  )}
+                </span>
               </div>
             ))}
             {cartoes.length > 0 ? (
@@ -440,7 +505,13 @@ export default function Perfil() {
           )}
         </div>
         <div className="col-md-6">
-          <AreasPessoa periodos={periodos} podeGerir={podeGerirPeriodos} codigoPessoa={u.codigo} onMudou={aoMudarPeriodos} />
+          <AreasPessoa
+            periodos={periodos}
+            trainee={periodoTrainee(u)}
+            podeGerir={podeGerirPeriodos}
+            codigoPessoa={u.codigo}
+            onMudou={aoMudarPeriodos}
+          />
         </div>
       </div>
       {trocandoFoto && <FotoModal aoFechar={() => setTrocandoFoto(false)} aoSalvo={aoMudarFoto} />}

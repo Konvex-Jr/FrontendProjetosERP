@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { haLinhaNova } from '../lib/tabela'
 
 /**
  * Tabela configurável (ADR-007). `vazio`: texto quando não há linhas (diga o que fazer em seguida).
@@ -12,12 +13,23 @@ import { useState } from 'react'
  * - `render(linha)`: o que aparece na célula (padrão: o valor);
  * - `filter`: cria um select com os valores distintos da coluna; `fl`: rótulo desse select;
  * - `vals(linha)`: lista de valores da linha para o filtro, quando ela tem vários (ex.: as áreas de uma pessoa).
+ * `reiniciarAoIncluir`: quando aparece linha com `id` novo, limpa a busca e os filtros (lista em que o usuário acaba de adicionar alguém);
  * `linhaCls(linha)`: classe extra da linha (ex.: esmaecer). A primeira coluna é o título do cartão no celular. Cada linha precisa de `id` (key do React).
  */
-export default function Table({ cols, rows, vazio, filtros, busca = true, linhaCls }) {
+export default function Table({ cols, rows, vazio, filtros, busca = true, linhaCls, reiniciarAoIncluir = false }) {
   const [q, setQ] = useState(''),
     [s, setS] = useState({ k: null, dir: 1 }),
     [f, setF] = useState(filtros || {})
+  // Com `reiniciarAoIncluir`, linha nova limpa busca e filtros: senão quem foi adicionado "some" se não casar com o que está filtrado.
+  const vistos = useRef(null)
+  useEffect(() => {
+    if (!reiniciarAoIncluir) return
+    if (vistos.current && haLinhaNova(vistos.current, rows)) {
+      setQ('')
+      setF(filtros || {})
+    }
+    vistos.current = new Set(rows.map(r => r.id))
+  }, [rows, reiniciarAoIncluir, filtros])
   const val = (r, c) => (c.get ? c.get(r) : r[c.k])
   let R = rows.filter(
     r =>

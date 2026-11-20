@@ -28,3 +28,17 @@ export function erroDatas({ inicio, fim }, hojeISO) {
   if (f && f <= i) return 'O fim do período deve ser depois do início.'
   return null
 }
+
+const dia = v => (v ? String(v).slice(0, 10) : null)
+
+/** Período como trainee: trainee = até hoje (`fim: null`); quem já virou ativo, até `fimTrainee`. */
+export function periodoTrainee(u) {
+  const inicio = dia(u?.dataEntrada)
+  if (!inicio) return null
+  if (u.status === 'trainee') return { inicio, fim: null }
+  const fim = dia(u.fimTrainee)
+  return fim ? { inicio, fim } : null
+}
+
+/** Motivo da saída; inativo sem motivo = "Não informado". */
+export const rotuloMotivo = u => (u?.status === 'inativo' ? u.motivoSaida || 'Não informado' : null)
