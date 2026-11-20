@@ -3,7 +3,7 @@
  * Projetos internos e geral da área (sessão 23b), ponta a ponta, tudo pela tela (a API só prepara, confere e limpa).
  *
  *   1. diretora cria o projeto interno "Robô e2e" em Inovação: o selo "Interno" aparece
- *   2. Inês (líder de Inovação), na mesma aba, cria tarefa no "Inovação · geral" para o Caio e muda a etapa
+ *   2. Inês (líder de Inovação), na mesma aba, cria tarefa no "Inovação geral" para o Caio e muda a etapa
  *   3. Caio abre Tarefas, vê a tarefa, comenta e conclui
  *   4. Bia (fora de Inovação) não vê o geral nem a tarefa
  *   5. Inês abre o próprio perfil: os períodos não têm botões
@@ -26,8 +26,8 @@ const DIRETORA = [process.env.ADMIN_EMAIL || 'dev@konvexjr.com.br', process.env.
 const SUFIXO = Date.now().toString(36)
 const NOME_PROJETO = `Robô e2e ${SUFIXO}`
 const TITULO = `Montar braço ${SUFIXO}`
-const GERAL = 'Inovação · geral'
-const GERAL_EXECUCAO = 'Execução · geral'
+const GERAL = 'Inovação geral'
+const GERAL_EXECUCAO = 'Execução geral'
 const TITULO_LIA = `Montar bancada ${SUFIXO}`
 
 function carregarPlaywright() {
@@ -90,8 +90,8 @@ const FIM = iso(new Date(Date.now() + 30 * 864e5))
 
 const janela = page => page.locator('.modal.d-block form')
 // Campo da janela pelo começo do rótulo (as dicas abaixo do campo também citam outros nomes).
-const campo = (page, rotulo) =>
-  janela(page)
+const campo = (dlg, rotulo) =>
+  dlg
     .locator('label')
     .filter({ hasText: new RegExp(`^${rotulo}`) })
     .locator('select, input, textarea')
@@ -151,12 +151,12 @@ try {
     await entrar(page, ...DIRETORA)
     await page.goto(`${APP}/#/projetos`)
     await page.getByRole('button', { name: 'Novo projeto' }).click()
-    await campo(page, 'Nome').fill(NOME_PROJETO)
-    await campo(page, 'Tipo').selectOption('interno')
-    await campo(page, 'Descrição').fill('Projeto interno criado pelo e2e.')
-    await campo(page, 'Início').fill(HOJE)
-    await campo(page, 'Fim').fill(FIM)
-    await campo(page, 'Área').selectOption({ label: 'Inovação' })
+    await campo(janela(page), 'Nome').fill(NOME_PROJETO)
+    await campo(janela(page), 'Tipo').selectOption('interno')
+    await campo(janela(page), 'Descrição').fill('Projeto interno criado pelo e2e.')
+    await campo(janela(page), 'Início').fill(HOJE)
+    await campo(janela(page), 'Fim').fill(FIM)
+    await campo(janela(page), 'Área').selectOption({ label: 'Inovação' })
     await janela(page).getByRole('button', { name: 'Salvar' }).click()
     await janela(page).waitFor({ state: 'detached', timeout: 15000 })
     // Depois de salvar a tela abre o projeto novo; volta para a lista para ver o cartão.
@@ -178,16 +178,19 @@ try {
     await entrar(page, 'ines@dev.konvex', SENHA)
     await abrirTarefas(page)
     await page.getByRole('button', { name: 'Nova tarefa' }).first().click()
-    const opcoesProjeto = await campo(page, 'Projeto').locator('option').allInnerTexts()
+    const dlg = page.getByRole('dialog', { name: 'Nova tarefa' })
+    await dlg.waitFor({ timeout: 15000 })
+    const opcoesProjeto = await campo(dlg, 'Projeto').locator('option').allInnerTexts()
     exigir(opcoesProjeto.includes(GERAL), 'o geral de Inovação não aparece em "Nova tarefa"')
-    await campo(page, 'Projeto').selectOption({ label: GERAL })
-    await campo(page, 'Título').fill(TITULO)
-    await campo(page, 'Início').fill(HOJE)
-    await campo(page, 'Fim').fill(FIM)
-    await janela(page).locator('.ms .mc').click()
-    await janela(page).locator('.ms .mo').filter({ hasText: 'Caio Membro' }).click()
-    await janela(page).getByRole('button', { name: 'Salvar' }).click()
-    await janela(page).waitFor({ state: 'detached', timeout: 15000 })
+    await campo(dlg, 'Projeto').selectOption({ label: GERAL })
+    await dlg.getByLabel('Título da tarefa').fill(TITULO)
+    await campo(dlg, 'Início').fill(HOJE)
+    await campo(dlg, 'Fim').fill(FIM)
+    await dlg.locator('.ms .mc').click()
+    await dlg.locator('.ms .mo').filter({ hasText: 'Caio Membro' }).click()
+    await dlg.getByLabel('Título da tarefa').click()
+    await dlg.getByRole('button', { name: 'Criar tarefa' }).click()
+    await dlg.waitFor({ state: 'detached', timeout: 15000 })
     // A gestão abre em "Minhas tarefas"; a tarefa é do Caio.
     await page.getByLabel('Pessoa', { exact: true }).selectOption('')
     await page.getByText(TITULO).first().click()
@@ -238,7 +241,7 @@ try {
     exigir(!filtro.includes(GERAL), 'o filtro de projetos da Bia lista o geral de Inovação')
     await page.goto(`${APP}/#/projetos`)
     // Espera a lista carregar (o geral da própria área aparece) antes de conferir que o de Inovação não aparece.
-    await page.getByText('Execução · geral').first().waitFor({ timeout: 15000 })
+    await page.getByText('Execução geral').first().waitFor({ timeout: 15000 })
     exigir(!(await page.getByText(GERAL).count()), 'Bia vê o geral de Inovação em Projetos')
     await sair(page)
   })
@@ -262,6 +265,7 @@ try {
     await abrirTarefas(m)
     const seletor = m.getByLabel('Projeto', { exact: true })
     await seletor.waitFor()
+    await seletor.locator('optgroup').first().waitFor({ state: 'attached', timeout: 15000 })
     const grupos = await seletor.locator('optgroup').evaluateAll(gs => gs.map(g => g.label))
     exigir(grupos.includes('Inovação') && grupos.includes('Clientes'), `grupos do filtro: ${grupos.join(', ')}`)
     const medidas = await m.evaluate(() => ({
@@ -280,16 +284,19 @@ try {
     await entrar(page, 'lia@dev.konvex', SENHA)
     await abrirTarefas(page)
     await page.getByRole('button', { name: 'Nova tarefa' }).first().click()
-    const opcoesProjeto = await campo(page, 'Projeto').locator('option').allInnerTexts()
+    const dlg = page.getByRole('dialog', { name: 'Nova tarefa' })
+    await dlg.waitFor({ timeout: 15000 })
+    const opcoesProjeto = await campo(dlg, 'Projeto').locator('option').allInnerTexts()
     exigir(opcoesProjeto.includes(GERAL_EXECUCAO), 'o geral de Execução não aparece em "Nova tarefa" para a Lia')
-    await campo(page, 'Projeto').selectOption({ label: GERAL_EXECUCAO })
-    await campo(page, 'Título').fill(TITULO_LIA)
-    await campo(page, 'Início').fill(HOJE)
-    await campo(page, 'Fim').fill(FIM)
-    await janela(page).locator('.ms .mc').click()
-    await janela(page).locator('.ms .mo').filter({ hasText: 'Bia Membro' }).click()
-    await janela(page).getByRole('button', { name: 'Salvar' }).click()
-    await janela(page).waitFor({ state: 'detached', timeout: 15000 })
+    await campo(dlg, 'Projeto').selectOption({ label: GERAL_EXECUCAO })
+    await dlg.getByLabel('Título da tarefa').fill(TITULO_LIA)
+    await campo(dlg, 'Início').fill(HOJE)
+    await campo(dlg, 'Fim').fill(FIM)
+    await dlg.locator('.ms .mc').click()
+    await dlg.locator('.ms .mo').filter({ hasText: 'Bia Membro' }).click()
+    await dlg.getByLabel('Título da tarefa').click()
+    await dlg.getByRole('button', { name: 'Criar tarefa' }).click()
+    await dlg.waitFor({ state: 'detached', timeout: 15000 })
     await page.getByRole('button', { name: 'Tudo o que vejo' }).click()
     await page.getByText(TITULO_LIA).first().click()
     await detalhes(page).waitFor()

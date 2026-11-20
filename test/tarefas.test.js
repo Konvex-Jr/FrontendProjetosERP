@@ -2,11 +2,13 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import {
   corpoNovaTarefa,
+  criarComAnexos,
   corpoTarefa,
   origemTarefa,
   papelNaTarefa,
   papelNasTarefas,
   quadroDesatualizado,
+  soMudouConclusao,
   soMudouEtapa,
   soMudouStatus,
   tarefas,
@@ -64,7 +66,7 @@ test('corpos da tarefa seguem o contrato da API', () => {
   assert.equal(corpo.titulo, 'Requisitos')
   assert.equal(corpo.descricao, null)
   assert.equal(corpo.codigoDependencia, null)
-  assert.deepEqual(corpo.checklist, [{ codigo: 'c1', texto: 'Levantar', feito: true }])
+  assert.deepEqual(corpo.checklist, [{ codigo: 'c1', texto: 'Levantar', feito: true, codigoResponsavel: null }])
 })
 
 test('salvar usa PATCH quando só o status muda e PUT no resto', async () => {
@@ -216,4 +218,146 @@ test('quadroDesatualizado: coluna sumida e 409 QUADRO_MUDOU recarregam; outros e
   assert.equal(quadroDesatualizado({ codigo: 'QUADRO_MUDOU', status: 409 }), true)
   assert.equal(quadroDesatualizado({ codigo: 'DESTINO_COLUNA_OBRIGATORIO' }), false)
   assert.equal(quadroDesatualizado(undefined), false)
+})
+
+test('24b: criador na equipe edita; criador que saiu não; responsável marca', () => {
+  const projeto = {
+    lider: { codigo: 'lid' },
+    participacoes: [
+      { usuario: { codigo: 'par' }, dataSaida: null },
+      { usuario: { codigo: 'saiu' }, dataSaida: '2026-10-01' },
+    ],
+  }
+  const doPar = { responsaveis: ['lid'], criadaPorId: 'par' }
+  const doSaiu = { responsaveis: ['saiu'], criadaPorId: 'saiu' }
+  const par = papelNasTarefas({ me: 'par', gestao: false, projeto })
+  assert.equal(par.podeEditar(doPar), true)
+  assert.equal(par.podeEditar({ criadaPorId: 'lid' }), false)
+  assert.equal(par.podeMarcar(doPar), true)
+  assert.equal(par.podeMarcar({ responsaveis: ['lid'], criadaPorId: 'lid' }), false)
+  const saiu = papelNasTarefas({ me: 'saiu', gestao: false, projeto })
+  assert.equal(saiu.podeEditar(doSaiu), false)
+  assert.equal(saiu.podeMarcar(doSaiu), false)
+  assert.equal(papelNasTarefas({ me: 'lid', gestao: false, projeto }).podeEditar({}), true)
+  const resp = papelNasTarefas({ me: 'par', gestao: false, projeto })
+  assert.equal(resp.podeMarcar({ responsaveis: ['par'], criadaPorId: 'lid' }), true)
+})
+
+test('24b: corpos mandam responsável do item, descrição, checklist e data de conclusão', () => {
+  const t = {
+    titulo: 'X',
+    status: 'concluida',
+    conclusao: '2026-11-10',
+    descricao: 'd',
+    responsaveis: ['u2'],
+    checklist: [
+      { id: 'i1', texto: 'a', feito: false, responsavel: 'u2' },
+      { texto: 'b', feito: true },
+    ],
+  }
+  const antes = { ...t, conclusao: '2026-11-09' }
+  const c = corpoTarefa(t, antes)
+  assert.deepEqual(c.checklist, [
+    { codigo: 'i1', texto: 'a', feito: false, codigoResponsavel: 'u2' },
+    { codigo: undefined, texto: 'b', feito: true, codigoResponsavel: null },
+  ])
+  assert.equal(c.dataConclusao, new Date('2026-11-10T12:00:00').toISOString())
+  assert.equal('dataConclusao' in corpoTarefa({ ...t, status: 'andamento' }, antes), false)
+  const n = corpoNovaTarefa('p1', t)
+  assert.equal(n.descricao, 'd')
+  assert.deepEqual(n.checklist, [
+    { texto: 'a', feito: false, codigoResponsavel: 'u2' },
+    { texto: 'b', feito: true },
+  ])
+})
+
+test('24b: dataConclusao só vai quando a tarefa já era concluída e a data mudou', () => {
+  const feita = { titulo: 'X', status: 'concluida', conclusao: '2026-11-10' }
+  assert.equal('dataConclusao' in corpoTarefa(feita, feita), false)
+  assert.equal('dataConclusao' in corpoTarefa(feita), false)
+  assert.equal('dataConclusao' in corpoTarefa(feita, { ...feita, status: 'andamento', conclusao: undefined }), false)
+  assert.equal(corpoTarefa(feita, { ...feita, conclusao: '2026-11-09' }).dataConclusao, new Date('2026-11-10T12:00:00').toISOString())
+})
+
+test('24b: item cujo responsável saiu da tarefa vai sem responsável', () => {
+  const t = {
+    titulo: 'X',
+    responsaveis: ['u2'],
+    checklist: [
+      { id: 'i1', texto: 'a', responsavel: 'u3' },
+      { id: 'i2', texto: 'b', responsavel: 'u2' },
+    ],
+  }
+  assert.deepEqual(
+    corpoTarefa(t, t).checklist.map(i => i.codigoResponsavel),
+    [null, 'u2'],
+  )
+  assert.deepEqual(
+    corpoNovaTarefa('p1', t).checklist.map(i => 'codigoResponsavel' in i && i.codigoResponsavel),
+    [false, 'u2'],
+  )
+})
+
+test('24b: soMudouConclusao e chamadas PATCH', async () => {
+  const antes = { id: 't1', titulo: 'X', status: 'concluida', conclusao: '2026-11-10', coluna: { id: 'c' } }
+  assert.equal(soMudouConclusao(antes, { ...antes, conclusao: '2026-11-09' }), true)
+  assert.equal(soMudouConclusao(antes, { ...antes, conclusao: '2026-11-09', titulo: 'Y' }), false)
+  assert.equal(soMudouConclusao(antes, antes), false)
+  assert.equal(soMudouConclusao({ ...antes, status: 'andamento' }, { ...antes, conclusao: '2026-11-09' }), false)
+  const chamadas = await capturar(async () => {
+    await tarefas.salvar(antes, { ...antes, conclusao: '2026-11-09' })
+    await tarefas.marcarItem('t1', 'i1', true)
+  })
+  assert.equal(chamadas[0].method, 'PATCH')
+  assert.equal(chamadas[0].url, '/tarefas/t1/conclusao')
+  assert.deepEqual(chamadas[0].body, { dataConclusao: new Date('2026-11-09T12:00:00').toISOString() })
+  assert.equal(chamadas[1].url, '/tarefas/t1/checklist/i1')
+  assert.deepEqual(chamadas[1].body, { feito: true })
+})
+
+test('criarComAnexos: cria a tarefa e envia os anexos para ela', async () => {
+  const chamadas = []
+  const criar = async (projeto, t) => {
+    chamadas.push(['criar', projeto, t.titulo])
+    return { codigo: 'nova', avisosOcupacao: [] }
+  }
+  const enviar = async (dono, codigo, arquivos) => {
+    chamadas.push(['enviar', dono, codigo, arquivos.map(a => a.name)])
+    return { enviados: 1, falhas: [{ nome: 'b.pdf', erro: 'Falhou' }] }
+  }
+  const r = await criarComAnexos('p1', { titulo: 'X' }, [{ name: 'a.pdf' }, { name: 'b.pdf' }], { criar, enviar })
+  assert.deepEqual(chamadas, [
+    ['criar', 'p1', 'X'],
+    ['enviar', 'tarefas', 'nova', ['a.pdf', 'b.pdf']],
+  ])
+  assert.equal(r.criada.codigo, 'nova')
+  assert.deepEqual(r.falhas, [{ nome: 'b.pdf', erro: 'Falhou' }])
+})
+
+test('criarComAnexos: sem arquivos não chama o envio', async () => {
+  let enviou = false
+  const r = await criarComAnexos('p1', { titulo: 'X' }, [], {
+    criar: async () => ({ codigo: 'nova' }),
+    enviar: async () => {
+      enviou = true
+    },
+  })
+  assert.equal(enviou, false)
+  assert.deepEqual(r.falhas, [])
+})
+
+test('criarComAnexos: falha ao criar não envia anexos', async () => {
+  let enviou = false
+  await assert.rejects(
+    criarComAnexos('p1', {}, [{ name: 'a.pdf' }], {
+      criar: async () => {
+        throw new Error('Título obrigatório')
+      },
+      enviar: async () => {
+        enviou = true
+      },
+    }),
+    /Título obrigatório/,
+  )
+  assert.equal(enviou, false)
 })

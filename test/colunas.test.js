@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import {
   adaptColuna,
+  colunaDeEntrada,
   agrupar,
   corpoColunas,
   efeitoNaConclusao,
@@ -118,4 +119,13 @@ test('efeitoNaConclusao conta quem conclui e quem reabre', () => {
   // excluir Fazendo com destino na concluída
   const semB = base.filter(c => c.id !== 'b')
   assert.deepEqual(efeitoNaConclusao(cols, semB, { b: 'd' }, tarefas), { concluem: 1, reabrem: 0 })
+})
+
+test('colunaDeEntrada: a de papel entrada, senão a primeira, senão null', () => {
+  const a = { id: 'a', papel: 'meio' },
+    b = { id: 'b', papel: 'entrada' }
+  assert.equal(colunaDeEntrada([a, b]), b)
+  assert.equal(colunaDeEntrada([a]), a)
+  assert.equal(colunaDeEntrada([]), null)
+  assert.equal(colunaDeEntrada(undefined), null)
 })
