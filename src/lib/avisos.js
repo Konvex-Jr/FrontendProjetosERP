@@ -32,6 +32,3 @@ export function destinoAviso(item) {
 }
 
 export const temAlerta = situacao => (situacao || []).some(i => i.tipo === 'tarefas_atrasadas' || i.tipo === 'sobrecarga')
-
-/** Chave da memória dos avisos de uma pessoa. */
-export const chaveAvisos = codigoPessoa => `avisos:${codigoPessoa}`

@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { chaveAvisos, destinoAviso, temAlerta, textoAviso } from '../src/lib/avisos.js'
+import { destinoAviso, temAlerta, textoAviso } from '../src/lib/avisos.js'
 
 const tarefa = { codigo: 't1', titulo: 'Revisar proposta', dataFim: '2026-11-25', projeto: { codigo: 'p1', nome: 'X' } }
 const capacitacao = { codigo: 'c1', titulo: 'Git', data: '2026-11-25', hora: '19:00' }
@@ -44,12 +44,5 @@ describe('temAlerta', () => {
     assert.equal(temAlerta([{ tipo: 'tarefas_atrasadas', tarefas: [tarefa] }]), true)
     assert.equal(temAlerta([{ tipo: 'sobrecarga', pessoas: [{}] }]), true)
     assert.equal(temAlerta(undefined), false)
-  })
-})
-
-describe('chaveAvisos', () => {
-  it('uma chave por pessoa', () => {
-    assert.notEqual(chaveAvisos('a'), chaveAvisos('b'))
-    assert.equal(chaveAvisos('a'), 'avisos:a')
   })
 })

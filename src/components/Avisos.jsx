@@ -27,6 +27,7 @@ export default function Avisos({ me }) {
   if (dona !== me) {
     setDona(me)
     setDados(null)
+    setExpandido({})
     setAberto(false)
   }
   useEffect(() => {

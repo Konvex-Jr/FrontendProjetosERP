@@ -83,8 +83,16 @@ export default function Tarefas() {
   const [busca, setBusca] = useSearchParams()
   const alvo = busca.get('tarefa')
   const [conferido, setConferido] = useState(null)
+  // A tarefa do aviso é sempre da própria pessoa: a busca usa o filtro padrão, não o que ficou salvo na aba.
+  const chavePadrao = dadosDaTela({ me }).chave
   useEffect(() => {
     if (!alvo) return
+    if (tela.chave !== chavePadrao) {
+      // Reação ao endereço (sistema externo): o filtro precisa mudar aqui.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setFiltro(f => ({ ...f, pessoa: me, origem: '', status: '' }))
+      return
+    }
     let vivo = true
     recarregar()
       .catch(() => {})
@@ -93,7 +101,7 @@ export default function Tarefas() {
       vivo = false
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [alvo])
+  }, [alvo, tela.chave])
   useEffect(() => {
     if (!alvo || !dados) return
     const achou = (dados.tarefas || []).some(x => x.id == alvo)

@@ -4,7 +4,7 @@
  *
  *   1. gerente (Inês) cria tarefa para a Bia pela janela "Nova tarefa"
  *   2. Sair, entrar como Bia na mesma aba: sininho com mais 1 aviso e o painel mostra a tarefa
- *   3. clicar no aviso abre a TaskModal em Tarefas e o número do sininho cai
+ *   3. com filtro salvo em Tarefas (Concluída), clicar no aviso abre a TaskModal e o número do sininho cai
  *   4. Sair, entrar como Caio na mesma aba: sininho sem os avisos da Bia
  *   5. diretora vê "Ocupação da semana" no Dashboard; membro (Caio) não
  *   6. celular (375 px), escuro: painel de avisos abre em tela cheia e fecha
@@ -152,6 +152,14 @@ try {
   })
 
   await passo('3. clicar no aviso abre a tarefa e o número cai', async () => {
+    // Filtro salvo na aba (Situação: Concluída) esconde a tarefa nova; o aviso precisa abri-la mesmo assim.
+    await page.keyboard.press('Escape')
+    await page.locator('#menu a[aria-label="Tarefas"]').click()
+    await page.getByLabel('Situação', { exact: true }).selectOption({ label: 'Concluída' })
+    await page.waitForTimeout(800)
+    await page.goto(`${APP}/#/`)
+    await sino(page).waitFor({ timeout: 15000 })
+    await sino(page).click()
     const painel = page.getByRole('dialog', { name: 'Avisos' })
     await painel.locator('.av-item').filter({ hasText: TITULO }).click()
     await page.getByRole('dialog', { name: 'Detalhes da tarefa' }).waitFor({ timeout: 15000 })
