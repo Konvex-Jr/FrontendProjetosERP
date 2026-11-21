@@ -35,13 +35,13 @@ export default function OcupacaoSemana() {
   return (
     <section className="card card-body mb-3" aria-label="Ocupação da semana">
       <h2>Ocupação da semana</h2>
-      {acima > 0 && <p className="text-danger mb-2">{acima} acima de 100%</p>}
+      {acima > 0 && <p className="text-danger mb-2">{acima === 1 ? '1 pessoa acima de 100%' : `${acima} pessoas acima de 100%`}</p>}
       {!dados.length ? (
         <small>Nenhuma pessoa com horas previstas na semana.</small>
       ) : (
         <div className="row g-3">
           <div className="col-md-6">
-            <h3 className="h6">Mais carregados</h3>
+            <h3 className="h6">Mais ocupados</h3>
             <ul className="ocup-lista">
               {mais.map(p => (
                 <Linha key={p.codigoUsuario} p={p} />
@@ -49,7 +49,7 @@ export default function OcupacaoSemana() {
             </ul>
           </div>
           <div className="col-md-6">
-            <h3 className="h6">Com folga</h3>
+            <h3 className="h6">Livres</h3>
             {livres.length ? (
               <ul className="ocup-lista">
                 {livres.map(p => (
