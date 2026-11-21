@@ -103,42 +103,55 @@ test('normalizeSenioridades preserves database codes and handles an empty databa
   assert.deepEqual(readConfig([], false).senioridades, {})
 })
 
-test('adaptProject marca sigilo e acesso do projeto completo', () => {
+test('adaptProject do projeto completo: cartao falso, líder e contagem mantidos', () => {
   const p = adaptProject({
     codigo: 'p1',
     nome: 'X',
     sigiloso: true,
-    acesso: ['u1', 'u2'],
-    podeGerirAcesso: true,
+    lider: { codigo: 'u1', nome: 'Ana' },
     tarefas: { total: 3, concluidas: 1, atrasadas: 1, semana: 0 },
   })
   assert.equal(p.sigiloso, true)
-  assert.equal(p.resumo, false)
-  assert.deepEqual(p.acesso, ['u1', 'u2'])
-  assert.equal(p.podeGerirAcesso, true)
-  assert.equal(p.tarefasResumo, undefined)
+  assert.equal(p.cartao, false)
+  assert.equal(p.liderId, 'u1')
+  assert.equal(p.liderNome, 'Ana')
+  assert.deepEqual(p.tarefas, { total: 3, concluidas: 1, atrasadas: 1, semana: 0 })
+  assert.equal('podeGerirAcesso' in p, false)
+  assert.equal('acesso' in p, false)
+  assert.equal('resumo' in p, false)
+  assert.equal('tarefasResumo' in p, false)
   const normal = adaptProject({ codigo: 'p2', nome: 'Y' })
-  assert.deepEqual([normal.sigiloso, normal.resumo, normal.podeGerirAcesso, normal.acesso], [false, false, false, []])
+  assert.deepEqual([normal.sigiloso, normal.cartao, normal.liderId, normal.liderNome], [false, false, null, null])
 })
 
-test('adaptProject mapeia o resumo com campos vazios seguros', () => {
+test('adaptProject do cartão: só os campos da lista fechada, sem equipe nem tarefas', () => {
   const p = adaptProject({
-    codigo: 'p1',
+    codigo: 'p9',
     nome: 'Sigiloso',
-    sigiloso: true,
-    resumo: true,
+    tipo: 'interno',
+    area: { codigo: 'a1', nome: 'Marketing' },
     status: 'em_execucao',
-    dataInicio: '2026-10-01T00:00:00.000Z',
-    dataFim: '2026-10-31',
-    tarefas: { total: 5, concluidas: 2, atrasadas: 2, semana: 1 },
-    participacoes: [],
+    lider: { codigo: 'u1', nome: 'Ana' },
+    sigiloso: true,
+    geralDaArea: false,
+    cartao: true,
   })
-  assert.equal(p.resumo, true)
-  assert.deepEqual(p.tarefasResumo, { total: 5, concluidas: 2, atrasadas: 2, semana: 1 })
-  assert.equal(p.descricao, '')
+  assert.equal(p.cartao, true)
+  assert.equal(p.id, 'p9')
+  assert.equal(p.nome, 'Sigiloso')
+  assert.equal(p.tipo, 'interno')
+  assert.equal(p.areaId, 'a1')
+  assert.equal(p.areaNome, 'Marketing')
+  assert.equal(p.status, 'em_execucao')
+  assert.equal(p.sigiloso, true)
+  assert.equal(p.geralDaArea, false)
+  assert.equal(p.liderId, 'u1')
+  assert.equal(p.liderNome, 'Ana')
   assert.deepEqual(p.membros, [])
-  assert.deepEqual(p.acesso, [])
-  assert.equal(p.inicio, '2026-10-01')
+  assert.equal('tarefas' in p, false)
+  assert.equal('tarefasResumo' in p, false)
+  const semLider = adaptProject({ codigo: 'p8', nome: 'C', tipo: 'cliente', area: null, lider: null, cartao: true })
+  assert.deepEqual([semLider.areaId, semLider.areaNome, semLider.liderId, semLider.liderNome], [null, null, null, null])
 })
 
 test('adaptTask traz a coluna (ou null) e adaptProject as colunas', () => {

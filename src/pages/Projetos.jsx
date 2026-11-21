@@ -9,9 +9,18 @@ import alerts from '../lib/alerts'
 import useCarregar from '../lib/useCarregar'
 import Esqueleto from '../components/Esqueleto'
 import { SeloSigiloso, SeloTipo, StatusProjeto } from '../components/SeloProjeto'
-import { ErroAcessoParcial, acessoComLogin, gravarProjeto } from '../lib/gravarProjeto'
+import { gravarProjeto } from '../lib/gravarProjeto'
 import { consumir } from '../lib/atalho'
-import { FILTRO_TIPO, TIPOS_PROJETO, areasDosProjetos, comArea, erroDoFormularioProjeto, filtrarProjetos } from '../lib/projetosInternos'
+import {
+  FILTRO_TIPO,
+  TIPOS_PROJETO,
+  areasDosProjetos,
+  comArea,
+  erroDoFormularioProjeto,
+  filtrarProjetos,
+  semEquipeEscondida,
+  textoDoCartao,
+} from '../lib/projetosInternos'
 import { GRUPOS_PROJETO } from '../lib/indicadores'
 import { configuracoes, pessoas } from '../services/pessoas'
 import { PRIORIDADE_PROJETO, STATUS_PROJETO, projetos, rotuloStatusProjeto } from '../services/projetos'
@@ -32,16 +41,14 @@ export async function confirmarSigilo(p, v) {
   if (!p || p.sigiloso || v.visibilidade !== 'sigiloso') return true
   return alerts.confirm({
     title: 'Marcar como sigiloso?',
-    text: 'Só a equipe, diretores, quem criou e quem estiver na lista de acesso verão os detalhes e as tarefas.',
+    text: 'Só a equipe e os diretores verão os detalhes e as tarefas.',
     confirmText: 'Marcar como sigiloso',
   })
 }
 
 /** Campos do formulário do projeto, usados aqui e na Visão geral do projeto. */
-export function camposProjeto({ lista, areas, novo, podeGerirAcesso }) {
+export function camposProjeto({ lista, areas, novo }) {
   const opcoes = (itens, ok) => [['', '—'], ...itens.filter(ok).map(i => [i.codigo, i.nome])]
-  // Visibilidade: na criação e em toda edição. Lista de acesso: na criação ou só para quem gere o acesso.
-  const gereAcesso = novo || podeGerirAcesso
   return [
     { k: 'nome', l: 'Nome' },
     { k: 'tipo', l: 'Tipo', o: TIPOS_PROJETO, h: 'Interno é da Konvex e fica numa área; cliente é para quem a Konvex trabalha.' },
@@ -61,21 +68,20 @@ export function camposProjeto({ lista, areas, novo, podeGerirAcesso }) {
       opt: true,
       h: 'Obrigatória no projeto interno.',
     },
-    { k: 'visibilidade', l: 'Visibilidade', o: VISIBILIDADE },
+    { k: 'visibilidade', l: 'Visibilidade', o: VISIBILIDADE, h: 'Só a equipe e os diretores verão os detalhes e as tarefas.' },
     {
-      k: 'acesso',
-      l: 'Quem mais pode ver o projeto',
-      // Só pessoas com login (ativas): a API recusa as outras com ACESSO_PESSOA_SEM_LOGIN.
-      c: lista.filter(u => u.ativo).map(u => ({ id: u.codigo, nome: u.nome, perfil: u.perfil })),
-      s: v => gereAcesso && v.visibilidade === 'sigiloso',
-      h: 'Diretores, quem criou e a equipe já veem o projeto.',
+      k: 'codigosMembros',
+      l: 'Equipe inicial',
+      c: (lista || []).filter(u => u.naEj).map(u => ({ id: u.codigo, nome: u.nome })),
+      s: v => novo && v.visibilidade === 'sigiloso',
+      opt: true,
+      h: 'Quem não é diretor precisa se colocar na equipe para continuar vendo o projeto sigiloso.',
     },
   ]
 }
 
-/** `pessoas`: a mesma lista do seletor de acesso (só os códigos com login entram no formulário). */
-export function valoresProjeto(p, pessoas = []) {
-  if (!p) return { tipo: 'cliente', prioridade: 'media', codigoResponsavel: '', codigoArea: '', visibilidade: 'normal', acesso: [] }
+export function valoresProjeto(p) {
+  if (!p) return { tipo: 'cliente', prioridade: 'media', codigoResponsavel: '', codigoArea: '', visibilidade: 'normal' }
   return {
     nome: p.nome,
     tipo: p.tipo || 'cliente',
@@ -90,7 +96,6 @@ export function valoresProjeto(p, pessoas = []) {
     codigoResponsavel: p.responsavel?.codigo || '',
     codigoArea: p.area?.codigo || '',
     visibilidade: p.sigiloso ? 'sigiloso' : 'normal',
-    acesso: acessoComLogin(p.acesso, pessoas),
   }
 }
 
@@ -98,13 +103,14 @@ export function valoresProjeto(p, pessoas = []) {
  * Chave e busca da lista de projetos. A tela e o menu (src/lib/antecipar.js) usam as mesmas,
  * para o dado buscado antes do clique ser o que a tela mostra. `contexto` = { me, mb, pode } do useApp().
  */
-export function dadosDaTela({ me, mb, pode }) {
+export function dadosDaTela({ pode }) {
   const gestor = pode('projetos.editar')
   return {
-    chave: `projetos:${mb}:${gestor}`,
+    // Todos veem todos os projetos (sessão 27a): os de fora vêm como cartão. Filtrar pela pessoa esconderia os cartões.
+    chave: `projetos:todos:${gestor}`,
     carregar: async () => {
       const [lista, gente, areas] = await Promise.all([
-        projetos.listar(mb ? { codigoUsuario: me } : {}),
+        projetos.listar(),
         gestor ? pessoas.listar() : [],
         gestor ? configuracoes.areas() : [],
       ])
@@ -113,16 +119,49 @@ export function dadosDaTela({ me, mb, pode }) {
   }
 }
 
+/**
+ * Projeto que a pessoa vê só pelo cartão (sessão 27a): nome, tipo, área do interno, status, líder e selo do
+ * sigiloso. Sem clique, sem progresso e sem datas.
+ */
+function CartaoNaLista({ p }) {
+  return (
+    <div className="card card-body h-100 pj-cartao" aria-label={'Projeto ' + p.nome + ' (só o cartão)'}>
+      <span className="d-flex flex-wrap gap-1">
+        <StatusProjeto s={p.status} />
+        <SeloTipo p={p} />
+        {p.sigiloso && <SeloSigiloso />}
+      </span>
+      <h2 className="mt-3">{p.nome}</h2>
+      <dl className="pj-cartao-dados">
+        {p.tipo === 'interno' && p.areaNome && (
+          <>
+            <dt>Área</dt>
+            <dd>{p.areaNome}</dd>
+          </>
+        )}
+        {/* O geral da área não tem líder próprio (quem lidera é o líder da área), como na ficha completa. */}
+        {!p.geralDaArea && (
+          <>
+            <dt>Líder</dt>
+            <dd>{p.lider?.nome || 'Sem líder'}</dd>
+          </>
+        )}
+      </dl>
+      <small className="text-mu mt-auto">{textoDoCartao(p)}</small>
+    </div>
+  )
+}
+
 /** RF-020 e RF-021: lista de projetos. Equipe e tarefas ficam dentro de cada projeto. */
 export default function Projetos() {
-  const { D, me, mb, form, go, pode, refresh } = useApp()
+  const { D, form, go, pode, refresh } = useApp()
   const [pv, setPv] = useState('grid'),
     [grupo, setGrupo] = useState(() => consumir('projetos') || 'ativos'),
     [tipo, setTipo] = useState(''),
     [areaId, setAreaId] = useState('')
   const gestor = pode('projetos.editar')
-  const tela = dadosDaTela({ me, mb, pode })
-  const { dados, carregando, recarregar } = useCarregar(tela.carregar, [mb, me, gestor], { chave: tela.chave })
+  const tela = dadosDaTela({ pode })
+  const { dados, carregando, recarregar } = useCarregar(tela.carregar, [gestor], { chave: tela.chave })
 
   if (!dados)
     return (
@@ -142,38 +181,27 @@ export default function Projetos() {
       refresh().catch(() => {})
       return r
     } catch (error) {
-      if (error instanceof ErroAcessoParcial) {
-        // O projeto já foi salvo: recarrega para a tela mostrar o que o servidor tem e fecha o formulário.
-        await recarregar()
-        refresh().catch(() => {})
-        alerts.error('Salvo pela metade', 'Projeto salvo, mas a lista de acesso não: ' + error.message)
-        return undefined
-      }
       alerts.error('Não foi possível salvar', error.message)
       return false
     }
   }
 
   const editar = p =>
-    form(
-      p ? 'Editar projeto' : 'Novo projeto',
-      camposProjeto({ lista: gente, areas, novo: !p, podeGerirAcesso: p?.podeGerirAcesso }),
-      valoresProjeto(p, gente),
-      async v => {
-        const aviso = erroDoFormularioProjeto(v)
-        if (aviso) {
-          alerts.error('Não foi possível salvar', aviso)
-          return false
-        }
-        if (!(await confirmarSigilo(p, v))) return false
-        const r = await executar(
-          () => gravarProjeto(p, v.tipo === 'interno' ? { ...v, clienteNome: '' } : v),
-          p ? 'Projeto atualizado' : 'Projeto criado',
-        )
-        if (r && !p) go('projeto', r.codigo)
-        return r === false ? false : undefined
-      },
-    )
+    form(p ? 'Editar projeto' : 'Novo projeto', camposProjeto({ lista: gente, areas, novo: !p }), valoresProjeto(p), async v => {
+      const aviso = erroDoFormularioProjeto(v)
+      if (aviso) {
+        alerts.error('Não foi possível salvar', aviso)
+        return false
+      }
+      if (!(await confirmarSigilo(p, v))) return false
+      const dados = semEquipeEscondida(v)
+      const r = await executar(
+        () => gravarProjeto(dados.tipo === 'interno' ? { ...dados, clienteNome: '' } : dados, p),
+        p ? 'Projeto atualizado' : 'Projeto criado',
+      )
+      if (r && !p) go('projeto', r.codigo)
+      return r === false ? false : undefined
+    })
   const mudarStatus = p =>
     form(
       'Mudar status',
@@ -192,7 +220,7 @@ export default function Projetos() {
   }
 
   const Ac = ({ p }) =>
-    p.resumo ? null : (
+    p.cartao ? null : (
       <ActionMenu
         items={[
           ['open', 'Abrir', () => go('projeto', p.codigo)],
@@ -209,6 +237,7 @@ export default function Projetos() {
   const pg = p => prog(D, { id: p.codigo, tarefas: p.tarefas })
   // O geral da área não tem fim (a data de 31/12/2099 é só técnica): mostra só o início.
   const periodo = p => (p.geralDaArea ? 'Desde ' + fm(dia(p.dataInicio)) : fm(dia(p.dataInicio)) + ' a ' + fm(dia(p.dataFim)))
+  // Cartão (projeto de outra equipe): sem período, progresso e equipe, que a API nem manda.
   const cols = [
     {
       k: 'nome',
@@ -222,14 +251,16 @@ export default function Projetos() {
               <SeloSigiloso />
             </>
           )}
+          {p.tipo === 'interno' && p.areaNome && <small className="d-block text-mu">{p.areaNome}</small>}
         </>
       ),
     },
     { k: 'st', l: 'Status', filter: 1, get: p => rotuloStatusProjeto(p.status), render: p => <StatusProjeto s={p.status} /> },
+    { k: 'lider', l: 'Líder', filter: 1, get: p => p.lider?.nome || '—' },
     { k: 'resp', l: 'Responsável', filter: 1, get: p => p.responsavel?.nome || '—' },
-    { k: 'fim', l: 'Período', get: p => dia(p.dataFim), render: periodo },
-    { k: 'pr', l: 'Progresso', get: pg, render: p => pg(p) + '%' },
-    { l: 'Equipe', render: p => <Av D={D} ids={membrosAtivos(p)} /> },
+    { k: 'fim', l: 'Período', get: p => (p.cartao ? '' : dia(p.dataFim)), render: p => (p.cartao ? '—' : periodo(p)) },
+    { k: 'pr', l: 'Progresso', get: p => (p.cartao ? -1 : pg(p)), render: p => (p.cartao ? '—' : pg(p) + '%') },
+    { l: 'Equipe', render: p => (p.cartao ? textoDoCartao(p) : <Av D={D} ids={membrosAtivos(p)} />) },
     { l: 'Ações', render: p => <Ac p={p} /> },
   ]
   const linhas = filtrarProjetos(lista, { tipo, areaId })
@@ -240,7 +271,7 @@ export default function Projetos() {
     ? 'Nenhum projeto com estes filtros. Escolha “Todos” nos filtros.'
     : gestor
       ? 'Nenhum projeto cadastrado. Use “Novo projeto”.'
-      : 'Você ainda não participa de nenhum projeto. Quando a gestão incluir você numa equipe, ele aparece aqui.'
+      : 'Nenhum projeto cadastrado ainda.'
   const filtroGrupo = (
     <div className="fl d-flex flex-wrap gap-2 mb-3">
       <select
@@ -277,7 +308,10 @@ export default function Projetos() {
 
   return (
     <>
-      <PageBar title="Projetos" sub={mb ? 'Projetos de que você participa ou participou.' : undefined}>
+      <PageBar
+        title="Projetos"
+        sub={lista.some(p => p.cartao) ? 'Os projetos de outras equipes aparecem só com nome, status e líder.' : undefined}
+      >
         <button className={'btn btn-g' + (pv == 'grid' ? ' on' : '')} onClick={() => setPv('grid')}>
           Grid
         </button>
@@ -301,36 +335,35 @@ export default function Projetos() {
           )}
           {linhas.map(p => (
             <div className="col-md-6 col-xl-4" key={p.id}>
-              <div
-                className={'card card-body pj h-100' + (p.resumo ? ' resumo-sigilo' : ' hoverable')}
-                onClick={p.resumo ? undefined : () => go('projeto', p.codigo)}
-              >
-                <div className="d-flex justify-content-between align-items-center gap-2">
-                  <span className="d-flex flex-wrap gap-1">
-                    <StatusProjeto s={p.status} />
-                    <SeloTipo p={p} />
-                    {p.sigiloso && <SeloSigiloso />}
-                  </span>
-                  <Av D={D} ids={membrosAtivos(p)} />
-                </div>
-                <h2 className="mt-3">{p.nome}</h2>
-                <p className="text-mu m-0">{p.resumo ? 'Projeto sigiloso: só o resumo.' : p.descricao}</p>
-                <Prog v={pg(p)} />
-                <small>
-                  {pg(p)}% · {periodo(p)}
-                  {p.clienteNome ? ' · ' + p.clienteNome : ''}
-                </small>
-                {!p.resumo && (
+              {p.cartao ? (
+                <CartaoNaLista p={p} />
+              ) : (
+                <div className="card card-body pj h-100 hoverable" onClick={() => go('projeto', p.codigo)}>
+                  <div className="d-flex justify-content-between align-items-center gap-2">
+                    <span className="d-flex flex-wrap gap-1">
+                      <StatusProjeto s={p.status} />
+                      <SeloTipo p={p} />
+                      {p.sigiloso && <SeloSigiloso />}
+                    </span>
+                    <Av D={D} ids={membrosAtivos(p)} />
+                  </div>
+                  <h2 className="mt-3">{p.nome}</h2>
+                  <p className="text-mu m-0">{p.descricao}</p>
+                  <Prog v={pg(p)} />
+                  <small>
+                    {pg(p)}% · {periodo(p)}
+                    {p.clienteNome ? ' · ' + p.clienteNome : ''}
+                  </small>
                   <span className="cm" onClick={e => e.stopPropagation()}>
                     <Ac p={p} />
                   </span>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           ))}
         </div>
       ) : (
-        <Table cols={cols} rows={linhas} vazio={vazio} linhaCls={p => (p.resumo ? 'resumo-sigilo' : undefined)} />
+        <Table cols={cols} rows={linhas} vazio={vazio} linhaCls={p => (p.cartao ? 'linha-cartao' : undefined)} />
       )}
     </>
   )

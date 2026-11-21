@@ -33,9 +33,9 @@ test('indicadores aguentam dados vazios', () => {
   assert.ok(indicadores({}, hoje).every(i => i.numero === 0))
 })
 
-test('projeto em resumo entra nos grupos e soma as tarefas do resumo', () => {
+test('indicadores: cartão entra nos grupos por situação, não nas tarefas', () => {
   const D = {
-    p: [{ status: 'em_execucao' }, { status: 'em_execucao', resumo: true, tarefasResumo: { atrasadas: 2, semana: 1 } }],
+    p: [{ status: 'em_execucao' }, { status: 'em_execucao', cartao: true, tarefasResumo: { atrasadas: 2, semana: 1 } }],
     t: [
       { status: 'pendente', fim: '2026-11-03' },
       { status: 'pendente', fim: '2026-11-05' },
@@ -43,11 +43,11 @@ test('projeto em resumo entra nos grupos e soma as tarefas do resumo', () => {
   }
   const n = Object.fromEntries(indicadores(D, hoje).map(i => [i.chave, i.numero]))
   assert.equal(n.ativos, 2)
-  assert.equal(n.atrasadas, 3)
-  assert.equal(n.semana, 2)
+  assert.equal(n.atrasadas, 1)
+  assert.equal(n.semana, 1)
 })
 
-test('contagemTarefas soma as contagens dos resumos de sigiloso nos cartões', () => {
+test('contagemTarefas conta só as tarefas vistas: cartão não soma nada', () => {
   const D = {
     t: [
       { status: 'concluida', fim: '2026-11-01' },
@@ -56,9 +56,9 @@ test('contagemTarefas soma as contagens dos resumos de sigiloso nos cartões', (
     ],
     p: [
       { status: 'em_execucao' },
-      { status: 'em_execucao', resumo: true, tarefasResumo: { total: 6, concluidas: 2, atrasadas: 1, semana: 1 } },
+      { status: 'em_execucao', cartao: true, tarefasResumo: { total: 6, concluidas: 2, atrasadas: 1, semana: 1 } },
     ],
   }
-  assert.deepEqual(contagemTarefas(D, hoje), { total: 9, late: 2, and: 4, done: 3 })
+  assert.deepEqual(contagemTarefas(D, hoje), { total: 3, late: 1, and: 1, done: 1 })
   assert.deepEqual(contagemTarefas({ t: [], p: [] }, hoje), { total: 0, late: 0, and: 0, done: 0 })
 })

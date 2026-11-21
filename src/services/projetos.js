@@ -33,20 +33,15 @@ export const rotuloPrioridade = s => PRIORIDADE_PROJETO.find(([k]) => k === s)?.
 
 /** Converte o formulário do projeto no corpo da API. */
 export function corpoProjeto(dados) {
-  const { progresso, acesso, visibilidade, ...resto } = vazioComoNull(dados)
+  // `acesso` (lista de acesso da sessão 20) saiu na 27a: descartado se ainda vier no formulário.
+  const { progresso, acesso: _acesso, visibilidade, ...resto } = vazioComoNull(dados)
   return {
     ...resto,
     // Visibilidade do formulário (Normal/Sigiloso) → `sigiloso`. Sem o campo, nada vai; o PUT sempre manda a visibilidade (quem edita o projeto muda o sigilo).
     ...(visibilidade ? { sigiloso: visibilidade === 'sigiloso' } : {}),
     ...(numeroOuNada(progresso) !== undefined ? { progresso: Number(progresso) } : {}),
-    // Lista de quem acessa o sigiloso: só array (a API recusa null com 400).
-    // Só vale na criação (o PUT ignora; na edição usa-se definirAcesso) e com sigilo ligado.
-    ...(Array.isArray(acesso) && visibilidade !== 'normal' ? { acesso } : {}),
   }
 }
-
-/** Duas listas de códigos têm os mesmos itens, em qualquer ordem. */
-export const mesmaLista = (a = [], b = []) => a.length === b.length && a.every(x => b.includes(x))
 
 /** Converte o formulário da participação no corpo da API. */
 export function corpoParticipacao(dados) {
@@ -63,8 +58,6 @@ export const projetos = {
   editar: (codigo, dados) => send('PUT', `/projetos/${codigo}`, corpoProjeto(dados)),
   alterarStatus: (codigo, status) => send('PATCH', `/projetos/${codigo}/status`, { status }),
   excluir: codigo => send('DELETE', `/projetos/${codigo}`),
-  /** Lista de acesso do projeto sigiloso (só diretor e criador): códigos de pessoas com login. */
-  definirAcesso: (codigo, codigos) => send('PUT', `/projetos/${codigo}/acesso`, { codigos }),
   /** Colunas do quadro: `corpo` vem de `corpoColunas`; devolve as colunas salvas. */
   gravarColunas: (codigo, corpo) => send('PUT', `/projetos/${codigo}/colunas`, corpo),
   /** Líder do projeto: código de alguém da equipe atual, ou null para tirar. */

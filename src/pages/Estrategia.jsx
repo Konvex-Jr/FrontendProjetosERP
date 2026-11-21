@@ -5,7 +5,7 @@ import Burn from '../components/Burn'
 import Table from '../components/Table'
 import { PageBar, Prog, Seg } from '../components/Ui'
 import { contagemTarefas } from '../lib/indicadores'
-import { FILTRO_TIPO, filtrarProjetos } from '../lib/projetosInternos'
+import { FILTRO_TIPO, filtrarProjetos, textoDoCartao } from '../lib/projetosInternos'
 
 const TB = { late: ['Atrasadas', 'er'], and: ['Em andamento', 'an'], done: ['Concluídas', 'ok'] }
 
@@ -30,11 +30,11 @@ export default function Estrategia() {
   const late = t => t.status != 'concluida' && d(t.fim) < h,
     pn = id => D.p.find(p => p.id == id)?.nome || 'Projeto'
   const G = { late: T.filter(late), and: T.filter(t => t.status != 'concluida' && !late(t)), done: T.filter(t => t.status == 'concluida') }
-  // Cartões somam as contagens dos resumos de sigiloso; a lista e o burndown ficam só com as tarefas vistas.
+  // Cartões e burndown contam só as tarefas vistas (projeto em cartão não manda tarefas).
   const N = contagemTarefas(D, h)
 
-  // Projeto sigiloso em resumo não tem tarefas na lista nem detalhe: fica fora de "Tarefas por projeto" e dos críticos.
-  const projetos = D.p.filter(p => !p.resumo)
+  // Projeto em cartão não tem tarefas nem datas: aparece em "Tarefas por projeto" sem números e fica fora dos críticos.
+  const projetos = D.p.filter(p => !p.cartao)
   const crit = projetos
     .filter(p => p.status == 'em_execucao')
     .map(p => {
@@ -141,7 +141,14 @@ export default function Estrategia() {
         <div className="col-lg-8">
           <div className="card card-body h-100">
             <h2>Tarefas por projeto</h2>
-            {projetos.map(p => {
+            {D.p.map(p => {
+              if (p.cartao)
+                return (
+                  <div key={p.id}>
+                    <span>{p.nome}</span>
+                    <small className="d-block text-mu">{textoDoCartao(p)}</small>
+                  </div>
+                )
               const L = T.filter(t => t.projetoId == p.id),
                 c = L.filter(t => t.status == 'concluida').length,
                 a = L.filter(late).length,

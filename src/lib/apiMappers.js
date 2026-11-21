@@ -43,6 +43,22 @@ export function adaptUser(user) {
 }
 
 export function adaptProject(project) {
+  const lider = { liderId: project.lider?.codigo ?? null, liderNome: project.lider?.nome ?? null }
+  // Cartão (projeto de que a pessoa não vê os detalhes): só a lista fechada da API, sem equipe, datas nem tarefas.
+  if (project.cartao)
+    return {
+      id: project.codigo,
+      nome: project.nome,
+      tipo: project.tipo || 'cliente',
+      areaId: project.area?.codigo ?? null,
+      areaNome: project.area?.nome ?? null,
+      status: project.status,
+      sigiloso: !!project.sigiloso,
+      geralDaArea: !!project.geralDaArea,
+      ...lider,
+      membros: [],
+      cartao: true,
+    }
   return {
     id: project.codigo,
     nome: project.nome,
@@ -53,27 +69,15 @@ export function adaptProject(project) {
     membros: (project.membros || []).map(userCode),
     // Contagem de todas as tarefas do projeto (para o progresso; ver prog em lib/utils.js).
     tarefas: project.tarefas,
-    // Sigilo: o resumo (gerente fora da lista) só traz nome, status, datas, contagens e equipe.
     tipo: project.tipo || 'cliente',
     geralDaArea: !!project.geralDaArea,
     lideresDaArea: project.lideresDaArea || [],
     areaId: project.area?.codigo ?? null,
     areaNome: project.area?.nome ?? null,
     sigiloso: !!project.sigiloso,
-    resumo: !!project.resumo,
-    acesso: project.acesso || [],
+    ...lider,
     colunas: (project.colunas || []).map(adaptColuna),
-    podeGerirAcesso: !!project.podeGerirAcesso,
-    ...(project.resumo
-      ? {
-          tarefasResumo: {
-            total: project.tarefas?.total || 0,
-            concluidas: project.tarefas?.concluidas || 0,
-            atrasadas: project.tarefas?.atrasadas || 0,
-            semana: project.tarefas?.semana || 0,
-          },
-        }
-      : {}),
+    cartao: false,
   }
 }
 

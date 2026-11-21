@@ -24,6 +24,8 @@ export const fimDaSemana = hoje => somarDias(hoje, (7 - hoje.getDay()) % 7)
  * Cada item: { chave, numero, rotulo, dica, alerta, destino }. `destino` = [tela, filtro] para o atalho.
  */
 export function indicadores(D, hoje) {
+  // Cartão (projeto de que a pessoa não vê os detalhes) conta nos grupos por situação (o status é público),
+  // mas não tem contagem de tarefas: as tarefas vêm só de `D.t`.
   const projetos = D.p || [],
     tarefas = D.t || [],
     pessoas = D.u || [],
@@ -32,10 +34,8 @@ export function indicadores(D, hoje) {
   const abertas = tarefas.filter(t => t.status != 'concluida')
   const domingo = fimDaSemana(hoje),
     em30 = somarDias(hoje, 30)
-  // Tarefas de projeto sigiloso em resumo não vêm na lista: entram pelas contagens do resumo.
-  const doResumo = campo => projetos.reduce((soma, p) => soma + (p.resumo ? p.tarefasResumo?.[campo] || 0 : 0), 0)
-  const atrasadas = abertas.filter(t => dia(t.fim) < hoje).length + doResumo('atrasadas')
-  const semana = abertas.filter(t => dia(t.fim) >= hoje && dia(t.fim) <= domingo).length + doResumo('semana')
+  const atrasadas = abertas.filter(t => dia(t.fim) < hoje).length
+  const semana = abertas.filter(t => dia(t.fim) >= hoje && dia(t.fim) <= domingo).length
   const proximas = caps.filter(c => dia(c.data) >= hoje && dia(c.data) <= em30).length
   const membros = pessoas.filter(u => (u.status ? u.status === 'ativo' : u.ativo !== false)).length
   return [
@@ -89,16 +89,13 @@ export function indicadores(D, hoje) {
 
 /**
  * Cartões da Visão Estratégica: { total, late, and, done } (chaves das abas da tela).
- * Projeto sigiloso em resumo não manda as tarefas, só as contagens: elas entram aqui, mas não na lista
- * nem no burndown. Na parte do resumo, "em andamento" = total - concluídas - atrasadas.
+ * Só as tarefas vistas: projeto em cartão não manda tarefas nem contagens.
  */
 export function contagemTarefas(D, hoje) {
-  const tarefas = D.t || [],
-    resumos = (D.p || []).filter(p => p.resumo)
-  const doResumo = campo => resumos.reduce((soma, p) => soma + (p.tarefasResumo?.[campo] || 0), 0)
+  const tarefas = D.t || []
   const atrasada = t => t.status != 'concluida' && dia(t.fim) < hoje
-  const total = tarefas.length + doResumo('total')
-  const done = tarefas.filter(t => t.status == 'concluida').length + doResumo('concluidas')
-  const late = tarefas.filter(atrasada).length + doResumo('atrasadas')
+  const total = tarefas.length
+  const done = tarefas.filter(t => t.status == 'concluida').length
+  const late = tarefas.filter(atrasada).length
   return { total, late, and: Math.max(0, total - done - late), done }
 }

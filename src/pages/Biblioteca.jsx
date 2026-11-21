@@ -44,8 +44,8 @@ const comId = lista => lista.map(x => ({ ...x, id: x.codigo }))
  * já recebe (DF.p, igual a GET /projetos); `inicial` preenche um item novo (ex.: o projeto da aba).
  */
 export function abrirFormBiblioteca({ form, projetos, gestor, item, inicial, aoSalvar }) {
-  // Projeto sigiloso em resumo (gerente fora da lista) não aceita item: a API responde 403 PROJETO_SEM_PERMISSAO.
-  const opcoesProjetos = (projetos || []).filter(p => !p.resumo)
+  // Projeto em cartão (a pessoa não vê os detalhes) não aceita item: a API responde 403.
+  const opcoesProjetos = (projetos || []).filter(p => !p.cartao)
   // Projeto já ligado que não está na lista continua selecionável (para não sumir ao salvar).
   if (item?.projeto && !opcoesProjetos.some(p => p.id === item.projeto.codigo))
     opcoesProjetos.push({ id: item.projeto.codigo, nome: item.projeto.nome })
