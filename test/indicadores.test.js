@@ -33,7 +33,7 @@ test('indicadores aguentam dados vazios', () => {
   assert.ok(indicadores({}, hoje).every(i => i.numero === 0))
 })
 
-test('indicadores ignoram cartões: nem grupos nem tarefas', () => {
+test('indicadores: cartão entra nos grupos por situação, não nas tarefas', () => {
   const D = {
     p: [{ status: 'em_execucao' }, { status: 'em_execucao', cartao: true, tarefasResumo: { atrasadas: 2, semana: 1 } }],
     t: [
@@ -42,7 +42,7 @@ test('indicadores ignoram cartões: nem grupos nem tarefas', () => {
     ],
   }
   const n = Object.fromEntries(indicadores(D, hoje).map(i => [i.chave, i.numero]))
-  assert.equal(n.ativos, 1)
+  assert.equal(n.ativos, 2)
   assert.equal(n.atrasadas, 1)
   assert.equal(n.semana, 1)
 })

@@ -6,7 +6,8 @@ import { adaptTask } from './apiMappers.js'
 /**
  * Dados da página de um projeto. Se a API devolver só o cartão (projeto de que a pessoa não vê os
  * detalhes), as tarefas não são usadas: a busca delas, feita junto para não esperar duas rodadas,
- * é recusada com 404 e o erro é ignorado. Qualquer outro erro sobe e a memória da aba apaga a chave.
+ * devolve 200 com a lista vazia (a API filtra o que a pessoa não vê), e o resultado é descartado.
+ * Fora do cartão, qualquer erro dessa busca sobe e a memória da aba apaga a chave.
  */
 export async function carregarProjeto(codigo, gestor) {
   const buscaTarefas = tarefas.listar({ codigoProjeto: codigo }).catch(erro => ({ erro }))

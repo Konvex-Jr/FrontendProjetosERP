@@ -24,8 +24,9 @@ export const fimDaSemana = hoje => somarDias(hoje, (7 - hoje.getDay()) % 7)
  * Cada item: { chave, numero, rotulo, dica, alerta, destino }. `destino` = [tela, filtro] para o atalho.
  */
 export function indicadores(D, hoje) {
-  // Cartão (projeto de que a pessoa não vê os detalhes) fica fora de tudo: não tem contagem de tarefas.
-  const projetos = (D.p || []).filter(p => !p.cartao),
+  // Cartão (projeto de que a pessoa não vê os detalhes) conta nos grupos por situação (o status é público),
+  // mas não tem contagem de tarefas: as tarefas vêm só de `D.t`.
+  const projetos = D.p || [],
     tarefas = D.t || [],
     pessoas = D.u || [],
     caps = D.k || []
