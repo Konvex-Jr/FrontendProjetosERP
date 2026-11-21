@@ -4,6 +4,7 @@ import { useApp } from '../context/AppContext'
 import { fm, un, chip } from '../lib/utils'
 import Ic from './Icon'
 import Avatar from './Avatar'
+import Avisos from './Avisos'
 import { destinoPorPendencia, podeAbrirSecao } from '../lib/rotas'
 import FormModal from './FormModal'
 import Esqueleto from './Esqueleto'
@@ -56,6 +57,7 @@ function Header() {
               <Ic k="moon" />
             </span>
           </button>
+          <Avisos me={me} />
           <span className="hu">
             <b>{un(D, me)}</b>
             <small>{D.u.find(u => u.id == me)?.perfil}</small>

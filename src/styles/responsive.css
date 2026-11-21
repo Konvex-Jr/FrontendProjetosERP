@@ -386,3 +386,17 @@
     align-items: stretch
   }
 }
+
+/* Painel de avisos em folha de tela cheia no celular. */
+@media (max-width: 575.98px) {
+  .av-sino { position: static }
+  .av-painel { position: fixed; inset: 0; width: auto; max-height: none; border-radius: 0; border: 0; padding: 16px }
+  .av-fechar { display: inline-flex }
+}
+
+/* Cartão "Ocupação da semana": base em layout.css */
+@media (max-width: 575.98px) {
+  .ocup-linha {
+    grid-template-columns: minmax(0, 1fr) 64px 40px;
+  }
+}
