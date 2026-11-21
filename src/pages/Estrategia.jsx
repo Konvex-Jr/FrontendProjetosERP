@@ -5,7 +5,7 @@ import Burn from '../components/Burn'
 import Table from '../components/Table'
 import { PageBar, Prog, Seg } from '../components/Ui'
 import { contagemTarefas } from '../lib/indicadores'
-import { FILTRO_TIPO, filtrarProjetos } from '../lib/projetosInternos'
+import { FILTRO_TIPO, filtrarProjetos, textoDoCartao } from '../lib/projetosInternos'
 
 const TB = { late: ['Atrasadas', 'er'], and: ['Em andamento', 'an'], done: ['Concluídas', 'ok'] }
 
@@ -146,7 +146,7 @@ export default function Estrategia() {
                 return (
                   <div key={p.id}>
                     <span>{p.nome}</span>
-                    <small className="d-block text-mu">Só a equipe e a gestão veem as tarefas.</small>
+                    <small className="d-block text-mu">{textoDoCartao(p)}</small>
                   </div>
                 )
               const L = T.filter(t => t.projetoId == p.id),

@@ -44,7 +44,8 @@ function CartaoProjeto({ projeto, voltar }) {
     ['Status', <StatusProjeto key="status" s={projeto.status} />],
     ['Tipo', <SeloTipo key="tipo" p={projeto} />],
     ...(projeto.tipo === 'interno' && projeto.area ? [['Área', projeto.area.nome]] : []),
-    ['Líder', projeto.lider?.nome || 'Sem líder'],
+    // O geral da área não tem líder próprio, como na ficha completa.
+    ...(projeto.geralDaArea ? [] : [['Líder', projeto.lider?.nome || 'Sem líder']]),
   ]
   return (
     <>

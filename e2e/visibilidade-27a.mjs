@@ -7,8 +7,10 @@
  *   3. gerente (Inês) vê o sigiloso alheio como cartão com selo; abrir #/projetos/<codigo> mostra o aviso, sem as abas
  *   4. gerente cria sigiloso sem se pôr na equipe: mensagem do 400 e janela aberta; põe-se na equipe: cria
  *   5. diretora vê todos completos (nenhum cartão)
- *   6. troca de conta na mesma aba (diretora -> Bia) sem recarregar: o "Robô" completo da diretora não aparece à Bia
- *   7. celular (375 px), tema escuro: lista de cartões (grade e linhas) sem rolagem lateral
+ *   6. troca de conta na mesma aba (diretora -> Inês, as duas da gestão) sem recarregar: o sigiloso completo da
+ *      diretora aparece à Inês só como cartão
+ *   7. troca de conta na mesma aba (diretora -> Bia) sem recarregar: o "Robô" completo da diretora não aparece à Bia
+ *   8. celular (375 px), tema escuro: lista de cartões (grade e linhas) sem rolagem lateral
  *
  * Pré-requisitos: dados fictícios no backend (Robô sem a Bia e o Davi; sigiloso sem a Inês):
  *   API_URL=http://localhost:5002 APP_URL=http://localhost:5173 node e2e/visibilidade-27a.mjs
@@ -161,6 +163,10 @@ try {
     await entrar(page, ...BIA)
     await abrirProjetos(page)
     await conferirCartao(page, ROBO)
+    // O geral da área não tem líder próprio: o cartão não mostra a linha "Líder".
+    const geral = cartaoDe(page, 'Inovação geral')
+    await geral.waitFor({ timeout: 10000 })
+    exigir(!/Líder/.test(await geral.innerText()), 'o cartão do geral da área mostra "Líder"')
     // Na vista em linhas, o cartão também não mostra período nem progresso.
     await page.getByRole('button', { name: 'Linhas' }).click()
     const linha = page.locator('tr.linha-cartao').filter({ hasText: ROBO })
@@ -241,7 +247,27 @@ try {
     await page.getByRole('heading', { name: 'Projetos' }).first().waitFor({ timeout: 15000 })
   })
 
-  await passo('6. troca de conta na mesma aba: o membro não recebe o projeto completo da diretora', async () => {
+  await passo('6. troca de conta na mesma aba entre gestores: a gerente não recebe o sigiloso completo da diretora', async () => {
+    // A diretora acabou de ver a lista (com o sigiloso completo) nesta aba; a Inês tem a mesma chave da tela (gestor).
+    await completoDe(page, SIGILOSO).waitFor({ timeout: 15000 })
+    await sair(page)
+    await entrar(page, ...INES)
+    await abrirProjetos(page)
+    await conferirCartao(page, SIGILOSO)
+    await page.goto(`${APP}/#/projetos/${sigiloso.codigo}`)
+    await page.locator('.aviso-cartao').waitFor({ timeout: 15000 })
+    exigir(
+      !(await page.locator('main').getByRole('button', { name: 'Visão geral', exact: true }).count()),
+      'a ficha do sigiloso abriu completa para a Inês',
+    )
+    // Volta à diretora (lista completa na memória da aba) para o passo seguinte.
+    await sair(page)
+    await entrar(page, ...DIRETORA)
+    await abrirProjetos(page)
+    await completoDe(page, ROBO).waitFor({ timeout: 15000 })
+  })
+
+  await passo('7. troca de conta na mesma aba: o membro não recebe o projeto completo da diretora', async () => {
     // Sem recarregar: a lista e a ficha do Robô da diretora estão na memória da aba.
     await sair(page)
     await entrar(page, ...BIA)
@@ -257,7 +283,7 @@ try {
     await sair(page)
   })
 
-  await passo('7. celular 375 px escuro: cartões sem rolagem lateral', async () => {
+  await passo('8. celular 375 px escuro: cartões sem rolagem lateral', async () => {
     const ctx2 = await browser.newContext({ viewport: { width: 375, height: 812 }, isMobile: true, hasTouch: true, colorScheme: 'dark' })
     const p = await ctx2.newPage()
     paginaAtual = p

@@ -139,8 +139,13 @@ function CartaoNaLista({ p }) {
             <dd>{p.areaNome}</dd>
           </>
         )}
-        <dt>Líder</dt>
-        <dd>{p.lider?.nome || 'Sem líder'}</dd>
+        {/* O geral da área não tem líder próprio (quem lidera é o líder da área), como na ficha completa. */}
+        {!p.geralDaArea && (
+          <>
+            <dt>Líder</dt>
+            <dd>{p.lider?.nome || 'Sem líder'}</dd>
+          </>
+        )}
       </dl>
       <small className="text-mu mt-auto">{textoDoCartao(p)}</small>
     </div>
@@ -149,14 +154,14 @@ function CartaoNaLista({ p }) {
 
 /** RF-020 e RF-021: lista de projetos. Equipe e tarefas ficam dentro de cada projeto. */
 export default function Projetos() {
-  const { D, me, mb, form, go, pode, refresh } = useApp()
+  const { D, form, go, pode, refresh } = useApp()
   const [pv, setPv] = useState('grid'),
     [grupo, setGrupo] = useState(() => consumir('projetos') || 'ativos'),
     [tipo, setTipo] = useState(''),
     [areaId, setAreaId] = useState('')
   const gestor = pode('projetos.editar')
-  const tela = dadosDaTela({ me, mb, pode })
-  const { dados, carregando, recarregar } = useCarregar(tela.carregar, [mb, me, gestor], { chave: tela.chave })
+  const tela = dadosDaTela({ pode })
+  const { dados, carregando, recarregar } = useCarregar(tela.carregar, [gestor], { chave: tela.chave })
 
   if (!dados)
     return (
@@ -252,7 +257,7 @@ export default function Projetos() {
     },
     { k: 'st', l: 'Status', filter: 1, get: p => rotuloStatusProjeto(p.status), render: p => <StatusProjeto s={p.status} /> },
     { k: 'lider', l: 'Líder', filter: 1, get: p => p.lider?.nome || '—' },
-    { k: 'resp', l: 'Responsável', get: p => p.responsavel?.nome || '—' },
+    { k: 'resp', l: 'Responsável', filter: 1, get: p => p.responsavel?.nome || '—' },
     { k: 'fim', l: 'Período', get: p => (p.cartao ? '' : dia(p.dataFim)), render: p => (p.cartao ? '—' : periodo(p)) },
     { k: 'pr', l: 'Progresso', get: p => (p.cartao ? -1 : pg(p)), render: p => (p.cartao ? '—' : pg(p) + '%') },
     { l: 'Equipe', render: p => (p.cartao ? textoDoCartao(p) : <Av D={D} ids={membrosAtivos(p)} />) },
