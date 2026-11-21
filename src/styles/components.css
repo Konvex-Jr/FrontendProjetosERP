@@ -2071,3 +2071,47 @@ button.kc-tag {
   min-width: 0;
   overflow-wrap: anywhere;
 }
+
+/* Projeto de outra equipe visto só pelo cartão (sessão 27a): sem clique, fundo de coluna, texto com contraste cheio. */
+.pj-cartao {
+    cursor: default;
+    background: var(--col);
+    box-shadow: none
+}
+
+.pj-cartao-dados {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 2px 12px;
+    margin: 0 0 12px
+}
+
+.pj-cartao-dados dt {
+    font-weight: 400;
+    color: var(--mu)
+}
+
+.pj-cartao-dados dd {
+    margin: 0;
+    font-weight: 600;
+    min-width: 0;
+    overflow-wrap: anywhere
+}
+
+tr.linha-cartao td {
+    background: var(--col)
+}
+
+.aviso-cartao {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    color: var(--mu)
+}
+
+.aviso-cartao .i {
+    flex: none;
+    width: 16px;
+    height: 16px;
+    margin-top: 3px
+}

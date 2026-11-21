@@ -7,6 +7,8 @@ import {
   filtrarProjetos,
   gruposDeProjetos,
   rotuloTipo,
+  semEquipeEscondida,
+  textoDoCartao,
 } from '../src/lib/projetosInternos.js'
 
 const area = (areaId, areaNome) => ({ areaId, areaNome })
@@ -102,4 +104,18 @@ test('gruposDeProjetos agrupa por área também o projeto cru da API (area aninh
     gruposDeProjetos(crus).map(g => g.rotulo),
     ['Clientes', 'Inovação'],
   )
+})
+
+test('semEquipeEscondida: equipe inicial só vai no sigiloso', () => {
+  assert.deepEqual(semEquipeEscondida({ nome: 'A', visibilidade: 'sigiloso', codigosMembros: ['u1'] }), {
+    nome: 'A',
+    visibilidade: 'sigiloso',
+    codigosMembros: ['u1'],
+  })
+  assert.deepEqual(semEquipeEscondida({ nome: 'A', visibilidade: 'normal', codigosMembros: ['u1'] }), { nome: 'A', visibilidade: 'normal' })
+})
+
+test('textoDoCartao: sigiloso fala dos diretores; normal, da gestão', () => {
+  assert.match(textoDoCartao({ sigiloso: true }), /equipe e dos diretores/)
+  assert.match(textoDoCartao({ sigiloso: false }), /equipe e da gestão/)
 })

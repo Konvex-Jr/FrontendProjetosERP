@@ -5,7 +5,7 @@
  *   1. diretora cria o projeto interno "Robô e2e" em Inovação: o selo "Interno" aparece
  *   2. Inês (líder de Inovação), na mesma aba, cria tarefa no "Inovação geral" para o Caio e muda a etapa
  *   3. Caio abre Tarefas, vê a tarefa, comenta e conclui
- *   4. Bia (fora de Inovação) não vê o geral nem a tarefa
+ *   4. Bia (fora de Inovação) não vê a tarefa e vê o geral só como cartão (sessão 27a)
  *   5. Inês abre o próprio perfil: os períodos não têm botões
  *   6. celular (375 px), tema escuro: o filtro de projetos com grupos cabe na tela
  *   7. Lia (papel membro, cargo que lidera Execução), na mesma aba: cria tarefa no geral de Execução para a Bia,
@@ -231,7 +231,7 @@ try {
     await sair(page)
   })
 
-  await passo('4. Bia (fora de Inovação) não vê o geral nem a tarefa', async () => {
+  await passo('4. Bia (fora de Inovação) não vê a tarefa e vê o geral só como cartão', async () => {
     await entrar(page, 'bia@dev.konvex', SENHA)
     await abrirTarefas(page)
     await page.getByRole('button', { name: 'Tudo o que vejo' }).click()
@@ -242,7 +242,21 @@ try {
     await page.goto(`${APP}/#/projetos`)
     // Espera a lista carregar (o geral da própria área aparece) antes de conferir que o de Inovação não aparece.
     await page.getByText('Execução geral').first().waitFor({ timeout: 15000 })
-    exigir(!(await page.getByText(GERAL).count()), 'Bia vê o geral de Inovação em Projetos')
+    // Desde a 27a, todo logado vê todos os projetos: o geral de Inovação aparece à Bia só como cartão (sem abrir).
+    exigir(
+      await page
+        .locator('.pj-cartao')
+        .filter({ has: page.getByRole('heading', { name: GERAL }) })
+        .count(),
+      'Bia não vê o cartão do geral de Inovação em Projetos',
+    )
+    exigir(
+      !(await page
+        .locator('.card.pj')
+        .filter({ has: page.getByRole('heading', { name: GERAL }) })
+        .count()),
+      'Bia vê o geral de Inovação completo em Projetos',
+    )
     await sair(page)
   })
 

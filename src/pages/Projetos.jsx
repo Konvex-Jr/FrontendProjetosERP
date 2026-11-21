@@ -11,7 +11,16 @@ import Esqueleto from '../components/Esqueleto'
 import { SeloSigiloso, SeloTipo, StatusProjeto } from '../components/SeloProjeto'
 import { gravarProjeto } from '../lib/gravarProjeto'
 import { consumir } from '../lib/atalho'
-import { FILTRO_TIPO, TIPOS_PROJETO, areasDosProjetos, comArea, erroDoFormularioProjeto, filtrarProjetos } from '../lib/projetosInternos'
+import {
+  FILTRO_TIPO,
+  TIPOS_PROJETO,
+  areasDosProjetos,
+  comArea,
+  erroDoFormularioProjeto,
+  filtrarProjetos,
+  semEquipeEscondida,
+  textoDoCartao,
+} from '../lib/projetosInternos'
 import { GRUPOS_PROJETO } from '../lib/indicadores'
 import { configuracoes, pessoas } from '../services/pessoas'
 import { PRIORIDADE_PROJETO, STATUS_PROJETO, projetos, rotuloStatusProjeto } from '../services/projetos'
@@ -59,7 +68,15 @@ export function camposProjeto({ lista, areas, novo }) {
       opt: true,
       h: 'Obrigatória no projeto interno.',
     },
-    { k: 'visibilidade', l: 'Visibilidade', o: VISIBILIDADE },
+    { k: 'visibilidade', l: 'Visibilidade', o: VISIBILIDADE, h: 'Só a equipe e os diretores verão os detalhes e as tarefas.' },
+    {
+      k: 'codigosMembros',
+      l: 'Equipe inicial',
+      c: (lista || []).filter(u => u.naEj).map(u => ({ id: u.codigo, nome: u.nome })),
+      s: v => novo && v.visibilidade === 'sigiloso',
+      opt: true,
+      h: 'Quem não é diretor precisa se colocar na equipe para continuar vendo o projeto sigiloso.',
+    },
   ]
 }
 
@@ -86,19 +103,48 @@ export function valoresProjeto(p) {
  * Chave e busca da lista de projetos. A tela e o menu (src/lib/antecipar.js) usam as mesmas,
  * para o dado buscado antes do clique ser o que a tela mostra. `contexto` = { me, mb, pode } do useApp().
  */
-export function dadosDaTela({ me, mb, pode }) {
+export function dadosDaTela({ pode }) {
   const gestor = pode('projetos.editar')
   return {
-    chave: `projetos:${mb}:${gestor}`,
+    // Todos veem todos os projetos (sessão 27a): os de fora vêm como cartão. Filtrar pela pessoa esconderia os cartões.
+    chave: `projetos:todos:${gestor}`,
     carregar: async () => {
       const [lista, gente, areas] = await Promise.all([
-        projetos.listar(mb ? { codigoUsuario: me } : {}),
+        projetos.listar(),
         gestor ? pessoas.listar() : [],
         gestor ? configuracoes.areas() : [],
       ])
       return { lista, gente, areas }
     },
   }
+}
+
+/**
+ * Projeto que a pessoa vê só pelo cartão (sessão 27a): nome, tipo, área do interno, status, líder e selo do
+ * sigiloso. Sem clique, sem progresso e sem datas.
+ */
+function CartaoNaLista({ p }) {
+  return (
+    <div className="card card-body h-100 pj-cartao" aria-label={'Projeto ' + p.nome + ' (só o cartão)'}>
+      <span className="d-flex flex-wrap gap-1">
+        <StatusProjeto s={p.status} />
+        <SeloTipo p={p} />
+        {p.sigiloso && <SeloSigiloso />}
+      </span>
+      <h2 className="mt-3">{p.nome}</h2>
+      <dl className="pj-cartao-dados">
+        {p.tipo === 'interno' && p.areaNome && (
+          <>
+            <dt>Área</dt>
+            <dd>{p.areaNome}</dd>
+          </>
+        )}
+        <dt>Líder</dt>
+        <dd>{p.lider?.nome || 'Sem líder'}</dd>
+      </dl>
+      <small className="text-mu mt-auto">{textoDoCartao(p)}</small>
+    </div>
+  )
 }
 
 /** RF-020 e RF-021: lista de projetos. Equipe e tarefas ficam dentro de cada projeto. */
@@ -143,8 +189,9 @@ export default function Projetos() {
         return false
       }
       if (!(await confirmarSigilo(p, v))) return false
+      const dados = semEquipeEscondida(v)
       const r = await executar(
-        () => gravarProjeto(v.tipo === 'interno' ? { ...v, clienteNome: '' } : v, p),
+        () => gravarProjeto(dados.tipo === 'interno' ? { ...dados, clienteNome: '' } : dados, p),
         p ? 'Projeto atualizado' : 'Projeto criado',
       )
       if (r && !p) go('projeto', r.codigo)
@@ -185,6 +232,7 @@ export default function Projetos() {
   const pg = p => prog(D, { id: p.codigo, tarefas: p.tarefas })
   // O geral da área não tem fim (a data de 31/12/2099 é só técnica): mostra só o início.
   const periodo = p => (p.geralDaArea ? 'Desde ' + fm(dia(p.dataInicio)) : fm(dia(p.dataInicio)) + ' a ' + fm(dia(p.dataFim)))
+  // Cartão (projeto de outra equipe): sem período, progresso e equipe, que a API nem manda.
   const cols = [
     {
       k: 'nome',
@@ -198,14 +246,16 @@ export default function Projetos() {
               <SeloSigiloso />
             </>
           )}
+          {p.tipo === 'interno' && p.areaNome && <small className="d-block text-mu">{p.areaNome}</small>}
         </>
       ),
     },
     { k: 'st', l: 'Status', filter: 1, get: p => rotuloStatusProjeto(p.status), render: p => <StatusProjeto s={p.status} /> },
-    { k: 'resp', l: 'Responsável', filter: 1, get: p => p.responsavel?.nome || '—' },
-    { k: 'fim', l: 'Período', get: p => dia(p.dataFim), render: periodo },
-    { k: 'pr', l: 'Progresso', get: pg, render: p => pg(p) + '%' },
-    { l: 'Equipe', render: p => <Av D={D} ids={membrosAtivos(p)} /> },
+    { k: 'lider', l: 'Líder', filter: 1, get: p => p.lider?.nome || '—' },
+    { k: 'resp', l: 'Responsável', get: p => p.responsavel?.nome || '—' },
+    { k: 'fim', l: 'Período', get: p => (p.cartao ? '' : dia(p.dataFim)), render: p => (p.cartao ? '—' : periodo(p)) },
+    { k: 'pr', l: 'Progresso', get: p => (p.cartao ? -1 : pg(p)), render: p => (p.cartao ? '—' : pg(p) + '%') },
+    { l: 'Equipe', render: p => (p.cartao ? textoDoCartao(p) : <Av D={D} ids={membrosAtivos(p)} />) },
     { l: 'Ações', render: p => <Ac p={p} /> },
   ]
   const linhas = filtrarProjetos(lista, { tipo, areaId })
@@ -216,7 +266,7 @@ export default function Projetos() {
     ? 'Nenhum projeto com estes filtros. Escolha “Todos” nos filtros.'
     : gestor
       ? 'Nenhum projeto cadastrado. Use “Novo projeto”.'
-      : 'Você ainda não participa de nenhum projeto. Quando a gestão incluir você numa equipe, ele aparece aqui.'
+      : 'Nenhum projeto cadastrado ainda.'
   const filtroGrupo = (
     <div className="fl d-flex flex-wrap gap-2 mb-3">
       <select
@@ -253,7 +303,10 @@ export default function Projetos() {
 
   return (
     <>
-      <PageBar title="Projetos" sub={mb ? 'Projetos de que você participa ou participou.' : undefined}>
+      <PageBar
+        title="Projetos"
+        sub={lista.some(p => p.cartao) ? 'Os projetos de outras equipes aparecem só com nome, status e líder.' : undefined}
+      >
         <button className={'btn btn-g' + (pv == 'grid' ? ' on' : '')} onClick={() => setPv('grid')}>
           Grid
         </button>
@@ -277,40 +330,35 @@ export default function Projetos() {
           )}
           {linhas.map(p => (
             <div className="col-md-6 col-xl-4" key={p.id}>
-              <div
-                className={'card card-body pj h-100' + (p.cartao ? ' resumo-sigilo' : ' hoverable')}
-                onClick={p.cartao ? undefined : () => go('projeto', p.codigo)}
-              >
-                <div className="d-flex justify-content-between align-items-center gap-2">
-                  <span className="d-flex flex-wrap gap-1">
-                    <StatusProjeto s={p.status} />
-                    <SeloTipo p={p} />
-                    {p.sigiloso && <SeloSigiloso />}
-                  </span>
-                  <Av D={D} ids={membrosAtivos(p)} />
-                </div>
-                <h2 className="mt-3">{p.nome}</h2>
-                <p className="text-mu m-0">{p.cartao ? 'Os detalhes são da equipe e da gestão.' : p.descricao}</p>
-                {!p.cartao && (
-                  <>
-                    <Prog v={pg(p)} />
-                    <small>
-                      {pg(p)}% · {periodo(p)}
-                      {p.clienteNome ? ' · ' + p.clienteNome : ''}
-                    </small>
-                  </>
-                )}
-                {!p.cartao && (
+              {p.cartao ? (
+                <CartaoNaLista p={p} />
+              ) : (
+                <div className="card card-body pj h-100 hoverable" onClick={() => go('projeto', p.codigo)}>
+                  <div className="d-flex justify-content-between align-items-center gap-2">
+                    <span className="d-flex flex-wrap gap-1">
+                      <StatusProjeto s={p.status} />
+                      <SeloTipo p={p} />
+                      {p.sigiloso && <SeloSigiloso />}
+                    </span>
+                    <Av D={D} ids={membrosAtivos(p)} />
+                  </div>
+                  <h2 className="mt-3">{p.nome}</h2>
+                  <p className="text-mu m-0">{p.descricao}</p>
+                  <Prog v={pg(p)} />
+                  <small>
+                    {pg(p)}% · {periodo(p)}
+                    {p.clienteNome ? ' · ' + p.clienteNome : ''}
+                  </small>
                   <span className="cm" onClick={e => e.stopPropagation()}>
                     <Ac p={p} />
                   </span>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           ))}
         </div>
       ) : (
-        <Table cols={cols} rows={linhas} vazio={vazio} linhaCls={p => (p.cartao ? 'resumo-sigilo' : undefined)} />
+        <Table cols={cols} rows={linhas} vazio={vazio} linhaCls={p => (p.cartao ? 'linha-cartao' : undefined)} />
       )}
     </>
   )

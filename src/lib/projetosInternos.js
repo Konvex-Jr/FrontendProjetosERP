@@ -55,3 +55,14 @@ export const erroDoFormularioProjeto = v => (v?.tipo === 'interno' && !v.codigoA
 
 /** O texto da aba Equipe do projeto geral da área. */
 export const TEXTO_EQUIPE_GERAL = 'A equipe é quem está na área (Pessoas › Áreas e cargos).'
+
+/** Equipe inicial só vai na criação de um sigiloso (o campo some se a visibilidade volta a Normal). */
+export const semEquipeEscondida = v => {
+  if (v.visibilidade === 'sigiloso') return v
+  const { codigosMembros: _equipe, ...resto } = v
+  return resto
+}
+
+/** Quem vê os detalhes de um projeto que a pessoa só vê pelo cartão. */
+export const textoDoCartao = p =>
+  p.sigiloso ? 'Os detalhes e as tarefas são da equipe e dos diretores.' : 'Os detalhes e as tarefas são da equipe e da gestão.'

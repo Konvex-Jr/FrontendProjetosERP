@@ -22,7 +22,7 @@ import Table from '../components/Table'
 import { camposProjeto, confirmarSigilo, valoresProjeto } from './Projetos'
 import { SeloSigiloso, SeloTipo, StatusProjeto } from '../components/SeloProjeto'
 import { ItensDoProjeto } from './Biblioteca'
-import { TEXTO_EQUIPE_GERAL } from '../lib/projetosInternos'
+import { TEXTO_EQUIPE_GERAL, textoDoCartao } from '../lib/projetosInternos'
 import { ocupacao } from '../services/ocupacao'
 import ChipOcupacao from '../components/ChipOcupacao'
 
@@ -35,14 +35,16 @@ const ABAS = [
 
 const dia = s => (s ? String(s).slice(0, 10) : '')
 
-/** Gerente fora da lista do projeto sigiloso: só nome, status, datas, contagens e equipe. */
-// Cartão (a pessoa não vê os detalhes): só os campos que a API manda. A sessão 27a (tarefa 6) refaz esta vista.
+/**
+ * Projeto aberto pela URL por quem só vê o cartão (sessão 27a): os mesmos campos da lista e o aviso de quem
+ * vê os detalhes. Não é tela de erro e não tem abas.
+ */
 function CartaoProjeto({ projeto, voltar }) {
   const dados = [
     ['Status', <StatusProjeto key="status" s={projeto.status} />],
     ['Tipo', <SeloTipo key="tipo" p={projeto} />],
-    ['Área', projeto.area?.nome || '—'],
-    ['Líder', projeto.lider?.nome || '—'],
+    ...(projeto.tipo === 'interno' && projeto.area ? [['Área', projeto.area.nome]] : []),
+    ['Líder', projeto.lider?.nome || 'Sem líder'],
   ]
   return (
     <>
@@ -51,8 +53,7 @@ function CartaoProjeto({ projeto, voltar }) {
         <h1>{projeto.nome}</h1>
         {projeto.sigiloso && <SeloSigiloso />}
       </div>
-      <p className="text-mu">Os detalhes do projeto são da equipe e da gestão.</p>
-      <div className="card card-body mb-3">
+      <div className="card card-body mb-3 pj-cartao">
         <div className="row g-3">
           {dados.map(([l, v]) => (
             <div className="col-6 col-lg-3" key={l}>
@@ -62,6 +63,10 @@ function CartaoProjeto({ projeto, voltar }) {
           ))}
         </div>
       </div>
+      <p className="aviso-cartao" role="note">
+        <Ic k="lock" />
+        {textoDoCartao(projeto)} Para trabalhar nele, peça à gestão para entrar na equipe.
+      </p>
     </>
   )
 }
