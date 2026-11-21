@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import { DAY, PC, ST, chip, fm, hj, iso, nm } from '../lib/utils'
 import { consumir } from '../lib/atalho'
@@ -75,6 +76,25 @@ export default function Tarefas() {
   const { dados, carregando, recarregar } = useCarregar(tela.carregar, [filtro.pessoa, filtro.origem, filtro.status, me], {
     chave: tela.chave,
   })
+
+  // Endereço `?tarefa=<código>` (vem dos avisos): abre a tarefa quando a lista chega e limpa o parâmetro.
+  const [busca, setBusca] = useSearchParams()
+  const alvo = busca.get('tarefa')
+  useEffect(() => {
+    if (!alvo || !dados) return
+    // Abrir a tarefa é reação ao endereço (sistema externo): o estado precisa mudar aqui.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if ((dados.tarefas || []).some(x => x.id == alvo)) setTk(alvo)
+    else alerts.toastWarning('Tarefa não encontrada.')
+    setBusca(
+      b => {
+        const n = new URLSearchParams(b)
+        n.delete('tarefa')
+        return n
+      },
+      { replace: true },
+    )
+  }, [alvo, dados, setBusca])
 
   const porCodigo = useMemo(() => new Map((dados?.projetos || []).map(p => [p.codigo, p])), [dados])
   const T = (dados?.tarefas || []).filter(t => noPrazo(t, filtro.prazo, hj(D)))
@@ -187,7 +207,7 @@ export default function Tarefas() {
     { k: 'situacao', l: 'Situação', get: t => ST[t.status], filter: true },
   ]
 
-  const aberta = tk && T.find(x => x.id == tk)
+  const aberta = tk && (dados?.tarefas || []).find(x => x.id == tk)
   const projetoAberto = aberta ? porCodigo.get(aberta.projetoId) : null
   return (
     <>
