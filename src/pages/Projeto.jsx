@@ -16,7 +16,7 @@ import { projetos, rotuloPrioridade } from '../services/projetos'
 import { acoesTarefa, avisarOcupacao, criarDaJanela, papelNasTarefas, quadroDesatualizado } from '../services/tarefas'
 import { rascunhoNovo } from '../lib/rascunhoTarefa'
 import { PRAZOS, noPrazo } from '../lib/prazo'
-import { ErroAcessoParcial, gravarProjeto } from '../lib/gravarProjeto'
+import { gravarProjeto } from '../lib/gravarProjeto'
 import { carregarProjeto } from '../lib/carregarProjeto'
 import Table from '../components/Table'
 import { camposProjeto, confirmarSigilo, valoresProjeto } from './Projetos'
@@ -36,24 +36,22 @@ const ABAS = [
 const dia = s => (s ? String(s).slice(0, 10) : '')
 
 /** Gerente fora da lista do projeto sigiloso: só nome, status, datas, contagens e equipe. */
-function ResumoSigiloso({ projeto, voltar }) {
-  const t = projeto.tarefas || {}
-  const pessoas = projeto.participacoes.map(x => ({ ...x, id: x.codigo ?? x.usuario.codigo + dia(x.dataEntrada) }))
+// Cartão (a pessoa não vê os detalhes): só os campos que a API manda. A sessão 27a (tarefa 6) refaz esta vista.
+function CartaoProjeto({ projeto, voltar }) {
   const dados = [
     ['Status', <StatusProjeto key="status" s={projeto.status} />],
-    ['Período', fm(dia(projeto.dataInicio)) + ' a ' + fm(dia(projeto.dataFim))],
-    ['Tarefas', `${t.concluidas || 0} de ${t.total || 0} concluídas`],
-    ['Atrasadas', t.atrasadas || 0],
-    ['Na semana', t.semana || 0],
+    ['Tipo', <SeloTipo key="tipo" p={projeto} />],
+    ['Área', projeto.area?.nome || '—'],
+    ['Líder', projeto.lider?.nome || '—'],
   ]
   return (
     <>
       <div className="cab d-flex flex-wrap align-items-center gap-2 mb-3">
         {voltar}
         <h1>{projeto.nome}</h1>
-        <SeloSigiloso />
+        {projeto.sigiloso && <SeloSigiloso />}
       </div>
-      <p className="text-mu">Projeto sigiloso: você vê só o resumo.</p>
+      <p className="text-mu">Os detalhes do projeto são da equipe e da gestão.</p>
       <div className="card card-body mb-3">
         <div className="row g-3">
           {dados.map(([l, v]) => (
@@ -64,17 +62,6 @@ function ResumoSigiloso({ projeto, voltar }) {
           ))}
         </div>
       </div>
-      <h2 className="h6 fw-bold">Equipe</h2>
-      <Table
-        busca={false}
-        rows={pessoas}
-        vazio="Ninguém na equipe."
-        cols={[
-          { k: 'p', l: 'Pessoa', get: x => x.usuario.nome },
-          { k: 'e', l: 'Entrada', get: x => dia(x.dataEntrada), render: x => fm(dia(x.dataEntrada)) },
-          { k: 's', l: 'Saída', get: x => dia(x.dataSaida), render: x => (x.dataSaida ? fm(dia(x.dataSaida)) : 'Em andamento') },
-        ]}
-      />
     </>
   )
 }
@@ -145,7 +132,7 @@ export default function Projeto() {
       </>
     )
   const { projeto, gente, areas } = dados
-  if (projeto.resumo) return <ResumoSigiloso projeto={projeto} voltar={voltar} />
+  if (projeto.cartao) return <CartaoProjeto projeto={projeto} voltar={voltar} />
   // Depois de salvar: recarrega o projeto e os dados compartilhados (tarefas, avatares, painel).
   const aoSalvar = async () => {
     await recarregar()
@@ -279,28 +266,17 @@ export default function Projeto() {
     )
 
   const editarProjeto = () =>
-    form(
-      'Editar projeto',
-      camposProjeto({ lista: gente, areas, podeGerirAcesso: projeto.podeGerirAcesso }),
-      valoresProjeto(projeto, gente),
-      async v => {
-        if (!(await confirmarSigilo(projeto, v))) return false
-        try {
-          await gravarProjeto(projeto, v)
-          alerts.toastSuccess('Projeto atualizado')
-          await aoSalvar()
-        } catch (error) {
-          if (error instanceof ErroAcessoParcial) {
-            // O projeto já foi salvo: recarrega e fecha o formulário, para a tela mostrar o que o servidor tem.
-            await aoSalvar()
-            alerts.error('Salvo pela metade', 'Projeto salvo, mas a lista de acesso não: ' + error.message)
-            return undefined
-          }
-          alerts.error('Não foi possível salvar', error.message)
-          return false
-        }
-      },
-    )
+    form('Editar projeto', camposProjeto({ lista: gente, areas }), valoresProjeto(projeto), async v => {
+      if (!(await confirmarSigilo(projeto, v))) return false
+      try {
+        await gravarProjeto(v, projeto)
+        alerts.toastSuccess('Projeto atualizado')
+        await aoSalvar()
+      } catch (error) {
+        alerts.error('Não foi possível salvar', error.message)
+        return false
+      }
+    })
 
   const info = [
     ['Status', <StatusProjeto key="status" s={projeto.status} />],
@@ -313,12 +289,7 @@ export default function Projeto() {
     ...(ehGeral ? [] : [['Líder', projeto.lider?.nome || '—']]),
     ['Área', projeto.area?.nome || '—'],
     ['Equipe', <Av key="equipe" D={D} ids={p.membros} />],
-    ...(projeto.sigiloso && !ehGeral
-      ? [
-          ['Visibilidade', <SeloSigiloso key="sigilo" />],
-          ['Quem mais vê', projeto.acesso.length ? projeto.acesso.map(c => nm(D, [c])).join(', ') : 'Só diretores, quem criou e a equipe'],
-        ]
-      : []),
+    ...(projeto.sigiloso && !ehGeral ? [['Visibilidade', <SeloSigiloso key="sigilo" />]] : []),
   ]
   const geral = () => (
     <div className="card card-body">

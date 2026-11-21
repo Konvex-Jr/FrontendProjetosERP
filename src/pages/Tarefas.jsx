@@ -45,7 +45,8 @@ export function dadosDaTela({ me }, filtro = { pessoa: me, origem: '', status: '
     chave: `tarefas:${filtro.pessoa}:${filtro.origem}:${filtro.status}:${me}`,
     carregar: async () => {
       const [lista, todos] = await Promise.all([tarefas.listar(filtroApi(filtro)), projetos.listar()])
-      return { tarefas: lista.map(adaptTask), projetos: todos }
+      // Cartão (projeto de que a pessoa não vê os detalhes) não tem tarefas: fica fora das opções e dos filtros.
+      return { tarefas: lista.map(adaptTask), projetos: todos.filter(p => !p.cartao) }
     },
   }
 }

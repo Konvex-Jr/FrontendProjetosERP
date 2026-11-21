@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { corpoParticipacao, corpoProjeto, equipe, mesmaLista, projetos, rotuloStatusProjeto } from '../src/services/projetos.js'
+import { corpoParticipacao, corpoProjeto, equipe, projetos, rotuloStatusProjeto } from '../src/services/projetos.js'
 import { sessao } from '../src/services/api.js'
 
 const capturar = async fn => {
@@ -64,29 +64,20 @@ test('corpos e rótulos', () => {
   assert.equal(rotuloStatusProjeto(undefined), '—')
 })
 
-test('corpoProjeto envia sigiloso', () => {
-  assert.deepEqual(corpoProjeto({ nome: 'A', sigiloso: true, acesso: ['u1'] }), { nome: 'A', sigiloso: true, acesso: ['u1'] })
+test('corpoProjeto não manda lista de acesso', () => {
+  assert.deepEqual(corpoProjeto({ nome: 'A', sigiloso: true, acesso: ['u1'] }), { nome: 'A', sigiloso: true })
   assert.equal('acesso' in corpoProjeto({ nome: 'A', acesso: null }), false)
 })
 
-test('definirAcesso manda PUT com codigos', async () => {
-  const chamadas = await capturar(() => projetos.definirAcesso('p1', ['u1']))
-  assert.equal(chamadas[0].url, '/projetos/p1/acesso')
-  assert.equal(chamadas[0].method, 'PUT')
-  assert.deepEqual(chamadas[0].body, { codigos: ['u1'] })
+test('projetos.definirAcesso saiu', () => {
+  assert.equal('definirAcesso' in projetos, false)
 })
 
-test('corpoProjeto traduz Visibilidade em sigiloso e só manda acesso em array', () => {
-  assert.deepEqual(corpoProjeto({ nome: 'A', visibilidade: 'sigiloso', acesso: ['u1'] }), { nome: 'A', sigiloso: true, acesso: ['u1'] })
+test('corpoProjeto traduz Visibilidade em sigiloso', () => {
+  assert.deepEqual(corpoProjeto({ nome: 'A', visibilidade: 'sigiloso', acesso: ['u1'] }), { nome: 'A', sigiloso: true })
   assert.deepEqual(corpoProjeto({ nome: 'A', visibilidade: 'normal', acesso: ['u1'] }), { nome: 'A', sigiloso: false })
-  // Sem o campo, o sigilo não vai no corpo (gravarProjeto tira o campo de quem não gere o acesso).
+  // Sem o campo, o sigilo não vai no corpo.
   assert.deepEqual(corpoProjeto({ nome: 'A' }), { nome: 'A' })
-})
-
-test('mesmaLista compara códigos sem ligar para a ordem', () => {
-  assert.equal(mesmaLista(['a', 'b'], ['b', 'a']), true)
-  assert.equal(mesmaLista(['a'], ['a', 'b']), false)
-  assert.equal(mesmaLista(undefined, []), true)
 })
 
 test('gravarColunas manda PUT com o corpo das colunas', async () => {

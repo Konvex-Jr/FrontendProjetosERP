@@ -41,14 +41,22 @@ test('projeto completo traz as tarefas adaptadas', async () => {
   )
 })
 
-test('resumo de sigiloso não usa as tarefas, mesmo se a busca delas for recusada', async () => {
+test('cartão não usa as tarefas, mesmo com a busca delas recusada (404)', async () => {
   simular({
-    '/projetos/p1': [200, { codigo: 'p1', nome: 'S', sigiloso: true, resumo: true, participacoes: [] }],
-    '/tarefas': [403, { mensagem: 'sem acesso' }],
+    '/projetos/p1': [200, { codigo: 'p1', nome: 'S', sigiloso: true, cartao: true }],
+    '/tarefas': [404, { mensagem: 'Projeto não encontrado' }],
   })
   const d = await carregarProjeto('p1', false)
-  assert.equal(d.projeto.resumo, true)
+  assert.equal(d.projeto.cartao, true)
   assert.deepEqual(d.tarefas, [])
+})
+
+test('projeto com resumo antigo (sem cartao) não é tratado como cartão', async () => {
+  simular({
+    '/projetos/p1': [200, { codigo: 'p1', nome: 'S', resumo: true }],
+    '/tarefas': [404, { mensagem: 'x' }],
+  })
+  await assert.rejects(carregarProjeto('p1', false), e => e.status === 404)
 })
 
 test('404 do projeto na atualização apaga projeto e tarefas da memória da aba', async () => {

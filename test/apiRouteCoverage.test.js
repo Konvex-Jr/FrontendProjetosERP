@@ -99,3 +99,10 @@ test(`cliente HTTP cobre todos os ${routeContracts.length} contratos de rota do 
     assert.equal(calls[index].method, method)
   }
 })
+
+test('a lista de acesso do projeto (PUT /projetos/:codigo/acesso) saiu dos contratos', () => {
+  assert.equal(
+    routeContracts.some(([, path]) => path.endsWith('/acesso')),
+    false,
+  )
+})
