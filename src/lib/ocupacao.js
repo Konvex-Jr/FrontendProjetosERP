@@ -73,3 +73,22 @@ export const comCarga = (pessoas, carga = {}) => pessoas.map(u => (carga[u.id] =
 
 /** Lista da API de ocupação → { codigo: percentual arredondado }. */
 export const cargaPorPessoa = lista => Object.fromEntries(lista.map(o => [o.codigoUsuario, Math.round(o.percentual)]))
+
+/**
+ * Resumo para o Dashboard da gestão: `mais` = 5 maiores percentuais (decrescente),
+ * `livres` = até 5 abaixo de 50% (crescente) que não estão em `mais`, `acima` = acima de 100%.
+ */
+export function resumoOcupacao(lista) {
+  const itens = (Array.isArray(lista) ? lista : []).map(({ codigoUsuario, nome, percentual }) => ({
+    codigoUsuario,
+    nome,
+    percentual: Number(percentual) || 0,
+  }))
+  const mais = [...itens].sort((a, b) => b.percentual - a.percentual).slice(0, 5)
+  const noMais = new Set(mais.map(x => x.codigoUsuario))
+  const livres = itens
+    .filter(x => x.percentual < 50 && !noMais.has(x.codigoUsuario))
+    .sort((a, b) => a.percentual - b.percentual)
+    .slice(0, 5)
+  return { acima: itens.filter(x => x.percentual > 100).length, mais, livres }
+}

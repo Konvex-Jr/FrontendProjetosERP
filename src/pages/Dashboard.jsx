@@ -3,6 +3,7 @@ import { PC, ST, TIPO, chip, d, fm, hj, un } from '../lib/utils'
 import Burn from '../components/Burn'
 import Ic from '../components/Icon'
 import { Prog } from '../components/Ui'
+import OcupacaoSemana from '../components/OcupacaoSemana'
 import { abrirCom } from '../lib/atalho'
 import { indicadores } from '../lib/indicadores'
 
@@ -151,6 +152,8 @@ export default function Dashboard() {
       </section>
 
       {pode('projetos.verTodos') && <Indicadores D={D} go={go} />}
+
+      {pode('projetos.verTodos') && <OcupacaoSemana />}
 
       <div className="row g-3 mb-3">
         <div className="col-lg-8">

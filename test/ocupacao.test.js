@@ -9,6 +9,7 @@ import {
   formatarHoras,
   proximaSemana,
   rotuloDificuldade,
+  resumoOcupacao,
   rotuloSemana,
   segundaDaSemana,
   semanaAnterior,
@@ -93,4 +94,34 @@ test('apoioTarefa nunca lança: Date, texto inválido ou chamadas falhando viram
   assert.deepEqual(await apoioTarefa('lixo'), vazio)
   // Sem API no teste, as duas chamadas falham: mesmo assim resolve.
   assert.deepEqual(await apoioTarefa('2026-11-19'), vazio)
+})
+
+const pess = (i, percentual) => ({ codigoUsuario: i, nome: `P${i}`, percentual })
+
+test('resumoOcupacao: lista vazia', () => {
+  assert.deepEqual(resumoOcupacao([]), { acima: 0, mais: [], livres: [] })
+})
+
+test('resumoOcupacao: mais, livres e acima', () => {
+  const lista = [...[10, 20, 30, 40, 45].map((p, i) => pess(i + 1, p)), ...[60, 70, 100, 110, 120, 130, 140].map((p, i) => pess(i + 10, p))]
+  const r = resumoOcupacao(lista)
+  assert.equal(r.acima, 4)
+  assert.deepEqual(
+    r.mais.map(x => x.percentual),
+    [140, 130, 120, 110, 100],
+  )
+  assert.deepEqual(
+    r.livres.map(x => x.percentual),
+    [10, 20, 30, 40, 45],
+  )
+})
+
+test('resumoOcupacao: 100 exato não conta como acima', () => {
+  assert.equal(resumoOcupacao([pess(1, 100)]).acima, 0)
+})
+
+test('resumoOcupacao: pessoa não aparece nas duas listas', () => {
+  const r = resumoOcupacao([pess(1, 10), pess(2, 20), pess(3, 90)])
+  const ids = [...r.mais, ...r.livres].map(x => x.codigoUsuario)
+  assert.equal(new Set(ids).size, ids.length)
 })
