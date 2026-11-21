@@ -386,3 +386,10 @@
     align-items: stretch
   }
 }
+
+/* Painel de avisos em folha de tela cheia no celular. */
+@media (max-width: 575.98px) {
+  .av-sino { position: static }
+  .av-painel { position: fixed; inset: 0; width: auto; max-height: none; border-radius: 0; border: 0; padding: 16px }
+  .av-fechar { display: inline-flex }
+}
