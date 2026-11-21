@@ -77,14 +77,30 @@ export default function Tarefas() {
     chave: tela.chave,
   })
 
-  // Endereço `?tarefa=<código>` (vem dos avisos): abre a tarefa quando a lista chega e limpa o parâmetro.
+  // Endereço `?tarefa=<código>` (vem dos avisos): abre a tarefa e limpa o parâmetro.
+  // Achada na lista (mesmo da memória), abre na hora; "não encontrada" só sai depois de uma lista buscada
+  // com o parâmetro já na tela (a memória pode ser velha: tarefa recém-atribuída ainda não está nela).
   const [busca, setBusca] = useSearchParams()
   const alvo = busca.get('tarefa')
+  const [conferido, setConferido] = useState(null)
+  useEffect(() => {
+    if (!alvo) return
+    let vivo = true
+    recarregar()
+      .catch(() => {})
+      .then(() => vivo && setConferido(alvo))
+    return () => {
+      vivo = false
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [alvo])
   useEffect(() => {
     if (!alvo || !dados) return
+    const achou = (dados.tarefas || []).some(x => x.id == alvo)
+    if (!achou && conferido !== alvo) return
     // Abrir a tarefa é reação ao endereço (sistema externo): o estado precisa mudar aqui.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    if ((dados.tarefas || []).some(x => x.id == alvo)) setTk(alvo)
+    if (achou) setTk(alvo)
     else alerts.toastWarning('Tarefa não encontrada.')
     setBusca(
       b => {
@@ -94,7 +110,7 @@ export default function Tarefas() {
       },
       { replace: true },
     )
-  }, [alvo, dados, setBusca])
+  }, [alvo, dados, conferido, setBusca])
 
   const porCodigo = useMemo(() => new Map((dados?.projetos || []).map(p => [p.codigo, p])), [dados])
   const T = (dados?.tarefas || []).filter(t => noPrazo(t, filtro.prazo, hj(D)))
