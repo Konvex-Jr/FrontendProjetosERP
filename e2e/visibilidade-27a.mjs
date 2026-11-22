@@ -118,6 +118,9 @@ async function conferirCartao(page, nome) {
   exigir(!/\d{2}\/\d{2}\/\d{4}/.test(texto), `cartão de "${nome}" mostra datas: ${texto}`)
   exigir(!(await c.locator('.progress').count()), `cartão de "${nome}" tem barra de progresso`)
   exigir(/Líder/.test(texto), `cartão de "${nome}" sem o líder`)
+  // Sessão 27b: equipe atual no cartão (foto ou iniciais, nome no title).
+  exigir(/Equipe/.test(texto), `cartão de "${nome}" sem a equipe`)
+  if (!/Sem equipe/.test(texto)) exigir(await c.locator('dd .av[title]').count(), `cartão de "${nome}" sem avatar da equipe`)
   const antes = page.url()
   await c.getByRole('heading', { name: nome, exact: true }).click()
   await page.waitForTimeout(600)
@@ -210,6 +213,9 @@ try {
     await campo(dlg, 'Descrição').fill('Projeto sigiloso criado pelo e2e.')
     await campo(dlg, 'Início').fill(HOJE)
     await campo(dlg, 'Fim').fill(FIM)
+    // Sessão 27b: o líder é escolhido na criação (Bia; a Inês fica fora da equipe e o 400 segue).
+    exigir(!(await dlg.getByText(/^Responsável/).count()), 'o campo Responsável ainda aparece')
+    await campo(dlg, 'Líder').selectOption({ label: 'Bia Membro' })
     await campo(dlg, 'Visibilidade').selectOption('sigiloso')
     exigir(await dlg.getByText('Só a equipe e os diretores verão os detalhes e as tarefas.').count(), 'sem a dica da Visibilidade')
     await dlg.getByRole('button', { name: 'Salvar' }).click()
@@ -232,6 +238,8 @@ try {
     exigir(criado?.sigiloso, 'API: projeto não ficou sigiloso')
     const equipe = (criado.participacoes || []).map(x => x.usuario?.email)
     exigir(equipe.includes('ines@dev.konvex'), `API: equipe do sigiloso sem a Inês: ${equipe}`)
+    exigir(criado.lider?.email === 'bia@dev.konvex' || criado.lider?.nome === 'Bia Membro', `API: líder errado: ${criado.lider?.nome}`)
+    exigir(equipe.includes('bia@dev.konvex'), `API: a líder não entrou na equipe: ${equipe}`)
     await sair(page)
   })
 
