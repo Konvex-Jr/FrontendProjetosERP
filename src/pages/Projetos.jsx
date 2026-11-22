@@ -5,6 +5,7 @@ import Ic from '../components/Icon'
 import ActionMenu from '../components/ActionMenu'
 import Table from '../components/Table'
 import { Av, PageBar, Prog } from '../components/Ui'
+import { Alocacao, Campinho } from '../components/VisoesGestao'
 import Avatar from '../components/Avatar'
 import alerts from '../lib/alerts'
 import useCarregar from '../lib/useCarregar'
@@ -340,6 +341,17 @@ export default function Projetos() {
         <button className={'btn btn-g' + (pv == 'lista' ? ' on' : '')} onClick={() => setPv('lista')}>
           Linhas
         </button>
+        {/* Visões só da gestão (sessão 28a): por pessoa (Alocação) e por projeto (Campinho). */}
+        {gestor && (
+          <>
+            <button className={'btn btn-g' + (pv == 'campinho' ? ' on' : '')} onClick={() => setPv('campinho')}>
+              Campinho
+            </button>
+            <button className={'btn btn-g' + (pv == 'alocacao' ? ' on' : '')} onClick={() => setPv('alocacao')}>
+              Alocação
+            </button>
+          </>
+        )}
         {gestor && (
           <button className="btn btn-primary" onClick={() => editar()}>
             <Ic k="plus" />
@@ -347,8 +359,12 @@ export default function Projetos() {
           </button>
         )}
       </PageBar>
-      {filtroGrupo}
-      {pv == 'grid' ? (
+      {pv != 'alocacao' && filtroGrupo}
+      {gestor && pv == 'alocacao' ? (
+        <Alocacao lista={lista} gente={gente} />
+      ) : gestor && pv == 'campinho' ? (
+        <Campinho projetos={linhas} lista={lista} />
+      ) : pv == 'grid' ? (
         <div className="row g-3">
           {!linhas.length && (
             <div className="col-12">

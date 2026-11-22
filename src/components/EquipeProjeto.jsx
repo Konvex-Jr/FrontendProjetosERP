@@ -9,6 +9,7 @@ import { ocupacao } from '../services/ocupacao'
 import useCarregar from '../lib/useCarregar'
 import ChipOcupacao from './ChipOcupacao'
 import { rotuloStatus } from '../services/pessoas'
+import { rotuloComCarga } from '../lib/alocacao'
 
 /**
  * Aba Equipe (RF-022, PR-06): função, responsabilidades, ocupação da semana e histórico.
@@ -44,12 +45,12 @@ export default function EquipeProjeto({ projeto, gente, gestor, aoSalvar }) {
     const opcoes = gente
       .filter(u => u.naEj && !dentro.has(u.codigo))
       .sort((a, b) => a.nome.localeCompare(b.nome))
-      .map(u => [u.codigo, `${u.nome}${u.status === 'trainee' ? ' · Trainee' : ''}`])
+      .map(u => [u.codigo, rotuloComCarga(`${u.nome}${u.status === 'trainee' ? ' · Trainee' : ''}`, percentuais[u.codigo])])
     if (!opcoes.length) return alerts.info('Ninguém disponível', 'Todas as pessoas Ativas e Trainees já estão na equipe.')
     form(
       'Adicionar à equipe',
       [
-        { k: 'codigoUsuario', l: 'Pessoa', o: opcoes },
+        { k: 'codigoUsuario', l: 'Pessoa', o: opcoes, h: 'Ao lado do nome, a ocupação da semana atual.' },
         ...camposComuns,
         { k: 'dataEntrada', l: 'Entrada no projeto', t: 'date', opt: true, h: 'Vazio = hoje.' },
       ],
