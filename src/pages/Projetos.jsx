@@ -5,6 +5,7 @@ import Ic from '../components/Icon'
 import ActionMenu from '../components/ActionMenu'
 import Table from '../components/Table'
 import { Av, PageBar, Prog } from '../components/Ui'
+import Avatar from '../components/Avatar'
 import alerts from '../lib/alerts'
 import useCarregar from '../lib/useCarregar'
 import Esqueleto from '../components/Esqueleto'
@@ -60,7 +61,14 @@ export function camposProjeto({ lista, areas, novo }) {
     { k: 'dataFim', l: 'Fim', t: 'date' },
     { k: 'status', l: 'Status', o: STATUS_PROJETO, s: () => !novo },
     { k: 'prioridade', l: 'Prioridade', o: PRIORIDADE_PROJETO },
-    { k: 'codigoResponsavel', l: 'Responsável', o: opcoes(lista, u => u.naEj), opt: true },
+    // Líder na criação (sessão 27b): pessoa da EJ, menos trainee; entra na equipe junto. Depois, troca pela Equipe.
+    {
+      k: 'codigoLider',
+      l: 'Líder',
+      o: opcoes(lista, u => u.naEj && u.status !== 'trainee'),
+      s: () => novo,
+      h: 'Entra na equipe junto. Depois, a troca é pela aba Equipe.',
+    },
     {
       k: 'codigoArea',
       l: 'Área',
@@ -81,7 +89,7 @@ export function camposProjeto({ lista, areas, novo }) {
 }
 
 export function valoresProjeto(p) {
-  if (!p) return { tipo: 'cliente', prioridade: 'media', codigoResponsavel: '', codigoArea: '', visibilidade: 'normal' }
+  if (!p) return { tipo: 'cliente', prioridade: 'media', codigoLider: '', codigoArea: '', visibilidade: 'normal' }
   return {
     nome: p.nome,
     tipo: p.tipo || 'cliente',
@@ -93,7 +101,6 @@ export function valoresProjeto(p) {
     dataFim: dia(p.dataFim),
     status: p.status,
     prioridade: p.prioridade || 'media',
-    codigoResponsavel: p.responsavel?.codigo || '',
     codigoArea: p.area?.codigo || '',
     visibilidade: p.sigiloso ? 'sigiloso' : 'normal',
   }
@@ -117,6 +124,18 @@ export function dadosDaTela({ pode }) {
       return { lista, gente, areas }
     },
   }
+}
+
+/** Equipe atual no cartão (sessão 27b): foto ou iniciais, nome no title e no leitor de tela. */
+export function EquipeDoCartao({ membros }) {
+  if (!membros?.length) return <span className="text-mu">Sem equipe</span>
+  return (
+    <span className="d-inline-flex flex-wrap gap-1">
+      {membros.map(m => (
+        <Avatar key={m.codigo} pessoa={m} title={m.nome} aria-label={m.nome} role="img" />
+      ))}
+    </span>
+  )
 }
 
 /**
@@ -146,6 +165,10 @@ function CartaoNaLista({ p }) {
             <dd>{p.lider?.nome || 'Sem líder'}</dd>
           </>
         )}
+        <dt>Equipe</dt>
+        <dd>
+          <EquipeDoCartao membros={p.membros} />
+        </dd>
       </dl>
       <small className="text-mu mt-auto">{textoDoCartao(p)}</small>
     </div>
@@ -237,7 +260,7 @@ export default function Projetos() {
   const pg = p => prog(D, { id: p.codigo, tarefas: p.tarefas })
   // O geral da área não tem fim (a data de 31/12/2099 é só técnica): mostra só o início.
   const periodo = p => (p.geralDaArea ? 'Desde ' + fm(dia(p.dataInicio)) : fm(dia(p.dataInicio)) + ' a ' + fm(dia(p.dataFim)))
-  // Cartão (projeto de outra equipe): sem período, progresso e equipe, que a API nem manda.
+  // Cartão (projeto de outra equipe): sem período e progresso, que a API nem manda; equipe atual com nome e foto (27b).
   const cols = [
     {
       k: 'nome',
@@ -257,10 +280,9 @@ export default function Projetos() {
     },
     { k: 'st', l: 'Status', filter: 1, get: p => rotuloStatusProjeto(p.status), render: p => <StatusProjeto s={p.status} /> },
     { k: 'lider', l: 'Líder', filter: 1, get: p => p.lider?.nome || '—' },
-    { k: 'resp', l: 'Responsável', filter: 1, get: p => p.responsavel?.nome || '—' },
     { k: 'fim', l: 'Período', get: p => (p.cartao ? '' : dia(p.dataFim)), render: p => (p.cartao ? '—' : periodo(p)) },
     { k: 'pr', l: 'Progresso', get: p => (p.cartao ? -1 : pg(p)), render: p => (p.cartao ? '—' : pg(p) + '%') },
-    { l: 'Equipe', render: p => (p.cartao ? textoDoCartao(p) : <Av D={D} ids={membrosAtivos(p)} />) },
+    { l: 'Equipe', render: p => (p.cartao ? <EquipeDoCartao membros={p.membros} /> : <Av D={D} ids={membrosAtivos(p)} />) },
     { l: 'Ações', render: p => <Ac p={p} /> },
   ]
   const linhas = filtrarProjetos(lista, { tipo, areaId })

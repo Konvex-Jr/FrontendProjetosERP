@@ -19,7 +19,7 @@ import { PRAZOS, noPrazo } from '../lib/prazo'
 import { gravarProjeto } from '../lib/gravarProjeto'
 import { carregarProjeto } from '../lib/carregarProjeto'
 import Table from '../components/Table'
-import { camposProjeto, confirmarSigilo, valoresProjeto } from './Projetos'
+import { EquipeDoCartao, camposProjeto, confirmarSigilo, valoresProjeto } from './Projetos'
 import { SeloSigiloso, SeloTipo, StatusProjeto } from '../components/SeloProjeto'
 import { ItensDoProjeto } from './Biblioteca'
 import { TEXTO_EQUIPE_GERAL, textoDoCartao } from '../lib/projetosInternos'
@@ -46,6 +46,7 @@ function CartaoProjeto({ projeto, voltar }) {
     ...(projeto.tipo === 'interno' && projeto.area ? [['Área', projeto.area.nome]] : []),
     // O geral da área não tem líder próprio, como na ficha completa.
     ...(projeto.geralDaArea ? [] : [['Líder', projeto.lider?.nome || 'Sem líder']]),
+    ['Equipe', <EquipeDoCartao key="equipe" membros={projeto.membros} />],
   ]
   return (
     <>
@@ -291,7 +292,6 @@ export default function Projeto() {
     ['Tipo', <SeloTipo key="tipo" p={projeto} />],
     ...(ehGeral ? [] : [['Período', fm(dia(projeto.dataInicio)) + ' a ' + fm(dia(projeto.dataFim))]]),
     ['Prioridade', rotuloPrioridade(projeto.prioridade)],
-    ['Responsável', projeto.responsavel?.nome || '—'],
     ...(ehGeral ? [] : [['Líder', projeto.lider?.nome || '—']]),
     ['Área', projeto.area?.nome || '—'],
     ['Equipe', <Av key="equipe" D={D} ids={p.membros} />],
