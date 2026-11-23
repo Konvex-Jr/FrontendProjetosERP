@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import Layout from './components/Layout'
 import Login from './pages/Login'
 import {
+  Agenda,
   Biblioteca,
   Capacitacoes,
   CompletarPerfil,
@@ -65,6 +66,7 @@ export default function App() {
         <Route path="tarefas" element={<Tarefas />} />
         <Route path="projetos" element={<Projetos />} />
         <Route path="projetos/:id" element={<Projeto />} />
+        <Route path="agenda" element={<Agenda />} />
         <Route path="capacitacoes" element={<Capacitacoes />} />
         <Route path="capacitacoes/:id" element={<Capacitacoes />} />
         <Route path="biblioteca" element={<Biblioteca />} />

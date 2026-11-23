@@ -29,6 +29,7 @@ export const NAV = [
   ['dashboard', 'Dashboard', '/'],
   ['tarefas', 'Tarefas', '/tarefas'],
   ['projetos', 'Projetos', '/projetos'],
+  ['agenda', 'Agenda', '/agenda'],
   ['capacitacoes', 'Capacitações', '/capacitacoes'],
   ['biblioteca', 'Biblioteca', '/biblioteca'],
   ['estrategia', 'Visão Estratégica', '/estrategia'],
