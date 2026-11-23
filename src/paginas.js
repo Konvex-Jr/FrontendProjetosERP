@@ -6,6 +6,7 @@ export const Dashboard = carregarPagina(() => import('./pages/Dashboard'))
 export const Projetos = carregarPagina(() => import('./pages/Projetos'))
 export const Projeto = carregarPagina(() => import('./pages/Projeto'))
 export const Tarefas = carregarPagina(() => import('./pages/Tarefas'))
+export const Agenda = carregarPagina(() => import('./pages/Agenda'))
 export const Capacitacoes = carregarPagina(() => import('./pages/Capacitacoes'))
 export const Estrategia = carregarPagina(() => import('./pages/Estrategia'))
 export const Biblioteca = carregarPagina(() => import('./pages/Biblioteca'))
@@ -22,6 +23,7 @@ export const PAGINAS = {
   '/': Dashboard,
   '/tarefas': Tarefas,
   '/projetos': Projetos,
+  '/agenda': Agenda,
   '/capacitacoes': Capacitacoes,
   '/biblioteca': Biblioteca,
   '/estrategia': Estrategia,
