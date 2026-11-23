@@ -12,7 +12,6 @@ const SAIDA = process.env.SAIDA || '/tmp'
 const DIRETORA = [process.env.ADMIN_EMAIL || 'dev@konvexjr.com.br', process.env.ADMIN_PASSWORD || 'konvex-dev']
 const BIA = ['bia@dev.konvex', 'Konvex@123']
 const CAIO = ['caio@dev.konvex', 'Konvex@123']
-const INES = ['ines@dev.konvex', 'Konvex@123']
 const TITULO = `Reunião e2e ${Date.now() % 100000}`
 
 const falhas = []

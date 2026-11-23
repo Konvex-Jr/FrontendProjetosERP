@@ -19,8 +19,8 @@ import { agenda } from '../services/agenda'
  * outra pessoa. O botão "Criar no Google Agenda" abre o Google com o evento e os convidados.
  */
 
-// Mês e pessoa ficam na memória ao sair e voltar.
-let ultimos = { mes: '', pessoa: '' }
+// Mês e pessoa ficam na memória ao sair e voltar; valem só para quem escolheu (`me`): trocar de conta na aba zera.
+let ultimos = { me: '', mes: '', pessoa: '' }
 
 function camposReuniao(D, me) {
   const pessoas = (D.u || [])
@@ -109,8 +109,8 @@ export default function Agenda() {
   const { D, me, pode, form } = useApp()
   const navigate = useNavigate()
   const gestao = pode('projetos.verTodos')
-  const [f, setF] = useState(ultimos)
-  const set = (k, v) => setF(o => (ultimos = { ...o, [k]: v }))
+  const [f, setF] = useState(() => (ultimos.me === me ? ultimos : { me, mes: '', pessoa: '' }))
+  const set = (k, v) => setF(o => (ultimos = { ...o, me, [k]: v }))
   const [aberta, setAberta] = useState(null)
   // Mês local: toISOString (UTC) abriria o mês seguinte no último dia do mês, depois das 21h.
   const mes = f.mes || mesDe(iso(new Date()))
