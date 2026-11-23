@@ -3,9 +3,11 @@ import { Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import { fm, un, chip } from '../lib/utils'
 import Ic from './Icon'
+import alerts from '../lib/alerts'
 import Avatar from './Avatar'
 import Avisos from './Avisos'
-import { destinoPorPendencia, podeAbrirSecao } from '../lib/rotas'
+import { destinoPorPendencia, situacaoDaSecao } from '../lib/rotas'
+import TelaAviso from './TelaAviso'
 import FormModal from './FormModal'
 import Esqueleto from './Esqueleto'
 import { PAGINAS } from '../paginas'
@@ -14,6 +16,10 @@ import { anteciparDados, precarregarPaginas } from '../lib/antecipar'
 /** Barra do topo: data de hoje, troca de tema, pessoa logada (abre o perfil) e Sair. */
 function Header() {
   const { D, me, sair } = useApp(),
+    // Sair pede confirmação (27c): o botão fica perto do avatar e era fácil clicar sem querer.
+    confirmarSaida = async () => {
+      if (await alerts.confirm({ title: 'Sair do sistema?', text: 'Você volta para a tela de entrada.', confirmText: 'Sair' })) sair()
+    },
     navigate = useNavigate()
   const [dk, setDk] = useState(document.documentElement.dataset.theme == 'dark')
   const tema = () => {
@@ -71,7 +77,7 @@ function Header() {
             onClick={() => navigate('/perfil')}
             onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), navigate('/perfil'))}
           />
-          <button className="btn btn-g btn-sm hs-sair" onClick={sair} aria-label="Sair">
+          <button className="btn btn-g btn-sm hs-sair" onClick={confirmarSaida} aria-label="Sair">
             <Ic k="logout" />
             <span>Sair</span>
           </button>
@@ -189,9 +195,9 @@ export default function Layout() {
   // Dados obrigatórios faltando (primeiro acesso): nada abre antes da tela de completar o perfil.
   const completar = destinoPorPendencia(pendencias)
   if (completar) return <Navigate to={completar} replace />
-  const secao = pathname.split('/')[1]
-  // Só abre telas que vieram no menu da pessoa (GET /auth/permissoes), além do perfil.
-  if (!podeAbrirSecao(secao, nav)) return <Navigate to="/" replace />
+  // Só abre telas que vieram no menu da pessoa (GET /auth/permissoes), além do perfil. Tela fora do menu
+  // mostra "sem acesso"; endereço que não existe cai na rota "*" (tela "página não existe").
+  const semAcesso = situacaoDaSecao(pathname.split('/')[1], nav) === 'sem-acesso'
   return (
     <>
       <Header />
@@ -200,7 +206,7 @@ export default function Layout() {
         {/* Fallback enquanto o arquivo da página baixa (carregarPagina); a key por rota repete a animação de entrada. */}
         <Suspense fallback={<Esqueleto />}>
           <div key={pathname} className="page-in">
-            <Outlet />
+            {semAcesso ? <TelaAviso tipo="sem-acesso" /> : <Outlet />}
           </div>
         </Suspense>
       </main>

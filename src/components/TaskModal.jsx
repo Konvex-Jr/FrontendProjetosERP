@@ -520,24 +520,43 @@ export default function TaskModal({
                           )}
                         </div>
                         <div className="ck-meta">
-                          {podeEditar && (
-                            <select
-                              className="form-select form-select-sm ck-resp"
-                              aria-label={'Responsável pelo item ' + x.texto}
-                              value={resp || ''}
-                              onChange={e =>
-                                setCl(a => a.map(y => (y.id == x.id ? { ...y, responsavel: e.target.value || undefined } : y)))
-                              }
-                            >
-                              <option value="">Ninguém</option>
-                              {responsaveis.map(u => (
-                                <option key={u.id} value={u.id}>
-                                  {u.nome}
-                                </option>
-                              ))}
-                            </select>
+                          {/* Responsável só pela foto ou iniciais (27c): nome longo desalinhava o checklist. */}
+                          {/* Nome no title e no leitor de tela; quem edita troca pela lista invisível por cima do círculo. */}
+                          {podeEditar ? (
+                            <span className="ck-resp" title={dono ? dono.nome : 'Escolher responsável'}>
+                              {dono ? (
+                                <Avatar pessoa={dono} className="av-ck" aria-hidden="true" />
+                              ) : (
+                                <span className="av av-ck ck-sem" aria-hidden="true">
+                                  <Ic k="perfil" />
+                                </span>
+                              )}
+                              <select
+                                aria-label={'Responsável pelo item ' + x.texto + ': ' + (dono ? dono.nome : 'ninguém')}
+                                value={resp || ''}
+                                onChange={e =>
+                                  setCl(a => a.map(y => (y.id == x.id ? { ...y, responsavel: e.target.value || undefined } : y)))
+                                }
+                              >
+                                <option value="">Ninguém</option>
+                                {responsaveis.map(u => (
+                                  <option key={u.id} value={u.id}>
+                                    {u.nome}
+                                  </option>
+                                ))}
+                              </select>
+                            </span>
+                          ) : (
+                            dono && (
+                              <Avatar
+                                pessoa={dono}
+                                className="av-ck"
+                                title={dono.nome}
+                                role="img"
+                                aria-label={'Responsável: ' + dono.nome}
+                              />
+                            )
                           )}
-                          {dono && <Avatar pessoa={dono} className="av-item" title={dono.nome} />}
                           {podeEditar && (
                             <button className="dots" aria-label="Remover item" onClick={() => setCl(a => a.filter(y => y.id != x.id))}>
                               <Ic k="x" />

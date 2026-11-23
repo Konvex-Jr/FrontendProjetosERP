@@ -56,7 +56,7 @@ function Reuniao({ r, fechar, editar, excluir }) {
               {r.local && (
                 <p className="mb-2 text-break">
                   {/^https?:\/\//i.test(r.local) ? (
-                    <a href={r.local} target="_blank" rel="noopener noreferrer">
+                    <a className="link-texto" href={r.local} target="_blank" rel="noopener noreferrer">
                       {r.local}
                     </a>
                   ) : (
@@ -157,7 +157,13 @@ export default function Agenda() {
   }
 
   const excluir = async r => {
-    if (!(await alerts.confirm('Excluir a reunião?', `“${r.titulo}” sai da agenda de todos os participantes.`))) return
+    const ok = await alerts.confirm({
+      title: 'Excluir a reunião?',
+      text: `“${r.titulo}” sai da agenda de todos os participantes.`,
+      confirmText: 'Excluir reunião',
+      danger: true,
+    })
+    if (!ok) return
     try {
       await agenda.excluir(r.codigo)
       alerts.toastSuccess('Reunião excluída')

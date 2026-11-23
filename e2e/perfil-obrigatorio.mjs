@@ -119,6 +119,7 @@ try {
 
   await passo('4. sai e entra como pessoa completa: direto ao início', async () => {
     await page.click(SAIR)
+    await page.click('.swal2-confirm') // confirma a saída (27c)
     await page.waitForSelector('input[type=email]', { timeout: 15000 })
     await login(page, BIA)
     await page.waitForSelector(SAIR, { state: 'attached', timeout: 15000 })

@@ -1,5 +1,6 @@
 import { Suspense } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
+import TelaAviso from './components/TelaAviso'
 import Layout from './components/Layout'
 import Login from './pages/Login'
 import {
@@ -49,7 +50,7 @@ export default function App() {
         }
       />
       {/* Telas que viraram a Biblioteca (sessão 17), para não quebrar favoritos. Ficam fora do Layout:
-          ele manda para / qualquer seção que não está no menu antes de a rota filha abrir. */}
+          ele mostraria "sem acesso" a qualquer seção fora do menu antes de a rota filha abrir. */}
       {['gestao', 'conhecimento', 'iniciativas'].map(antiga => (
         <Route key={antiga} path={`/${antiga}/*`} element={<Navigate to="/biblioteca" replace />} />
       ))}
@@ -77,9 +78,9 @@ export default function App() {
         <Route path="perfil" element={<Perfil />} />
         <Route path="perfil/:codigo" element={<Perfil />} />
         <Route path="configuracoes" element={<Configuracoes />} />
+        {/* Endereço desconhecido (logado): tela "página não existe"; sem login, o Layout manda ao /login. */}
+        <Route path="*" element={<TelaAviso tipo="inexistente" />} />
       </Route>
-      {/* Endereço desconhecido volta ao Dashboard. */}
-      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
 }

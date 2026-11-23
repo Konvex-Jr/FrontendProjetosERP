@@ -239,10 +239,10 @@ export default function Pessoas() {
       k: 'nome',
       l: 'Nome',
       render: p => (
-        <a role="button" className="fw-semibold d-inline-flex align-items-center gap-2" onClick={() => go('perfil', p.codigo)}>
+        <button type="button" className="btn-nome" onClick={() => go('perfil', p.codigo)}>
           <Avatar pessoa={p} className="av-lista" />
           {p.nome}
-        </a>
+        </button>
       ),
     },
     { k: 'email', l: 'E-mail' },

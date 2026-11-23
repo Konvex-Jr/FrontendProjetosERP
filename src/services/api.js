@@ -20,7 +20,7 @@ export class ApiError extends Error {
   }
 }
 
-export const SEM_CONEXAO = 'Sem conexão com o servidor. Confira a internet e tente de novo.'
+export const SEM_CONEXAO = 'Sem conexão com o sistema. Confira sua internet e tente de novo.'
 
 /**
  * Mensagem que a pessoa vê quando a API recusa a chamada (um lugar só).
@@ -28,13 +28,13 @@ export const SEM_CONEXAO = 'Sem conexão com o servidor. Confira a internet e te
  * e respostas sem mensagem viram uma frase que diz o que fazer.
  */
 export function mensagemDeErro(status, data) {
-  if (status >= 500) return 'O servidor teve um problema. Tente de novo em instantes; se continuar, avise a gestão.'
+  if (status >= 500) return 'Algo deu errado do nosso lado. Tente de novo daqui a pouco; se continuar, avise a Inovação.'
   if (data?.message) return data.message
-  if (status === 403) return 'Você não tem permissão para esta ação.'
-  if (status === 404) return 'Não encontrado. Pode ter sido excluído; recarregue a página.'
-  if (status === 413) return 'O conteúdo enviado é grande demais.'
+  if (status === 403) return 'Essa ação não está liberada para o seu papel na Konvex.'
+  if (status === 404) return 'Não achamos isso. Pode ter sido excluído; recarregue a página.'
+  if (status === 413) return 'O arquivo ou o texto é grande demais para enviar.'
   if (status === 429) return 'Muitas tentativas seguidas. Espere alguns minutos e tente de novo.'
-  return `Não foi possível concluir (erro ${status}). Tente de novo.`
+  return `Não deu para concluir (erro ${status}). Tente de novo.`
 }
 
 /**

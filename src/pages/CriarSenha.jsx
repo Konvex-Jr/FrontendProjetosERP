@@ -67,7 +67,7 @@ export default function CriarSenha() {
           <button type="button" className="btn btn-dk w-100" onClick={() => navigate('/esqueci-senha')}>
             Pedir novo link
           </button>
-          <Link className="lgv-foot" to="/login">
+          <Link className="btn btn-g w-100" to="/login">
             Voltar ao login
           </Link>
         </div>

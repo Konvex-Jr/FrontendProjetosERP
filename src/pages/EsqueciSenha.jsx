@@ -57,7 +57,7 @@ export default function EsqueciSenha() {
             </button>
           </>
         )}
-        <Link className="lgv-foot" to="/login">
+        <Link className="btn btn-g w-100" to="/login">
           Voltar ao login
         </Link>
       </form>

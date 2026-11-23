@@ -79,7 +79,7 @@ function CartaoOcupacao({ codigo, inicial }) {
         <small className="text-center">
           {rotuloSemana(mostrada)}
           {semana && (
-            <button className="btn btn-link btn-sm py-0" onClick={() => setSemana(null)}>
+            <button type="button" className="btn-nome ms-2" onClick={() => setSemana(null)}>
               Esta semana
             </button>
           )}

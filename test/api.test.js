@@ -65,12 +65,12 @@ test('request keeps the API code and turns server errors into a clear sentence',
   globalThis.fetch = async () => response(500, '{"message":"Erro interno ao acessar o banco de dados."}')
   await assert.rejects(
     request('/projetos', { token: 'jwt-test' }),
-    error => error instanceof ApiError && error.status === 500 && error.message.startsWith('O servidor teve um problema'),
+    error => error instanceof ApiError && error.status === 500 && error.message.startsWith('Algo deu errado do nosso lado'),
   )
 })
 
 test('mensagemDeErro explains answers without a message', () => {
-  assert.equal(mensagemDeErro(403, null), 'Você não tem permissão para esta ação.')
+  assert.equal(mensagemDeErro(403, null), 'Essa ação não está liberada para o seu papel na Konvex.')
   assert.match(mensagemDeErro(404, {}), /recarregue/)
   assert.match(mensagemDeErro(429, null), /Muitas tentativas/)
   assert.equal(mensagemDeErro(400, { message: 'Título obrigatório.' }), 'Título obrigatório.')

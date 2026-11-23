@@ -102,6 +102,7 @@ async function entrar(page, [email, senha]) {
 }
 const sair = async page => {
   await page.click(SAIR)
+  await page.click('.swal2-confirm') // confirma a saída (27c)
   await page.waitForSelector('input[type=email]', { timeout: 15000 })
 }
 const formulario = page => page.locator('.modal.d-block form')

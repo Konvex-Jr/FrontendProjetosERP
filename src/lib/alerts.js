@@ -26,16 +26,15 @@ const show = async options => (await carregar()).fire({ ...baseOptions, ...optio
  * Alertas do sistema (SweetAlert2 com os botões do Bootstrap). Todos devolvem Promise.
  * Erro de API na tela: `alerts.error('Não foi possível salvar', error.message)`.
  * `confirm` resolve true/false; `danger: true` para excluir ou encerrar (ícone de aviso e botão vermelho).
- * `toastSuccess` é o aviso discreto no canto, que some sozinho.
+ * `toastSuccess` é o aviso discreto embaixo à direita (no celular, acima da barra do menu), que some sozinho.
  */
 const alerts = {
   success: (title, text = '') => show({ icon: 'success', title, text, confirmButtonText: 'Continuar' }),
-  error: (title = 'Não foi possível concluir', text = 'Tente novamente.') =>
-    show({ icon: 'error', title, text, confirmButtonText: 'Entendi' }),
+  error: (title = 'Não deu certo', text = 'Tente de novo.') => show({ icon: 'error', title, text, confirmButtonText: 'Entendi' }),
   info: (title, text = '') => show({ icon: 'info', title, text, confirmButtonText: 'Entendi' }),
   confirm: async ({
     title = 'Confirmar ação?',
-    text = 'Esta operação não poderá ser desfeita.',
+    text = 'Depois não dá para desfazer.',
     confirmText = 'Confirmar',
     cancelText = 'Cancelar',
     danger = false,
@@ -54,19 +53,28 @@ const alerts = {
     return result.isConfirmed
   },
   toastSuccess: (title, text = '') =>
-    show({ toast: true, position: 'top-end', icon: 'success', title, text, showConfirmButton: false, timer: 2400, timerProgressBar: true }),
-  /** Aviso amarelo no canto (ex.: ocupação acima de 100%). Uma linha por `\n`. */
+    show({
+      toast: true,
+      position: 'bottom-end',
+      icon: 'success',
+      title,
+      text,
+      showConfirmButton: false,
+      timer: 1800,
+      customClass: { ...baseOptions.customClass, popup: 'konvex-alert konvex-toast' },
+    }),
+  /** Aviso amarelo embaixo à direita (ex.: ocupação acima de 100%). Uma linha por `\n`; fica mais tempo para dar para ler. */
   toastWarning: (title, text = '') =>
     show({
       toast: true,
-      position: 'top-end',
+      position: 'bottom-end',
       icon: 'warning',
       title,
       text,
       showConfirmButton: false,
       timer: 6000,
       timerProgressBar: true,
-      customClass: { ...baseOptions.customClass, htmlContainer: 'konvex-aviso-linhas' },
+      customClass: { ...baseOptions.customClass, popup: 'konvex-alert konvex-toast', htmlContainer: 'konvex-aviso-linhas' },
     }),
   // Só fecha se o SweetAlert já foi baixado; não baixa nada só para fechar.
   close: () => {
