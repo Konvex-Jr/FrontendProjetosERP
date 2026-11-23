@@ -23,7 +23,7 @@ export function corpoNovaPessoa(valores) {
   }
 }
 
-/** Opções do select de curso. Quem já tem curso mantém o atual na lista, mesmo fora dos três (dado antigo). */
+/** Opções do select de curso. Quem já tem curso mantém o atual na lista, mesmo fora da lista (dado antigo). */
 export function opcoesCurso(pessoa) {
   const fixos = CURSOS.map(c => [c, c])
   if (!pessoa) return [['', 'Selecione o curso'], ...fixos]
