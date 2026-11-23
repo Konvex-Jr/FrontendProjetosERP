@@ -2115,3 +2115,138 @@ tr.linha-cartao td {
   height: 16px;
   margin-top: 3px;
 }
+
+/* Visões da gestão em Projetos (sessão 28a): Alocação e Campinho. */
+tr.linha-acima td {
+  background: var(--erb);
+}
+
+.campo {
+  position: relative;
+  display: flex;
+  justify-content: space-around;
+  gap: 8px;
+  min-height: 190px;
+  padding: 14px 10px 8px;
+  border-radius: var(--rd);
+  border: 2px solid #ffffffb3;
+  background: repeating-linear-gradient(90deg, #2f7d4f 0 40px, #2a7247 40px 80px);
+  color: #fff;
+  overflow-x: auto;
+}
+
+/* Linha do meio e círculo central, atrás das peças. */
+.campo::before,
+.campo::after {
+  content: '';
+  position: absolute;
+  pointer-events: none;
+  border: 2px solid #ffffff59;
+}
+.campo::before {
+  inset: 0 50% 0 auto;
+  border-width: 0 2px 0 0;
+}
+.campo::after {
+  width: 64px;
+  height: 64px;
+  left: calc(50% - 31px);
+  top: calc(50% - 32px);
+  border-radius: 50%;
+}
+
+[data-theme='dark'] .campo {
+  background: repeating-linear-gradient(90deg, #1f5a38 0 40px, #1b5133 40px 80px);
+  border-color: #ffffff66;
+}
+
+.campo-vazio {
+  align-items: center;
+  font-weight: 600;
+}
+
+.campo-col {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 64px;
+}
+.campo-col ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 10px;
+  flex: 1;
+}
+.campo-rot {
+  margin-top: 6px;
+  color: #fff;
+  text-shadow: 0 1px 2px #0008;
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+  max-width: 90px;
+  overflow-wrap: anywhere;
+  opacity: 0.9;
+}
+
+.botao {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.botao-disco {
+  position: relative;
+  display: inline-flex;
+  border-radius: 50%;
+  border: 3px solid #fff;
+  box-shadow: 0 2px 0 #0003, 0 4px 8px #0004;
+}
+.botao-disco .av {
+  margin: 0;
+  width: 40px;
+  height: 40px;
+}
+.botao.acima .botao-disco {
+  border-color: var(--er);
+}
+.botao-c,
+.botao-n {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  font-size: 10px;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+}
+.botao-c {
+  left: -6px;
+  bottom: -4px;
+  background: var(--ac);
+  color: var(--on);
+}
+.botao-n {
+  right: -6px;
+  top: -4px;
+  background: var(--t);
+  color: #fff;
+  border: 1px solid #fff;
+}
+.botao-nome {
+  font-size: 12px;
+  font-weight: 600;
+  text-shadow: 0 1px 2px #0008;
+  max-width: 80px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
