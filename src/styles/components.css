@@ -2509,3 +2509,181 @@ tr.linha-acima td {
     color: var(--mu);
     margin-bottom: 22px
 }
+
+/* Precificação (sessão 29): memória de cálculo, alerta de margem e documento preliminar impresso. */
+.prec-memoria .pl {
+    gap: 12px
+}
+
+.prec-memoria .pl b {
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums
+}
+
+.prec-memoria .prec-total {
+    border-bottom: 2px solid var(--t);
+    font-weight: 600
+}
+
+.prec-regras .form-check {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin: 4px 0
+}
+
+.prec-alerta {
+    padding: 10px 12px;
+    border-radius: var(--rd);
+    border-left: 4px solid var(--er);
+    background: var(--erb);
+    color: var(--tx)
+}
+
+@media screen {
+    .impressao-raiz {
+        display: none
+    }
+}
+
+@media print {
+    @page {
+        size: A4;
+        margin: 16mm 14mm
+    }
+
+    body.com-doc-impressao > *:not(.impressao-raiz) {
+        display: none !important
+    }
+
+    body {
+        background: #fff !important
+    }
+
+    .impressao-raiz,
+    .impressao-raiz * {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact
+    }
+
+    .impressao-raiz {
+        display: block;
+        position: relative;
+        color: #141c28;
+        font: 11pt/1.45 Inter, system-ui, sans-serif;
+        --t: #0e2340;
+        --ln: #dee3e9;
+        --tx: #141c28
+    }
+
+    .impressao-raiz h1 {
+        font-size: 18pt;
+        color: #0e2340;
+        margin: 10px 0 12px
+    }
+
+    .impressao-raiz h2 {
+        font-size: 12pt;
+        color: #0e2340;
+        margin: 16px 0 6px;
+        break-after: avoid
+    }
+
+    .imp-topo {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 3px solid #ff6a33;
+        padding-bottom: 8px
+    }
+
+    .imp-selo {
+        border: 1.5px solid #0e2340;
+        color: #0e2340;
+        padding: 3px 10px;
+        border-radius: 4px;
+        font-weight: 600;
+        font-size: 9.5pt;
+        text-transform: uppercase;
+        letter-spacing: .04em
+    }
+
+    .imp-marca-dagua {
+        position: fixed;
+        top: 42%;
+        left: 0;
+        right: 0;
+        text-align: center;
+        font-size: 90pt;
+        font-weight: 800;
+        color: #0e234010;
+        transform: rotate(-30deg);
+        pointer-events: none
+    }
+
+    .imp-dados {
+        display: grid;
+        grid-template-columns: max-content 1fr;
+        gap: 2px 16px;
+        margin: 0
+    }
+
+    .imp-dados dt {
+        font-weight: 600;
+        color: #48515e
+    }
+
+    .imp-dados dd {
+        margin: 0
+    }
+
+    .imp-premissas {
+        white-space: pre-wrap;
+        margin: 0
+    }
+
+    .impressao-raiz table {
+        width: 100%;
+        border-collapse: collapse;
+        font-variant-numeric: tabular-nums
+    }
+
+    .impressao-raiz th,
+    .impressao-raiz td {
+        text-align: left;
+        padding: 4px 6px;
+        border-bottom: 1px solid #dee3e9
+    }
+
+    .impressao-raiz th {
+        background: #eaf2fc;
+        color: #0e2340
+    }
+
+    .impressao-raiz tr,
+    .impressao-raiz .pl {
+        break-inside: avoid
+    }
+
+    .imp-total {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        margin-top: 14px;
+        padding: 10px 12px;
+        background: #0e2340;
+        color: #fff;
+        border-radius: 6px;
+        break-inside: avoid
+    }
+
+    .imp-total b {
+        font-size: 16pt
+    }
+
+    .imp-rodape {
+        margin-top: 18px;
+        font-size: 8.5pt;
+        color: #48515e
+    }
+}

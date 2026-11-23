@@ -412,3 +412,19 @@
     max-width: 100%
   }
 }
+
+/* Precificação (29): a tabela de horas rola de lado só nela; no celular, só senioridade, horas e valor-hora. */
+.tw.prec-horas {
+  overflow-x: auto
+}
+
+@media (max-width: 575.98px) {
+  .prec-horas th:nth-child(n + 4),
+  .prec-horas td:nth-child(n + 4) {
+    display: none
+  }
+
+  .prec-horas .form-control {
+    min-width: 72px
+  }
+}

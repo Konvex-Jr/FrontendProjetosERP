@@ -41,8 +41,8 @@ export default function FormModal({ t, fs, init, save, close, largo }) {
       required: !x.opt,
       value: v[x.k] ?? '',
       onChange: e => set(x.k, e.target.value),
-      ...(x.min ? { min: x.min } : {}),
-      ...(x.max ? { max: x.max } : {}),
+      ...(x.min != null && x.min !== '' ? { min: x.min } : {}),
+      ...(x.max != null && x.max !== '' ? { max: x.max } : {}),
       ...(x.step ? { step: x.step } : {}),
       ...(x.maxLength ? { maxLength: x.maxLength } : {}),
     }
