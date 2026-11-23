@@ -15,7 +15,7 @@ export const STATUS_PESSOA = [
   ['trainee', 'Trainee'],
   ['inativo', 'Inativo'],
 ]
-export const CURSOS = ['Ciência da Computação', 'Engenharia Mecânica', 'Engenharia Elétrica']
+export const CURSOS = ['Análise e Desenvolvimento de Sistemas', 'Ciência da Computação', 'Engenharia Elétrica', 'Engenharia Mecânica']
 export const rotuloStatus = s => STATUS_PESSOA.find(([k]) => k === s)?.[1] || s || '—'
 
 export const pessoas = {

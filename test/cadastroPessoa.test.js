@@ -48,11 +48,11 @@ test('nova pessoa: trainee vai como membro e ninguém leva senha (a pessoa cria 
 test('opcoesCurso: criação, sem curso, curso antigo e curso válido', async () => {
   const { opcoesCurso } = await import('../src/lib/cadastroPessoa.js')
   assert.equal(opcoesCurso(null)[0][0], '')
-  assert.equal(opcoesCurso(null).length, 4)
+  assert.equal(opcoesCurso(null).length, 5)
   assert.equal(opcoesCurso({ curso: null })[0][1], 'Curso não informado')
   assert.equal(opcoesCurso({ curso: 'Direito' })[0][0], 'Direito')
-  assert.equal(opcoesCurso({ curso: 'Direito' }).length, 4)
-  assert.equal(opcoesCurso({ curso: 'Engenharia Mecânica' }).length, 3)
+  assert.equal(opcoesCurso({ curso: 'Direito' }).length, 5)
+  assert.equal(opcoesCurso({ curso: 'Engenharia Mecânica' }).length, 4)
 })
 
 test('erroCadastro: curso obrigatório na criação; telefone só quando muda', async () => {
