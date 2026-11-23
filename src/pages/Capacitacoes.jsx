@@ -6,6 +6,7 @@ import Ic from '../components/Icon'
 import ActionMenu from '../components/ActionMenu'
 import Markdown from '../components/Markdown'
 import Anexos from '../components/Anexos'
+import Avatar from '../components/Avatar'
 import { PageBar, Prog, Seg, Stars } from '../components/Ui'
 import alerts from '../lib/alerts'
 import useCarregar from '../lib/useCarregar'
@@ -14,8 +15,8 @@ import { DIAS_SEMANA, mesDe, mudarMes, nomeDoMes, semanasDoMes } from '../lib/ca
 import { SITUACAO, capacitacoes, horas, valoresCapacitacao } from '../services/capacitacoes'
 
 /**
- * Capacitações (sessão 13, RF-070 a RF-073). Todos veem; a gestão cria, edita, exclui, marca presença
- * e anexa material; cada pessoa se inscreve e cancela até o início; só quem compareceu avalia.
+ * Capacitações (sessão 13, RF-070 a RF-073). Todos veem; a gestão cria, edita, exclui e anexa material;
+ * a gestão ou quem ministra faz a chamada depois do início (sessão 28b); cada pessoa se inscreve e cancela até o início; só quem compareceu avalia.
  * A API diz o que cada pessoa pode fazer em cada capacitação (`pode*`).
  */
 
@@ -345,6 +346,7 @@ const Secao = ({ titulo, children }) => (
   </div>
 )
 
+/** Chamada (sessão 28b): lista como a de escola, com foto ou iniciais; gestão ou quem ministra marca. */
 function Presenca({ c, aoMudar }) {
   const [marcados, setMarcados] = useState(() => new Set(c.inscritos.filter(i => i.presente).map(i => i.id)))
   const [salvando, setSalvando] = useState(false)
@@ -358,30 +360,53 @@ function Presenca({ c, aoMudar }) {
     setSalvando(true)
     try {
       await capacitacoes.marcarPresencas(c.id, [...marcados])
-      alerts.toastSuccess('Presença salva', `${marcados.size} de ${c.inscritos.length} compareceram`)
+      alerts.toastSuccess('Chamada salva', `${marcados.size} de ${c.inscritos.length} presentes`)
       await aoMudar()
     } catch (error) {
-      await alerts.error('Não foi possível salvar a presença', error.message)
+      await alerts.error('Não foi possível salvar a chamada', error.message)
     } finally {
       setSalvando(false)
     }
   }
+  const ordenados = [...c.inscritos].sort((a, b) => a.nome.localeCompare(b.nome))
   return (
     <>
       <small className="d-block mb-2">
-        Marque quem compareceu. Só quem estiver marcado pode avaliar, e as horas entram no perfil da pessoa.
+        Toque em quem está presente. Só quem estiver marcado pode avaliar, e as horas entram no perfil da pessoa.
       </small>
-      <div className="cap-pr">
-        {c.inscritos.map(i => (
-          <label key={i.id} className="form-check m-0">
-            <input type="checkbox" className="form-check-input" checked={marcados.has(i.id)} onChange={() => alternar(i.id)} />
-            <span className="form-check-label ms-1">{i.nome}</span>
-          </label>
-        ))}
+      <div className="d-flex flex-wrap gap-2 mb-2">
+        <button type="button" className="btn btn-g btn-sm" onClick={() => setMarcados(new Set(c.inscritos.map(i => i.id)))}>
+          Todos presentes
+        </button>
+        <button type="button" className="btn btn-g btn-sm" onClick={() => setMarcados(new Set())}>
+          Limpar
+        </button>
+        <span className="ms-auto align-self-center">
+          <b>{marcados.size}</b> de {c.inscritos.length} presentes
+        </span>
       </div>
+      <ul className="chamada" aria-label="Chamada">
+        {ordenados.map(i => {
+          const presente = marcados.has(i.id)
+          return (
+            <li key={i.id}>
+              <button
+                type="button"
+                className={'chamada-l' + (presente ? ' sim' : '')}
+                aria-pressed={presente}
+                onClick={() => alternar(i.id)}
+              >
+                <Avatar pessoa={i} />
+                <span className="chamada-n">{i.nome}</span>
+                <span className="chamada-s">{presente ? 'Presente' : 'Ausente'}</span>
+              </button>
+            </li>
+          )
+        })}
+      </ul>
       <button className="btn btn-primary mt-2" disabled={salvando} onClick={salvar}>
         <Ic k="check" />
-        {salvando ? 'Salvando…' : 'Salvar presença'}
+        {salvando ? 'Salvando…' : 'Salvar chamada'}
       </button>
     </>
   )
@@ -407,10 +432,9 @@ function Inscritos({ c, aoMudar, acoes }) {
       }
     })
   }
-  const comecou = c.situacao === 'realizada'
   return (
     <>
-      {c.podeGerir && comecou && c.inscritos.length > 0 ? (
+      {c.podeFazerChamada && c.inscritos.length > 0 ? (
         <Presenca key={c.inscritos.map(i => i.id + i.presente).join()} c={c} aoMudar={aoMudar} />
       ) : c.inscritos.length ? (
         <div className="kc-tags">
@@ -600,7 +624,11 @@ function Ficha({ id }) {
           </Secao>
         )}
         {c.verInscritos && (
-          <Secao titulo={`Inscritos (${c.totalInscritos})`}>
+          <Secao
+            titulo={
+              c.podeFazerChamada && c.totalInscritos > 0 ? `Chamada (${c.totalInscritos} inscritos)` : `Inscritos (${c.totalInscritos})`
+            }
+          >
             <Inscritos c={c} aoMudar={recarregar} acoes={acoes} />
           </Secao>
         )}
@@ -622,8 +650,8 @@ function Ficha({ id }) {
           {comecou && c.inscrito && !c.podeAvaliar && (
             <small className="d-block">
               {c.presente === false
-                ? 'A gestão não marcou sua presença; por isso a avaliação não está disponível.'
-                : 'Assim que a gestão marcar a presença, você poderá avaliar.'}
+                ? 'Sua presença não foi marcada na chamada; por isso a avaliação não está disponível.'
+                : 'Assim que a chamada marcar sua presença, você poderá avaliar.'}
             </small>
           )}
         </Secao>

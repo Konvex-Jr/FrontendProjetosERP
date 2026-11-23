@@ -37,12 +37,14 @@ export const adaptCapacitacao = c => ({
   inscrito: Boolean(c.inscrito),
   presente: c.presente ?? null,
   // Só a gestão e quem ministra recebem a lista; os demais ficam com a contagem.
-  inscritos: (c.inscritos || []).map(i => ({ id: i.codigo, nome: i.nome, presente: i.presente ?? null })),
+  inscritos: (c.inscritos || []).map(i => ({ id: i.codigo, nome: i.nome, foto: i.foto || null, presente: i.presente ?? null })),
   verInscritos: Array.isArray(c.inscritos),
   media: c.avaliacao?.media ?? null,
   avaliacoes: c.avaliacao?.total ?? 0,
   minhaAvaliacao: c.minhaAvaliacao || null,
   podeGerir: Boolean(c.podeGerir),
+  // Chamada (sessão 28b): gestão ou quem ministra, depois do início.
+  podeFazerChamada: Boolean(c.podeFazerChamada),
   podeInscrever: Boolean(c.podeInscrever),
   podeCancelar: Boolean(c.podeCancelar),
   podeAvaliar: Boolean(c.podeAvaliar),
