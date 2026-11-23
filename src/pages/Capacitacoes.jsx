@@ -73,7 +73,7 @@ function useAcoes(aoMudar) {
       alerts.toastSuccess(ok, titulo)
       await depois()
     } catch (error) {
-      await alerts.error('Não foi possível concluir', error.message)
+      await alerts.error('Não deu certo', error.message)
     }
   }
   return {

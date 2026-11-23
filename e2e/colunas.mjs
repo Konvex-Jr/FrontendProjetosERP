@@ -81,6 +81,7 @@ async function entrar(page, email, senha) {
 }
 const sair = async page => {
   await page.click('[aria-label="Sair"]')
+  await page.click('.swal2-confirm') // confirma a saída (27c)
   await page.waitForSelector('input[type=email]', { timeout: 15000 })
 }
 async function abrirProjeto(page, codigo) {
@@ -115,7 +116,7 @@ async function moverPeloMenu(page, de, para) {
   await c.scrollIntoViewIfNeeded()
   await page.waitForTimeout(700)
   await c.locator('.cm.t button[aria-label="Ações"]').click()
-  await page.locator('.pop [aria-label="Mover para…"]').click()
+  await page.locator('.pop button', { hasText: 'Mover para…' }).click()
   await page.locator('.mv [role=menuitem]', { hasText: para }).click()
   await cartao(page, para).waitFor({ timeout: 15000 })
 }

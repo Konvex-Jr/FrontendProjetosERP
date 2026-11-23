@@ -124,10 +124,8 @@
         justify-content: flex-end
     }
 
-  /* Checklist da tarefa: responsável, avatar e remover descem para a linha de baixo, alinhados ao texto. */
-  .ck-item { flex-wrap: wrap }
-  .ck-meta { flex-basis: 100%; padding-left: 24px }
-  .ck-resp { flex: 1; max-width: none }
+  /* Checklist da tarefa: o responsável é só um círculo e cabe na mesma linha (27c). */
+  .ck-resp .av.av-ck { width: 30px; height: 30px; font-size: 11px }
 
   /* Capacitações: a grade do mês vira agenda (sessão 13). */
   .cal { display: none }
@@ -398,5 +396,19 @@
 @media (max-width: 575.98px) {
   .ocup-linha {
     grid-template-columns: minmax(0, 1fr) 64px 40px;
+  }
+}
+
+/* Toasts (27c): no celular, centralizados embaixo, acima da barra do menu. */
+@media (max-width: 991.98px) {
+  .swal2-container.swal2-bottom-end:has(.konvex-toast) {
+    left: 0;
+    right: 0;
+    padding: 0 12px calc(92px + env(safe-area-inset-bottom));
+    justify-items: center
+  }
+
+  .konvex-toast.swal2-toast {
+    max-width: 100%
   }
 }

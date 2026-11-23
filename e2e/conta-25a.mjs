@@ -95,6 +95,7 @@ async function entrar(page, email, senha, manter = false) {
 }
 const sair = async page => {
   await page.click(SAIR)
+  await page.click('.swal2-confirm') // confirma a saída (27c)
   await page.waitForSelector('input[type=email]', { timeout: 15000 })
 }
 const semRolagemLateral = page => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)

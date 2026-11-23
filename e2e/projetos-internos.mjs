@@ -82,6 +82,7 @@ async function entrar(page, email, senha) {
 }
 const sair = async page => {
   await page.click('[aria-label="Sair"]')
+  await page.click('.swal2-confirm') // confirma a saída (27c)
   await page.waitForSelector('input[type=email]', { timeout: 15000 })
 }
 const iso = d => new Date(d.getTime() - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10)

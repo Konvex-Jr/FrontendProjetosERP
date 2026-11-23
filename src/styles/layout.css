@@ -579,7 +579,8 @@ html.tt *::after {
   gap: 8px;
   padding: 4px 0;
 }
-.ocup-linha a {
+.ocup-linha .btn-nome {
+  display: block;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

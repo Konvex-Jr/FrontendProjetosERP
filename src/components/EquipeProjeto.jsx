@@ -93,7 +93,7 @@ export default function EquipeProjeto({ projeto, gente, gestor, aoSalvar }) {
     )
 
   const pessoa = p => (
-    <button className="btn btn-link p-0 text-start" onClick={() => go('perfil', p.usuario.codigo)}>
+    <button type="button" className="btn-nome" onClick={() => go('perfil', p.usuario.codigo)}>
       {p.usuario.nome}
       {p.usuario.status && p.usuario.status !== 'ativo' ? <small className="ms-1">({rotuloStatus(p.usuario.status)})</small> : null}
       {!p.dataSaida && ehLider(p) && (

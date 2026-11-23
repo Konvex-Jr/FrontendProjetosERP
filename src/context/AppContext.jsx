@@ -154,7 +154,7 @@ export function AppProvider({ children }) {
       setMe(result.usuario.codigo)
       navigate('/')
       window.scrollTo(0, 0)
-      alerts.toastSuccess('Login realizado', `Bem-vindo(a), ${result.usuario.nome.split(' ')[0]}.`)
+      alerts.toastSuccess(`Boas-vindas, ${result.usuario.nome.split(' ')[0]}!`)
     } catch (error) {
       sessao.limpar()
       limparEstado()

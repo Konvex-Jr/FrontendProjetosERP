@@ -214,7 +214,7 @@ export default function Tarefas() {
       k: 'titulo',
       l: 'Tarefa',
       render: t => (
-        <button className="btn btn-link p-0 text-start" onClick={() => setTk(t.id)}>
+        <button type="button" className="btn-nome" onClick={() => setTk(t.id)}>
           {t.titulo}
         </button>
       ),

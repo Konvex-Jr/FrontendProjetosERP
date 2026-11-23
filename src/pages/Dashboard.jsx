@@ -71,7 +71,7 @@ function Agenda({ D, me, go }) {
           ) : (
             <small>
               Você não tem tarefas abertas. Veja o painel{' '}
-              <button className="btn btn-link p-0 align-baseline" onClick={() => go('tarefas')}>
+              <button type="button" className="btn-nome" onClick={() => go('tarefas')}>
                 Tarefas
               </button>
               .

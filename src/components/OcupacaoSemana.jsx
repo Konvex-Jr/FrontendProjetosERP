@@ -10,7 +10,9 @@ function Linha({ p }) {
   const v = Math.round(p.percentual)
   return (
     <li className="ocup-linha">
-      <a href={`#/perfil/${p.codigoUsuario}`}>{p.nome}</a>
+      <a className="btn-nome" href={`#/perfil/${p.codigoUsuario}`} title={p.nome}>
+        {p.nome}
+      </a>
       <div className="progress" role="img" aria-label={`${p.nome}: ${v}%`}>
         <div className={`progress-bar ${COR[faixaOcupacao(p.percentual)]}`} style={{ width: `${Math.min(v, 100)}%` }} />
       </div>

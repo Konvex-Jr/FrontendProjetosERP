@@ -160,7 +160,7 @@ export default function CompletarPerfil() {
             </button>
           </>
         )}
-        <button type="button" className="lgv-foot btn btn-link" onClick={sair}>
+        <button type="button" className="btn btn-g w-100" onClick={sair}>
           Sair
         </button>
       </form>

@@ -44,8 +44,8 @@ export default function Login() {
       <main className="lgv-mold">
         <form onSubmit={send}>
           <div>
-            <h2>Bem-vindo de volta</h2>
-            <small>Entre com seu e-mail e senha.</small>
+            <h2>Que bom te ver</h2>
+            <small>Entre com seu e-mail da Konvex e sua senha.</small>
           </div>
           <label>
             E-mail
@@ -75,7 +75,9 @@ export default function Login() {
               <input type="checkbox" checked={manter} onChange={event => setManter(event.target.checked)} />
               Manter conectado por 15 dias
             </label>
-            <Link to="/esqueci-senha">Esqueci a senha</Link>
+            <Link className="btn btn-g btn-sm" to="/esqueci-senha">
+              Esqueci a senha
+            </Link>
           </div>
           <button className="btn btn-dk w-100" disabled={loading}>
             {loading ? 'Entrando…' : 'Entrar'}
