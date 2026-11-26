@@ -16,12 +16,18 @@ export function formatarHoras(n) {
   return `${String(v).replace('.', ',')} h`
 }
 
-/** "Média (4 h)"; sem horas, só o nome. */
-export function rotuloDificuldade(valor, horas) {
+/**
+ * Desde 25/11 cada nível é uma parte do dia da pessoa (teto semanal ÷ 5; teto de 10 h = 2 h por dia).
+ * "Média (75% do dia)"; sem o percentual, só o nome.
+ */
+export function rotuloDificuldade(valor, percentual) {
   const par = DIFICULDADES.find(([v]) => v === valor)
   if (!par) return ''
-  return horas == null ? par[1] : `${par[1]} (${formatarHoras(horas)})`
+  return percentual == null ? par[1] : `${par[1]} (${percentual}% do dia)`
 }
+
+/** Horas por dia útil de um nível para quem tem o teto informado (padrão 10 h por semana). */
+export const horasPorDia = (percentual, teto = 10) => (percentual * teto) / 5 / 100
 
 /** ok até 80%, atencao de 81 a 100, perigo acima de 100. */
 export function faixaOcupacao(p) {
@@ -65,8 +71,11 @@ export function semanaAtual() {
   return segundaDaSemana(iso)
 }
 
-/** Opções do select de dificuldade: [valor, rótulo] com "Sem classificação" primeiro. `horas` pode faltar. */
-export const opcoesDificuldade = horas => [['', 'Sem classificação'], ...DIFICULDADES.map(([v]) => [v, rotuloDificuldade(v, horas?.[v])])]
+/** Opções do select de dificuldade: [valor, rótulo] com "Sem classificação" primeiro. `percentuais` pode faltar. */
+export const opcoesDificuldade = percentuais => [
+  ['', 'Sem classificação'],
+  ...DIFICULDADES.map(([v]) => [v, rotuloDificuldade(v, percentuais?.[v])]),
+]
 
 /** Pessoas com " · N%" no nome (percentual por código); quem não tem % fica igual. */
 export const comCarga = (pessoas, carga = {}) => pessoas.map(u => (carga[u.id] == null ? u : { ...u, nome: `${u.nome} · ${carga[u.id]}%` }))

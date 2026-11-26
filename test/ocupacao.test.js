@@ -9,6 +9,7 @@ import {
   formatarHoras,
   proximaSemana,
   rotuloDificuldade,
+  horasPorDia,
   resumoOcupacao,
   rotuloSemana,
   segundaDaSemana,
@@ -25,8 +26,8 @@ test('DIFICULDADES na ordem', () => {
 })
 
 test('rotuloDificuldade', () => {
-  assert.equal(rotuloDificuldade('media', 4), 'Média (4 h)')
-  assert.equal(rotuloDificuldade('rapida', 1.5), 'Rápida (1,5 h)')
+  assert.equal(rotuloDificuldade('media', 75), 'Média (75% do dia)')
+  assert.equal(rotuloDificuldade('rapida', 25), 'Rápida (25% do dia)')
   assert.equal(rotuloDificuldade('facil'), 'Fácil')
 })
 
@@ -72,8 +73,8 @@ test('textoAviso', () => {
 })
 
 test('opcoesDificuldade e comCarga', () => {
-  assert.deepEqual(opcoesDificuldade({ media: 4 })[0], ['', 'Sem classificação'])
-  assert.deepEqual(opcoesDificuldade({ media: 4 })[3], ['media', 'Média (4 h)'])
+  assert.deepEqual(opcoesDificuldade({ media: 75 })[0], ['', 'Sem classificação'])
+  assert.deepEqual(opcoesDificuldade({ media: 75 })[3], ['media', 'Média (75% do dia)'])
   assert.equal(opcoesDificuldade(null)[3][1], 'Média')
   const l = comCarga(
     [
@@ -124,4 +125,10 @@ test('resumoOcupacao: pessoa não aparece nas duas listas', () => {
   const r = resumoOcupacao([pess(1, 10), pess(2, 20), pess(3, 90)])
   const ids = [...r.mais, ...r.livres].map(x => x.codigoUsuario)
   assert.equal(new Set(ids).size, ids.length)
+})
+
+test('horasPorDia: % do dia × teto ÷ 5', () => {
+  assert.equal(horasPorDia(100), 2)
+  assert.equal(horasPorDia(75), 1.5)
+  assert.equal(horasPorDia(100, 20), 4)
 })

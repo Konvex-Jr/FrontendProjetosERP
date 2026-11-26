@@ -11,7 +11,7 @@ export const ocupacao = {
 }
 
 /**
- * Apoio ao formulário de tarefa: horas por dificuldade e % da semana do `dia` (AAAA-MM-DD).
+ * Apoio ao formulário de tarefa: % do dia de cada dificuldade e % da semana do `dia` (AAAA-MM-DD).
  * Nunca lança: dia inválido, chamada que falha ou resposta estranha viram `{ horas: null, carga: {} }`.
  */
 export async function apoioTarefa(dia) {
