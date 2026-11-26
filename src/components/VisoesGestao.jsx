@@ -63,7 +63,6 @@ export function Alocacao({ lista, gente }) {
           <input type="checkbox" className="form-check-input" checked={soAcima} onChange={e => setSoAcima(e.target.checked)} />
           <span className="form-check-label">Só quem passa de 100% ({acima})</span>
         </label>
-        <small className="text-mu">Semana atual. Os projetos gerais das áreas não entram na lista.</small>
       </div>
       <Table
         cols={cols}

@@ -1,210 +1,102 @@
+import { useNavigate } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
-import { PC, ST, TIPO, chip, d, fm, hj, un } from '../lib/utils'
-import Burn from '../components/Burn'
-import Ic from '../components/Icon'
-import { Prog } from '../components/Ui'
-import OcupacaoSemana from '../components/OcupacaoSemana'
-import { abrirCom } from '../lib/atalho'
-import { indicadores } from '../lib/indicadores'
+import { ST, chip, d, fm, hj, un } from '../lib/utils'
+import Agenda from './Agenda'
 
-/** Os sete indicadores da Konvex (RF-110), só para a gestão. Cada número abre a lista correspondente. */
-function Indicadores({ D, go }) {
-  const abrir = ([tela, filtro]) => {
-    if (filtro) abrirCom(tela, filtro)
-    go(tela)
-  }
-  return (
-    <section className="card card-body mb-3" aria-label="Indicadores da Konvex">
-      <h2>Indicadores da Konvex</h2>
-      <div className="kpi">
-        {indicadores(D, hj(D)).map(i => (
-          <button
-            key={i.chave}
-            type="button"
-            className={'kpi-i' + (i.alerta && i.numero ? ' al' : '')}
-            title={i.dica}
-            onClick={() => abrir(i.destino)}
-          >
-            <b>{i.numero}</b>
-            <span>{i.rotulo}</span>
-            <small>{i.dica}</small>
-          </button>
-        ))}
-      </div>
-    </section>
-  )
-}
+// Cor do selo de situação da tarefa (atrasada tem cor própria).
+const COR_SITUACAO = { pendente: '', andamento: 'p3' }
 
-/** Próximas tarefas abertas da pessoa e capacitações em que ela se inscreveu (até 6 de cada). */
-function Agenda({ D, me, go }) {
-  const h = hj(D)
-  const tk = D.t
-    .filter(t => t.status != 'concluida' && t.responsaveis.includes(me))
-    .sort((a, b) => (a.fim > b.fim ? 1 : -1))
-    .slice(0, 6)
-  const ck = D.k
-    .filter(c => c.inscrito && c.data >= D.c.hoje)
-    .sort((a, b) => (a.data > b.data ? 1 : -1))
-    .slice(0, 6)
+/** Linha clicável das listas do Dashboard: título, detalhe, data e selo. */
+function Linha({ titulo, detalhe, data, dataAlerta, selo, seloCls, onClick }) {
   return (
-    <>
-      <div className="col-md-6">
-        <div className="card card-body h-100">
-          <h2>Minhas tarefas</h2>
-          {tk.length ? (
-            tk.map(t => {
-              const lt = d(t.fim) < h
-              return (
-                <div className="ag" key={t.id} onClick={() => go('projeto', t.projetoId)}>
-                  <span className={chip(PC[t.prioridade])}>{t.prioridade}</span>
-                  <div>
-                    <b>{t.titulo}</b>
-                    <small>
-                      {D.p.find(p => p.id == t.projetoId)?.nome}
-                      {lt ? ' · atrasada' : ''}
-                    </small>
-                  </div>
-                  <span className={chip(lt ? 'er' : '')}>{fm(t.fim)}</span>
-                </div>
-              )
-            })
-          ) : (
-            <small>
-              Você não tem tarefas abertas. Veja o painel{' '}
-              <button type="button" className="btn-nome" onClick={() => go('tarefas')}>
-                Tarefas
-              </button>
-              .
-            </small>
-          )}
-        </div>
-      </div>
-      <div className="col-md-6">
-        <div className="card card-body h-100">
-          <h2>Minhas capacitações</h2>
-          {ck.length ? (
-            ck.map(c => (
-              <div className="ag" key={c.id} onClick={() => go('capacitacoes', c.id)}>
-                <span className={chip()}>{TIPO[c.tipo]}</span>
-                <div>
-                  <b>{c.titulo}</b>
-                  <small>
-                    {c.sala} · {c.hora}
-                  </small>
-                </div>
-                <span className={chip()}>{fm(c.data)}</span>
-              </div>
-            ))
-          ) : (
-            <div>
-              <small>Você não está inscrito em nenhuma capacitação futura.</small>
-              <div className="mt-2">
-                <button className="btn btn-g btn-sm" onClick={() => go('capacitacoes')}>
-                  Ver capacitações
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    </>
+    <button type="button" className="dl-linha" onClick={onClick}>
+      <b>{titulo}</b>
+      <span className="dl-det">{detalhe}</span>
+      <span className={dataAlerta ? 'dl-data al' : 'dl-data'}>{data}</span>
+      <span className={chip(seloCls)}>{selo}</span>
+    </button>
   )
 }
 
 /**
- * Tela inicial: resumo das tarefas da pessoa, burndown, agenda e atalhos do menu.
- * Os indicadores da Konvex só aparecem para quem tem projetos.verTodos (gestão).
- * Usa os dados do contexto (D), que para membro já vêm só com o que é dele.
+ * Tela inicial (25/11): tarefas abertas da pessoa, capacitações em que ela está inscrita e a Agenda do mês.
+ * Indicadores e ocupação ficam em Relatórios. Usa os dados do contexto (D).
  */
 export default function Dashboard() {
-  const { D, go, me, nav, pode } = useApp()
-  const mine = D.t.filter(t => (t.responsaveis || []).includes(me)),
-    ab = mine.filter(t => t.status != 'concluida')
-  const lt = ab.filter(t => d(t.fim) < hj(D)).length,
-    cap = D.k.filter(c => c.inscrito && c.data >= D.c.hoje).length
+  const { D, go, me } = useApp(),
+    navigate = useNavigate(),
+    h = hj(D)
+  const tarefas = D.t
+    .filter(t => t.status != 'concluida' && (t.responsaveis || []).includes(me))
+    .sort((a, b) => (a.fim > b.fim ? 1 : a.fim < b.fim ? -1 : 0))
+  const caps = D.k.filter(c => c.inscrito && c.data >= D.c.hoje).sort((a, b) => (a.data + a.hora > b.data + b.hora ? 1 : -1))
+  const nomeProjeto = id => D.p.find(p => p.id == id)?.nome || ''
   return (
     <>
-      <section className="hero d-flex flex-wrap justify-content-between align-items-center gap-4">
-        <div>
-          <h1>Olá, {un(D, me).split(' ')[0]}.</h1>
-          <p>{d(D.c.hoje).toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
-          <div className="d-flex flex-wrap gap-2 mt-3">
-            <button className="btn btn-primary" onClick={() => go('projetos')}>
-              Ver projetos
-            </button>
-            <button className="btn btn-ol" onClick={() => go('tarefas')}>
-              Minhas tarefas
-            </button>
-          </div>
-        </div>
-        <div className="hs d-flex flex-wrap gap-3">
-          {[
-            [ab.length, 'tarefas abertas'],
-            [lt, 'atrasadas'],
-            [cap, 'capacitações a caminho'],
-          ].map(([n, l]) => (
-            <div key={l}>
-              <b>{n}</b>
-              <span>{l}</span>
-            </div>
-          ))}
+      <div className="dl-cab">
+        <h1>Olá, {un(D, me).split(' ')[0]}.</h1>
+        <p>{d(D.c.hoje).toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+      </div>
+
+      <section className="dl" aria-label="Minhas tarefas">
+        <h2>
+          Minhas tarefas <span className="dl-n">{tarefas.length}</span>
+        </h2>
+        <div className="dl-caixa">
+          {tarefas.length ? (
+            tarefas.map(t => {
+              const atrasada = d(t.fim) < h
+              return (
+                <Linha
+                  key={t.id}
+                  titulo={t.titulo}
+                  detalhe={nomeProjeto(t.projetoId)}
+                  data={fm(t.fim)}
+                  dataAlerta={atrasada}
+                  selo={atrasada ? 'Atrasada' : ST[t.status]}
+                  seloCls={atrasada ? 'er' : COR_SITUACAO[t.status]}
+                  onClick={() => navigate(`/tarefas?tarefa=${t.id}`)}
+                />
+              )
+            })
+          ) : (
+            <p className="dl-vazio">Você não tem tarefas abertas.</p>
+          )}
         </div>
       </section>
 
-      {pode('projetos.verTodos') && <Indicadores D={D} go={go} />}
-
-      {pode('projetos.verTodos') && <OcupacaoSemana />}
-
-      <div className="row g-3 mb-3">
-        <div className="col-lg-8">
-          <div className="card card-body h-100">
-            <h2>Burndown das minhas tarefas</h2>
-            {mine.length ? <Burn D={D} T={mine} /> : <small>Quando você tiver tarefas atribuídas, o andamento delas aparece aqui.</small>}
-          </div>
+      <section className="dl" aria-label="Minhas capacitações">
+        <h2>
+          Minhas capacitações <span className="dl-n">{caps.length}</span>
+        </h2>
+        <div className="dl-caixa">
+          {caps.length ? (
+            caps.map(c => (
+              <Linha
+                key={c.id}
+                titulo={c.titulo}
+                detalhe={[c.hora, c.sala].filter(Boolean).join(' · ')}
+                data={fm(c.data)}
+                selo="Inscrito"
+                seloCls="ok"
+                onClick={() => go('capacitacoes', c.id)}
+              />
+            ))
+          ) : (
+            <p className="dl-vazio">
+              Você não está inscrito em nenhuma capacitação futura.{' '}
+              <button type="button" className="btn-nome" onClick={() => go('capacitacoes')}>
+                Ver capacitações
+              </button>
+            </p>
+          )}
         </div>
-        <div className="col-lg-4">
-          <div className="card card-body h-100">
-            <h2>Resumo das minhas tarefas</h2>
-            {mine.length ? (
-              <>
-                {Object.keys(ST).map(k => {
-                  const n = mine.filter(t => t.status == k).length
-                  return (
-                    <div key={k}>
-                      <div className="d-flex justify-content-between">
-                        <span>{ST[k]}</span>
-                        <b>{n}</b>
-                      </div>
-                      <Prog v={(n / mine.length) * 100} />
-                    </div>
-                  )
-                })}
-                <small>
-                  {mine.length} {mine.length == 1 ? 'tarefa atribuída' : 'tarefas atribuídas'} a você
-                </small>
-              </>
-            ) : (
-              <small>Nenhuma tarefa atribuída a você ainda.</small>
-            )}
-          </div>
-        </div>
-      </div>
+      </section>
 
-      <div className="row g-3 mb-3">
-        <Agenda D={D} me={me} go={go} />
-      </div>
-
-      <h2>Atalhos</h2>
-      <div className="row g-3">
-        {nav.slice(1).map(([k, l]) => (
-          <div className="col-6 col-md-4 col-xl-3" key={k}>
-            <button className="btn btn-g w-100 justify-content-start gap-2 p-3 rounded-4" onClick={() => go(k)}>
-              <Ic k={k} />
-              {l}
-            </button>
-          </div>
-        ))}
-      </div>
+      {/* A Agenda saiu do menu (25/11) e mora aqui: reuniões, prazos e capacitações do mês. */}
+      <section className="dl" aria-label="Agenda">
+        <Agenda />
+      </section>
     </>
   )
 }

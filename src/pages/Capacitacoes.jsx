@@ -21,7 +21,7 @@ import { SITUACAO, capacitacoes, horas, valoresCapacitacao } from '../services/c
  */
 
 // Filtros e visão ficam na memória ao abrir a ficha e voltar.
-let ultimos = { tipo: '', quando: 'proximas', minhas: '', visao: 'lista', mes: '' }
+let ultimos = { visao: 'lista', mes: '' }
 
 const MARKDOWN = 'Aceita Markdown simples: ## título, - lista, **negrito** e [texto](https://...).'
 const quando = c => `${fd(c.data)} às ${c.hora} · ${horas(c.duracao)}`
@@ -123,7 +123,6 @@ function Cartao({ c, abrir, acoes }) {
       <div className="ct">
         <h3>{c.titulo}</h3>
         {c.inscrito && <span className={chip('ok')}>Inscrito</span>}
-        <span className={chip('tp-' + c.tipo)}>{TIPO[c.tipo]}</span>
       </div>
       <div className="cmeta">
         <span>
@@ -159,6 +158,59 @@ function Cartao({ c, abrir, acoes }) {
         </small>
         <span onClick={e => e.stopPropagation()}>
           <ActionMenu items={itens} />
+        </span>
+      </div>
+    </div>
+  )
+}
+
+/** Quantos dias faltam, em texto: "hoje", "amanhã" ou "daqui a N dias". */
+function falta(data) {
+  const dias = Math.round((new Date(data + 'T00:00') - new Date(iso(new Date()) + 'T00:00')) / 86400000)
+  return dias <= 0 ? 'hoje' : dias === 1 ? 'amanhã' : `daqui a ${dias} dias`
+}
+
+/** As duas próximas capacitações em destaque (25/11), com a inscrição à vista. */
+function Destaque({ c, abrir, acoes }) {
+  const dia = new Date(c.data + 'T00:00')
+    .toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit' })
+    .replace(/[.,]/g, '')
+  return (
+    <div className="cc cc-dest" onClick={() => abrir(c.id)}>
+      <span className="cc-quando">
+        {dia} · {falta(c.data)}
+      </span>
+      <div className="ct">
+        <h3>{c.titulo}</h3>
+        {c.inscrito && <span className={chip('ok')}>Inscrito</span>}
+      </div>
+      <div className="cmeta">
+        <span>
+          <Ic k="clock" />
+          {c.hora} · {horas(c.duracao)}
+        </span>
+        <span>
+          <Ic k="pin" />
+          {c.sala}
+        </span>
+      </div>
+      <small>Com {c.instrutor}</small>
+      <div className="cf2">
+        <small>
+          {c.totalInscritos} de {c.vagas} {c.vagas === 1 ? 'vaga' : 'vagas'}
+          {c.situacao === 'lotada' ? ' · esgotada' : ''}
+        </small>
+        <span onClick={e => e.stopPropagation()}>
+          {c.podeInscrever && (
+            <button type="button" className="btn btn-primary btn-sm" onClick={() => acoes.inscrever(c)}>
+              Inscrever-se
+            </button>
+          )}
+          {c.podeCancelar && (
+            <button type="button" className="btn btn-g btn-sm" onClick={() => acoes.cancelar(c)}>
+              Cancelar inscrição
+            </button>
+          )}
         </span>
       </div>
     </div>
@@ -252,10 +304,13 @@ function Lista() {
   }, [])
   const abrir = id => go('capacitacoes', id)
   const todas = D.k || []
-  const lista = todas.filter(c => (!f.tipo || c.tipo === f.tipo) && (!f.minhas || c.inscrito))
+  // Sem filtros (25/11): todas aparecem, as duas próximas em destaque, depois as outras próximas e as realizadas.
+  const lista = todas
   // Mês local: toISOString (UTC) abriria o mês seguinte no último dia do mês, depois das 21h.
   const mes = f.mes || mesDe(iso(new Date()))
-  const proximas = lista.filter(c => c.situacao !== 'realizada')
+  const futuras = lista.filter(c => c.situacao !== 'realizada')
+  const destaques = futuras.slice(0, 2),
+    proximas = futuras.slice(2)
   const realizadas = lista.filter(c => c.situacao === 'realizada').reverse()
   const secao = (titulo, itens) =>
     itens.length > 0 && (
@@ -273,14 +328,11 @@ function Lista() {
         </div>
       </>
     )
-  const vazio = !todas.length
-    ? 'Nenhuma capacitação cadastrada ainda. ' +
-      (op.podeGerir ? 'Use “Nova capacitação”.' : 'Quando a gestão marcar uma, ela aparece aqui.')
-    : 'Nada encontrado. Ajuste os filtros.'
-  const mostrar = f.quando === 'proximas' ? [proximas, []] : f.quando === 'realizadas' ? [[], realizadas] : [proximas, realizadas]
+  const vazio =
+    'Nenhuma capacitação cadastrada ainda. ' + (op.podeGerir ? 'Use “Nova capacitação”.' : 'Quando a gestão marcar uma, ela aparece aqui.')
   return (
     <>
-      <PageBar title="Capacitações" sub="Inscreva-se, veja o calendário e avalie as capacitações de que participou.">
+      <PageBar title="Capacitações">
         {op.podeGerir && (
           <button className="btn btn-primary" onClick={() => abrirForm({ D, form, aoSalvar: c => abrir(c.id) })}>
             <Ic k="plus" />
@@ -297,42 +349,26 @@ function Lista() {
           value={f.visao}
           onChange={v => set('visao', v)}
         />
-        <div className="fl d-flex flex-wrap gap-2">
-          <select className="form-select w-auto" aria-label="Tipo" value={f.tipo} onChange={e => set('tipo', e.target.value)}>
-            <option value="">Tipo: todos</option>
-            {Object.entries(TIPO).map(([k, l]) => (
-              <option key={k} value={k}>
-                {l}
-              </option>
-            ))}
-          </select>
-          {f.visao === 'lista' && (
-            <select className="form-select w-auto" aria-label="Quando" value={f.quando} onChange={e => set('quando', e.target.value)}>
-              <option value="proximas">Próximas</option>
-              <option value="realizadas">Já realizadas</option>
-              <option value="todas">Quando: todas</option>
-            </select>
-          )}
-          <select className="form-select w-auto" aria-label="Inscrição" value={f.minhas} onChange={e => set('minhas', e.target.value)}>
-            <option value="">Inscrição: todas</option>
-            <option value="1">Só as minhas</option>
-          </select>
-        </div>
       </div>
       {f.visao === 'calendario' ? (
         <Calendario lista={lista} mes={mes} setMes={m => set('mes', m)} abrir={abrir} />
-      ) : mostrar[0].length + mostrar[1].length ? (
+      ) : todas.length ? (
         <>
-          {secao('Próximas', mostrar[0])}
-          {secao('Já realizadas', mostrar[1])}
+          {destaques.length > 0 && (
+            <div className="row g-3 mb-2">
+              {destaques.map(c => (
+                <div key={c.id} className="col-md-6">
+                  <Destaque c={c} abrir={abrir} acoes={acoes} />
+                </div>
+              ))}
+            </div>
+          )}
+          {secao('Próximas', proximas)}
+          {secao('Já realizadas', realizadas)}
         </>
       ) : (
         <div className="card card-body">
-          <small>
-            {f.quando === 'proximas' && todas.length && !f.tipo && !f.minhas
-              ? 'Nenhuma capacitação marcada daqui para a frente. Veja “Já realizadas” ou o calendário.'
-              : vazio}
-          </small>
+          <small>{vazio}</small>
         </div>
       )}
     </>
@@ -371,9 +407,6 @@ function Presenca({ c, aoMudar }) {
   const ordenados = [...c.inscritos].sort((a, b) => a.nome.localeCompare(b.nome))
   return (
     <>
-      <small className="d-block mb-2">
-        Toque em quem está presente. Só quem estiver marcado pode avaliar, e as horas entram no perfil da pessoa.
-      </small>
       <div className="d-flex flex-wrap gap-2 mb-2">
         <button type="button" className="btn btn-g btn-sm" onClick={() => setMarcados(new Set(c.inscritos.map(i => i.id)))}>
           Todos presentes
@@ -489,9 +522,6 @@ function Avaliar({ c, aoMudar }) {
         O que pode melhorar?
         <textarea className="form-control mt-1" rows={2} value={v.melhorar} onChange={e => set('melhorar', e.target.value)} />
       </label>
-      <small className="d-block mb-2">
-        A gestão vê sua avaliação com seu nome; quem ministrou lê sem o nome. Os demais veem só a média.
-      </small>
       <button className="btn btn-primary" disabled={!v.nota}>
         {c.minhaAvaliacao ? 'Atualizar avaliação' : 'Enviar avaliação'}
       </button>
@@ -611,13 +641,7 @@ function Ficha({ id }) {
             {c.totalInscritos} de {c.vagas} vagas ocupadas
           </small>
         </div>
-        <Secao titulo="Descrição">
-          {c.descricao.trim() ? (
-            <Markdown texto={c.descricao} />
-          ) : (
-            <small>Sem descrição.{c.podeGerir && ' Use “Editar” para acrescentar o conteúdo e o que levar.'}</small>
-          )}
-        </Secao>
+        <Secao titulo="Descrição">{c.descricao.trim() ? <Markdown texto={c.descricao} /> : <small>Sem descrição.</small>}</Secao>
         {(c.anexos.length > 0 || c.podeGerir) && (
           <Secao titulo="Material">
             <Anexos dono="capacitacoes" codigo={c.id} lista={c.anexos} podeAlterar={c.podeGerir} aoMudar={recarregar} />

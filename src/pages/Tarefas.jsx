@@ -278,7 +278,7 @@ export default function Tarefas() {
         <KanbanTarefas D={D} T={T} papelDe={papelDe} acoes={acoes} abrir={setTk} adicionar={podeCriar ? nova : null} origem />
       ) : (
         <div className="card card-body">
-          <Table cols={colunas} rows={T} vazio="Nenhuma tarefa para mostrar." />
+          <Table cols={colunas} rows={T} vazio="Nenhuma tarefa para mostrar." itens={['tarefa', 'tarefas']} porPagina={20} />
         </div>
       )}
       {criando && (

@@ -212,7 +212,7 @@ export default function TaskModal({
   const podeEditar = criando || papel.podeEditar(t),
     podeStatus = criando || papel.podeStatus(t),
     podeMarcar = criando || papel.podeMarcar(t)
-  // Horas por dificuldade e % da semana do prazo; se falhar, a tela segue sem o complemento.
+  // % do dia de cada dificuldade e % da semana do prazo; se falhar, a tela segue sem o complemento.
   const [horas, setHoras] = useState(null),
     [carga, setCarga] = useState({})
   useEffect(() => {
@@ -596,7 +596,6 @@ export default function TaskModal({
                           </optgroup>
                         ))}
                       </select>
-                      <small className="d-block mt-1">Você cria tarefas nos projetos de que participa.</small>
                     </L>
                   )}
                   {etapas ? (
@@ -677,7 +676,6 @@ export default function TaskModal({
                     <fieldset className="mb-3" disabled={!papel.organiza}>
                       <div className="form-label">Responsáveis</div>
                       <Multi opts={gente} value={draft.responsaveis || []} onChange={mudarResponsaveis} />
-                      {criando && <small className="d-block mt-1">A % ao lado do nome é a ocupação desta semana.</small>}
                     </fieldset>
                     {!criando && (
                       <L l="Depende de">
@@ -734,7 +732,6 @@ export default function TaskModal({
                   <div className="mt-2">
                     <ZonaEnvio aoEscolher={escolherArquivos} ocupado={salvando ? { atual: 1, total: 1 } : undefined} />
                   </div>
-                  <small className="d-block mt-1">Os arquivos sobem quando a tarefa for criada.</small>
                 </div>
               )}
               {!criando && <Comentarios t={t} papel={papel} />}

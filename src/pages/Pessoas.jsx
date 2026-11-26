@@ -21,7 +21,6 @@ import {
   podeRedefinirSenha,
 } from '../lib/cadastroPessoa'
 import { mascararTelefone } from '../lib/pessoaContato'
-import { rotuloArea } from '../lib/periodos'
 import { ocupacao } from '../services/ocupacao'
 import ChipOcupacao from '../components/ChipOcupacao'
 
@@ -246,21 +245,35 @@ export default function Pessoas() {
       ),
     },
     { k: 'email', l: 'E-mail' },
-    // Áreas atuais (períodos em aberto), cada uma com o cargo; o filtro olha só a própria área (não as de baixo).
+    // Áreas atuais (períodos em aberto) e o cargo de cada uma, em duas colunas de texto simples (25/11),
+    // uma área por linha. O filtro olha só a própria área (não as de baixo).
     {
       k: 'ar',
-      l: 'Áreas',
+      l: 'Área',
       fl: 'Área',
       filter: 1,
-      get: p => (p.areas || []).map(rotuloArea).join(', ') || '—',
+      get: p => (p.areas || []).map(a => a.area.nome).join(', ') || '—',
       vals: p => (p.areas?.length ? p.areas.map(a => a.area.nome) : ['—']),
       render: p =>
         p.areas?.length ? (
-          <span className="selos-area">
+          <span className="areas-l">
             {p.areas.map(a => (
-              <span key={a.codigoPeriodo} className={chip()}>
-                {rotuloArea(a)}
-              </span>
+              <span key={a.codigoPeriodo}>{a.area.nome}</span>
+            ))}
+          </span>
+        ) : (
+          '—'
+        ),
+    },
+    {
+      k: 'cg',
+      l: 'Cargo',
+      get: p => (p.areas || []).map(a => a.cargo?.nome || '—').join(', ') || '—',
+      render: p =>
+        p.areas?.length ? (
+          <span className="areas-l">
+            {p.areas.map(a => (
+              <span key={a.codigoPeriodo}>{a.cargo?.nome || '—'}</span>
             ))}
           </span>
         ) : (
@@ -312,14 +325,20 @@ export default function Pessoas() {
 
   return (
     <>
-      <PageBar title="Pessoas" sub="Quem está e quem já passou pela Konvex. Sair da EJ preserva o histórico.">
+      <PageBar title="Pessoas">
         <button className="btn btn-primary" onClick={() => editar()} disabled={!senioridades.length}>
           <Ic k="plus" />
           Nova pessoa
         </button>
       </PageBar>
       {!senioridades.length && <p className="text-mu">Cadastre uma senioridade em Configurações antes de criar pessoas.</p>}
-      <Table cols={colunas} rows={linhas} filtros={filtros} vazio="Ninguém cadastrado ainda. Use “Nova pessoa”." />
+      <Table
+        cols={colunas}
+        rows={linhas}
+        filtros={filtros}
+        itens={['pessoa', 'pessoas']}
+        vazio="Ninguém cadastrado ainda. Use “Nova pessoa”."
+      />
     </>
   )
 }

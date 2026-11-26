@@ -7,16 +7,8 @@ export default function CascaConta({ children }) {
       <section className="lgv-hx">
         <img className="lgv-logo" src={BASE + 'logo-branca.webp'} width={192} height={28} alt="Konvex Jr" />
         <div className="lgv-tx">
-          <span className="lgv-pill">Sistema interno</span>
-          <h1>
-            A Konvex em <em>movimento</em>.
-          </h1>
-          <p>Projetos, tarefas, pessoas e capacitações num só lugar.</p>
-        </div>
-        <div className="lgv-glass" aria-hidden="true">
-          <small>Acesso</small>
-          <b>Só para membros</b>
-          <span>Use o e-mail e a senha da empresa</span>
+          <h1>Sistema interno da Konvex</h1>
+          <p>Projetos, tarefas, pessoas e capacitações num lugar só.</p>
         </div>
       </section>
       <main className="lgv-mold">{children}</main>

@@ -4,7 +4,6 @@ import TelaAviso from './components/TelaAviso'
 import Layout from './components/Layout'
 import Login from './pages/Login'
 import {
-  Agenda,
   Biblioteca,
   Capacitacoes,
   CompletarPerfil,
@@ -67,7 +66,8 @@ export default function App() {
         <Route path="tarefas" element={<Tarefas />} />
         <Route path="projetos" element={<Projetos />} />
         <Route path="projetos/:id" element={<Projeto />} />
-        <Route path="agenda" element={<Agenda />} />
+        {/* A Agenda está dentro do Dashboard desde 25/11; o endereço antigo leva para lá. */}
+        <Route path="agenda" element={<Navigate to="/" replace />} />
         <Route path="capacitacoes" element={<Capacitacoes />} />
         <Route path="capacitacoes/:id" element={<Capacitacoes />} />
         <Route path="biblioteca" element={<Biblioteca />} />
