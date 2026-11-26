@@ -257,7 +257,7 @@ function Lista() {
 
   return (
     <>
-      <PageBar title="Biblioteca" sub="Documentos, pesquisas, decisões e aprendizados da Konvex, com projeto e sigilo.">
+      <PageBar title="Biblioteca">
         <button className="btn btn-primary" onClick={() => abrirForm()}>
           <Ic k="plus" />
           Novo item
@@ -298,6 +298,8 @@ function Lista() {
           busca={false}
           cols={cols}
           rows={comId(lista)}
+          itens={['item', 'itens']}
+          porPagina={20}
           vazio={
             ativos
               ? 'Nada encontrado. Ajuste a busca ou os filtros.'
@@ -440,8 +442,7 @@ export function ItensDoProjeto({ projeto }) {
   ]
   return (
     <>
-      <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
-        <small>Documentos, decisões e aprendizados ligados a este projeto.</small>
+      <div className="d-flex flex-wrap align-items-center justify-content-end gap-2 mb-2">
         <button className="btn btn-primary" onClick={novo}>
           <Ic k="plus" />
           Novo item

@@ -8,8 +8,8 @@ body {
   font-family: 'Inter Variable', Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
   letter-spacing: 0;
   font-variant-numeric: normal;
-  background-image: radial-gradient(circle, var(--dot) 1px, transparent 1.5px);
-  background-size: 18px 18px;
+  /* Fundo liso (25/11): sem pontilhado nem brilhos nas telas internas. */
+  background-image: none;
 }
 
 h1, h2, h3 { letter-spacing: -.01em }
@@ -82,7 +82,9 @@ table, .hs b, .tnum, time { font-variant-numeric: tabular-nums }
 .gv-i.on { color: var(--on) }
 
 /* ---------- Layout Halo (desktop): sidebar marinho de 240 px + barra superior ---------- */
-#menu .ml, #menu .nl { display: none }
+#menu .ml, #menu .nl, #menu .mg { display: none }
+/* Títulos dos grupos do menu (Trabalho, Equipe, Gestão) e da gaveta do celular. */
+.gv-g { display: block; padding: 12px 12px 4px; font-size: 12px; font-weight: 600; color: var(--mu) }
 
 @media (min-width: 992px) {
   #menu {
@@ -101,6 +103,8 @@ table, .hs b, .tnum, time { font-variant-numeric: tabular-nums }
   #menu .pill { display: none }
   #menu .ml { display: block; height: 26px; width: auto; align-self: flex-start; margin: 4px 10px 22px; cursor: pointer }
   #menu .nl { display: inline }
+  #menu .mg { display: block; padding: 14px 12px 6px; font-size: 12px; font-weight: 600; color: #8fa3bd }
+  #menu .ml + .mg { padding-top: 0 }
   #menu a {
     width: auto; height: 40px;
     justify-content: flex-start; gap: 12px;
@@ -177,23 +181,11 @@ table, .hs b, .tnum, time { font-variant-numeric: tabular-nums }
 .lgv-hx>* { position: relative }
 .lgv-logo { height: 28px; width: auto; justify-self: start }
 .lgv-tx { display: grid; gap: 20px; justify-items: start; max-width: 560px }
-.lgv-pill { font-size: 12px; line-height: 16px; font-weight: 600; padding: 6px 12px; border-radius: 999px; border: 1px solid #ffffff2e; background: #ffffff0f; color: #d6e0ec }
-.lgv h1 { font-size: clamp(40px, 3.4vw, 56px); line-height: 1.08; font-weight: 800; letter-spacing: -.02em; margin: 0; text-wrap: balance }
-.lgv h1 em { font-style: normal; color: var(--ac) }
-.lgv-tx p { margin: 0; font-size: 16px; line-height: 24px; color: #b4c2d6; max-width: 42ch }
-.lgv-glass {
-  justify-self: start;
-  display: grid; gap: 4px;
-  padding: 16px 20px;
-  border-radius: 12px;
-  background: #ffffff14;
-  border: 1px solid #ffffff29;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-}
-.lgv-glass small { color: #b4c2d6; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase }
-.lgv-glass b { font-size: 16px }
-.lgv-glass span { font-size: 13px; color: #d6e0ec }
+.lgv h1 { font-size: clamp(34px, 2.8vw, 44px); line-height: 1.12; font-weight: 800; letter-spacing: -.02em; margin: 0; text-wrap: balance; max-width: 14ch }
+/* Logo no alto e o título no meio do painel (o rodapé com o nome da EJ saiu em 25/11). */
+.lgv-hx { grid-template-rows: auto 1fr }
+.lgv-hx .lgv-tx { align-self: center }
+.lgv-tx p { margin: 0; font-size: 16px; line-height: 24px; color: #b4c2d6; max-width: 48ch }
 .lgv-mold {
   display: grid;
   place-items: center;
@@ -217,7 +209,7 @@ table, .hs b, .tnum, time { font-variant-numeric: tabular-nums }
 .lgv-mold .btn { min-height: 44px }
 .lgv-mold .lgv-foot { font-size: 13px; color: var(--mu); text-align: center }
 .lgv-opcoes { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; font-size: 13px }
-.lgv-opcoes a { color: var(--act); font-weight: 600 }
+.lgv-opcoes a { font-weight: 600 }
 .lgv-mold .lgv-manter { display: flex; align-items: center; gap: 8px; font-weight: 500 }
 .lgv-manter input { width: 18px; height: 18px; accent-color: var(--ac); flex: none }
 
@@ -225,7 +217,7 @@ table, .hs b, .tnum, time { font-variant-numeric: tabular-nums }
 @media (max-width: 991.98px) {
   .lgv { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto 1fr; min-height: 100dvh; background: #071426 }
   .lgv-hx { gap: 0; padding: 28px 20px 52px }
-  .lgv-tx, .lgv-glass { display: none }
+  .lgv-tx { display: none }
   .lgv-mold { position: relative; z-index: 1; place-items: start center; padding: 32px 20px 40px; margin-top: -24px; border-radius: 24px 24px 0 0; background: var(--c) }
   /* No celular a própria folha branca é o fundo do formulário: o cartão some. */
   .lgv-mold form, .lgv-mold .lgv-form { max-width: 380px; padding: 0; background: none; border: 0; border-radius: 0; box-shadow: none }
@@ -247,3 +239,77 @@ table, .hs b, .tnum, time { font-variant-numeric: tabular-nums }
 .senha-regras { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; font-size: 13px; color: var(--mu) }
 .senha-regras li.ok { color: var(--ok); font-weight: 600 }
 .senha-aviso { color: var(--er) !important; font-weight: 600 }
+
+/* ---------- Dashboard enxuto (25/11): duas listas em largura total ---------- */
+.dl-cab { margin-bottom: 24px }
+.dl-cab p { color: var(--mu); margin: 4px 0 0 }
+.dl-cab p::first-letter, .cc-quando::first-letter { text-transform: uppercase }
+.dl + .dl { margin-top: 28px }
+.dl h2 { display: flex; align-items: center; gap: 8px; font-size: 16px }
+.dl-n { display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 7px; border-radius: 11px; background: var(--ac); color: var(--on); font-size: 12px; font-weight: 800 }
+.dl-caixa { background: var(--c); border: 1px solid var(--ln); border-radius: 6px }
+.dl-linha {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 220px) 90px 120px; gap: 14px; align-items: center;
+  width: 100%; padding: 12px 16px; border: 0; border-bottom: 1px solid var(--ln); background: none; color: var(--tx); text-align: left; font-size: 14px;
+}
+.dl-linha:last-child { border-bottom: 0 }
+.dl-linha:hover { background: var(--bg) }
+.dl-linha b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.dl-det, .dl-data { color: var(--mu); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.dl-data.al { color: var(--er); font-weight: 600 }
+.dl-linha .badge { justify-self: start }
+.dl-vazio { margin: 0; padding: 16px; color: var(--mu) }
+@media (max-width: 575.98px) {
+  .dl-linha { grid-template-columns: minmax(0, 1fr) auto; row-gap: 2px }
+  .dl-det { grid-column: 1; grid-row: 2 }
+  .dl-data { grid-column: 2; grid-row: 1 }
+  .dl-linha .badge { grid-column: 2; grid-row: 2; justify-self: end }
+}
+
+/* ---------- Tabelas (25/11): caixa com borda, cabeçalho discreto com setas, rodapé com contagem e páginas ---------- */
+.tbx { background: var(--c); border: 1px solid var(--ln); border-radius: 6px; overflow: hidden }
+.tbx>.tw { border: 0; border-radius: 0; background: none }
+.tw th { background: var(--c); color: var(--mu); font-size: 12px; font-weight: 600 }
+.tw th.on { color: var(--tx) }
+.tw th .ord { margin-left: 6px; font-size: 9px; letter-spacing: -1px; color: var(--mu); opacity: .55 }
+.tw th .ord.on { color: var(--ac); opacity: 1 }
+/* Como na maquete: nome com avatar, sem pílula e numa linha só (nome comprido não quebra); selos também não quebram. */
+@media (min-width: 576px) {
+  .tw td.tc-t, .tw td .badge { white-space: nowrap }
+  .tw td .btn-nome { padding: 0; border: 0; border-radius: 0; background: none; white-space: nowrap; gap: 10px }
+  .tw td .btn-nome:hover, .tw td .btn-nome:focus-visible { background: none; color: var(--act); text-decoration: underline; text-underline-offset: 3px }
+  .tw td .btn-nome .av { margin: 0; width: 28px; height: 28px; font-size: 11px }
+}
+.tw-rod { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding: 10px 16px; border-top: 1px solid var(--ln); font-size: 13px; color: var(--mu) }
+.tw-pag { display: flex; gap: 4px; flex-wrap: wrap }
+.tw-pag .btn { min-width: 32px; justify-content: center }
+.tw-pag .btn.on { background: var(--ac); border-color: var(--ac); color: var(--on); font-weight: 700 }
+@media (max-width: 575.98px) {
+  /* No celular as linhas viram cartões: a caixa some e o rodapé fica solto embaixo. */
+  .tbx { background: none; border: 0; overflow: visible }
+  .tw-rod { border-top: 0; padding: 8px 2px }
+  .tw-pag .btn:not(.on):not(:first-child):not(:last-child) { display: none }
+}
+
+/* ---------- Capacitações (25/11): as duas próximas em destaque ---------- */
+.cc.cc-dest { padding: 22px; border-color: var(--t); border-width: 1.5px }
+:root[data-theme=dark] .cc.cc-dest { border-color: #2c4a75 }
+.cc-dest h3 { font-size: 19px }
+.cc-quando { display: block; font-size: 12px; font-weight: 700; color: var(--act) }
+.cc-dest .cmeta span { text-transform: none }
+.cc-dest .cf2 .btn { min-height: 32px }
+
+/* ---------- Campo de senha com "Mostrar" (login, 25/11) ---------- */
+.campo-senha { position: relative; display: block }
+.campo-senha .form-control { padding-right: 92px }
+.campo-senha-ver {
+  position: absolute; top: 50%; right: 6px; transform: translateY(-50%);
+  min-height: 32px; padding: 0 10px; border: 0; border-radius: 4px; background: none;
+  color: var(--mu); font-size: 13px; font-weight: 600;
+}
+.campo-senha-ver:hover { color: var(--tx); background: var(--bg) }
+.dl-titulo { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px }
+.dl-titulo h2 { margin: 0; font-size: 16px }
+
+/* Área e Cargo na lista de Pessoas (25/11): texto simples, uma área por linha nas duas colunas. */
+.areas-l { display: grid; gap: 2px; line-height: 1.4 }

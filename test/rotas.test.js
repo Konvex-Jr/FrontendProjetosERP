@@ -31,3 +31,7 @@ test('a guarda ignora maiúsculas, como o React Router', () => {
   assert.equal(podeAbrirSecao('PROJETOS', nav), true)
   assert.equal(situacaoDaSecao('Usuarios', nav), 'sem-acesso')
 })
+
+test('endereço antigo da agenda (fora do menu desde 25/11) passa pela guarda e vai ao Dashboard', () => {
+  assert.equal(situacaoDaSecao('agenda', [['dashboard', 'Dashboard', '/']]), 'liberada')
+})

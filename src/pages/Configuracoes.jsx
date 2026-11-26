@@ -8,7 +8,7 @@ import alerts from '../lib/alerts'
 import useCarregar from '../lib/useCarregar'
 import Esqueleto from '../components/Esqueleto'
 import { configuracoes } from '../services/pessoas'
-import { DIFICULDADES, formatarHoras } from '../lib/ocupacao'
+import { DIFICULDADES, formatarHoras, horasPorDia } from '../lib/ocupacao'
 
 const ABAS = [
   ['areas', 'Áreas'],
@@ -147,12 +147,12 @@ export default function Configuracoes() {
 
   const editarHoras = () =>
     form(
-      'Horas por dificuldade',
-      DIFICULDADES.map(([k, l]) => ({ k, l: `${l} (h)`, t: 'number', min: 0.5, max: 40, step: 0.5 })),
+      'Dificuldade (% do dia)',
+      DIFICULDADES.map(([k, l]) => ({ k, l: `${l} (% do dia)`, t: 'number', min: 5, max: 100, step: 5 })),
       Object.fromEntries(DIFICULDADES.map(([k]) => [k, horas[k]])),
       v => {
         const novas = Object.fromEntries(DIFICULDADES.map(([k]) => [k, Number(v[k])]))
-        return salvar(() => configuracoes.salvarHorasDificuldade(novas), 'Horas salvas')
+        return salvar(() => configuracoes.salvarHorasDificuldade(novas), 'Dificuldade salva')
       },
     )
 
@@ -210,21 +210,20 @@ export default function Configuracoes() {
   }
   telas.dificuldade = {
     novo: editarHoras,
-    rotulo: 'Editar horas',
-    linhas: DIFICULDADES.map(([k, l]) => ({ codigo: k, nome: l, horas: horas[k] })),
+    rotulo: 'Editar dificuldade',
+    linhas: DIFICULDADES.map(([k, l]) => ({ codigo: k, nome: l, percentual: horas[k] })),
     colunas: [
       { k: 'nome', l: 'Dificuldade' },
-      { k: 'horas', l: 'Horas estimadas', get: r => formatarHoras(r.horas) },
+      { k: 'percentual', l: 'Parte do dia', get: r => `${r.percentual}%` },
+      { k: 'dia10', l: 'Por dia (teto 10 h)', get: r => formatarHoras(horasPorDia(r.percentual, 10)) },
+      { k: 'dia20', l: 'Por dia (teto 20 h)', get: r => formatarHoras(horasPorDia(r.percentual, 20)) },
     ],
   }
   const atual = telas[aba]
 
   return (
     <>
-      <PageBar
-        title="Configurações"
-        sub="Listas do cadastro de pessoas, horas por dificuldade das tarefas e teto semanal de cada cargo. Valor-hora das senioridades fica para quando as taxas forem definidas."
-      >
+      <PageBar title="Configurações">
         <button className="btn btn-primary" onClick={atual.novo}>
           <Ic k={aba === 'dificuldade' ? 'edit' : 'plus'} />
           {atual.rotulo || 'Novo item'}

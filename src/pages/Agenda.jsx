@@ -6,7 +6,6 @@ import Ic from '../components/Icon'
 import Avatar from '../components/Avatar'
 import Markdown from '../components/Markdown'
 import Esqueleto from '../components/Esqueleto'
-import { PageBar } from '../components/Ui'
 import alerts from '../lib/alerts'
 import useCarregar from '../lib/useCarregar'
 import { DIAS_SEMANA, mesDe, mudarMes, nomeDoMes, semanasDoMes } from '../lib/calendario'
@@ -190,12 +189,13 @@ export default function Agenda() {
 
   return (
     <>
-      <PageBar title="Agenda" sub="Reuniões, prazos das suas tarefas e capacitações num só calendário.">
-        <button className="btn btn-primary" onClick={() => salvar(null, '')}>
+      <div className="dl-titulo">
+        <h2>Agenda</h2>
+        <button className="btn btn-primary btn-sm" onClick={() => salvar(null, '')}>
           <Ic k="plus" />
           Nova reunião
         </button>
-      </PageBar>
+      </div>
       <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
         <div className="ag-legenda" aria-label="Legenda">
           <span className="cal-e ag-reuniao">Reunião</span>

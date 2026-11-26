@@ -13,9 +13,10 @@ import Esqueleto from './Esqueleto'
 import { PAGINAS } from '../paginas'
 import { anteciparDados, precarregarPaginas } from '../lib/antecipar'
 
-/** Barra do topo: data de hoje, troca de tema, pessoa logada (abre o perfil) e Sair. */
+/** Barra do topo: data de hoje, troca de tema, avisos, pessoa logada (abre o perfil), Configurações (engrenagem) e Sair. */
 function Header() {
-  const { D, me, sair } = useApp(),
+  const { D, me, sair, nav, go } = useApp(),
+    temConfig = nav.some(([k]) => k === 'configuracoes'),
     // Sair pede confirmação (27c): o botão fica perto do avatar e era fácil clicar sem querer.
     confirmarSaida = async () => {
       if (await alerts.confirm({ title: 'Sair do sistema?', text: 'Você volta para a tela de entrada.', confirmText: 'Sair' })) sair()
@@ -77,6 +78,17 @@ function Header() {
             onClick={() => navigate('/perfil')}
             onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), navigate('/perfil'))}
           />
+          {temConfig && (
+            <button
+              type="button"
+              className="btn btn-g btn-sm hs-config"
+              onClick={() => go('configuracoes')}
+              aria-label="Configurações"
+              title="Configurações"
+            >
+              <Ic k="configuracoes" />
+            </button>
+          )}
           <button className="btn btn-g btn-sm hs-sair" onClick={confirmarSaida} aria-label="Sair">
             <Ic k="logout" />
             <span>Sair</span>
@@ -92,18 +104,20 @@ const ITENS_BARRA = 4
 
 /** Menu lateral (no celular, barra inferior com gaveta "Mais"). Os itens vêm da API (`nav`). */
 function SideNav() {
-  const { nav, go, me, mb, pode } = useApp(),
+  const { nav: navTodo, go, me, mb, pode } = useApp(),
     { pathname } = useLocation()
+  // Itens com grupo formam o menu (Trabalho, Equipe, Gestão); Configurações fica na engrenagem do topo.
+  const nav = navTodo.filter(([, , , grupo]) => grupo)
   const [gaveta, setGaveta] = useState(false)
   // Depois de montar, baixa no tempo ocioso o arquivo de cada tela do menu: o clique abre sem esperar.
   // A dependência é o texto dos caminhos: o `nav` é um array novo a cada render do contexto.
-  const caminhos = nav.map(([, , caminho]) => caminho).join(' ')
+  const caminhos = navTodo.map(([, , caminho]) => caminho).join(' ')
   useEffect(() => {
     precarregarPaginas(caminhos.split(' '), PAGINAS)
   }, [caminhos])
   // Mouse em cima, foco ou toque num item: busca os dados da tela antes do clique (só itens do menu).
   const antecipar = caminho => {
-    const buscar = () => anteciparDados(caminho, { me, mb, pode, nav }, { paginas: PAGINAS })
+    const buscar = () => anteciparDados(caminho, { me, mb, pode, nav: navTodo }, { paginas: PAGINAS })
     return { onMouseEnter: buscar, onFocus: buscar, onTouchStart: buscar }
   }
   const ativo = nav.findIndex(([, , p]) => (p === '/' ? pathname === '/' : pathname.startsWith(p)))
@@ -125,7 +139,12 @@ function SideNav() {
           alt="Konvex Jr – ir para a Visão Geral"
           onClick={() => ir(nav[0]?.[0])}
         />
-        {nav.map(([k, l, p], i) => (
+        {nav.map(([k, l, p, grupo], i) => [
+          grupo !== nav[i - 1]?.[3] && (
+            <span key={'g-' + grupo} className="mg" aria-hidden="true">
+              {grupo}
+            </span>
+          ),
           <a
             key={k}
             {...antecipar(p)}
@@ -140,8 +159,8 @@ function SideNav() {
           >
             <Ic k={k} />
             <span className="nl">{l}</span>
-          </a>
-        ))}
+          </a>,
+        ])}
         {comMais && (
           <button
             type="button"
@@ -164,7 +183,12 @@ function SideNav() {
                 <Ic k="x" />
               </button>
             </div>
-            {nav.map(([k, l, p], i) => (
+            {nav.map(([k, l, p, grupo], i) => [
+              grupo !== nav[i - 1]?.[3] && (
+                <span key={'g-' + grupo} className="gv-g">
+                  {grupo}
+                </span>
+              ),
               <button
                 type="button"
                 key={k}
@@ -175,8 +199,8 @@ function SideNav() {
               >
                 <Ic k={k} />
                 <span>{l}</span>
-              </button>
-            ))}
+              </button>,
+            ])}
           </div>
         </>
       )}

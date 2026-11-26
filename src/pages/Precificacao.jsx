@@ -58,7 +58,7 @@ export default function Precificacao() {
   if (!regras)
     return (
       <>
-        <PageBar title="Simular precificação" sub={carregando ? '' : 'Não foi possível carregar as regras.'} />
+        <PageBar title="Simulador de Precificação" sub={carregando ? '' : 'Não foi possível carregar as regras.'} />
         {carregando && <Esqueleto />}
       </>
     )
@@ -100,10 +100,7 @@ export default function Precificacao() {
 
   return (
     <>
-      <PageBar
-        title="Simular precificação"
-        sub="Horas por senioridade e regras da diretoria. Nada é gravado: o resultado vira um documento preliminar."
-      >
+      <PageBar title="Simulador de Precificação">
         {pode('configuracoes.editar') && (
           <button className="btn btn-g" onClick={editarRegras}>
             <Ic k="edit" />

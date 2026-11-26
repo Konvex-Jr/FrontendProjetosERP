@@ -331,10 +331,7 @@ export default function Projetos() {
 
   return (
     <>
-      <PageBar
-        title="Projetos"
-        sub={lista.some(p => p.cartao) ? 'Os projetos de outras equipes aparecem só com nome, status e líder.' : undefined}
-      >
+      <PageBar title="Projetos">
         <button className={'btn btn-g' + (pv == 'grid' ? ' on' : '')} onClick={() => setPv('grid')}>
           Grid
         </button>
@@ -401,7 +398,14 @@ export default function Projetos() {
           ))}
         </div>
       ) : (
-        <Table cols={cols} rows={linhas} vazio={vazio} linhaCls={p => (p.cartao ? 'linha-cartao' : undefined)} />
+        <Table
+          cols={cols}
+          rows={linhas}
+          vazio={vazio}
+          itens={['projeto', 'projetos']}
+          porPagina={20}
+          linhaCls={p => (p.cartao ? 'linha-cartao' : undefined)}
+        />
       )}
     </>
   )

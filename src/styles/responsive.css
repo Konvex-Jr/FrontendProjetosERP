@@ -169,21 +169,23 @@
     gap: 8px
   }
 
+  /* Com a engrenagem de Configurações no topo, logo e botões encolhem para caber em 375 px. */
   .hl {
-    height: 26px
+    height: 20px
   }
 
   .hr {
-    gap: 8px
+    gap: 4px
   }
 
   .hs-sair span {
     display: none
   }
 
-  .hs-sair {
-    width: 38px;
-    height: 38px;
+  .hs-sair,
+  .hs-config {
+    width: 34px;
+    height: 34px;
     padding: 0
   }
 

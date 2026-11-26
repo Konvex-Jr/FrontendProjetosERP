@@ -125,7 +125,8 @@ export function AppProvider({ children }) {
         }
       : DF
   }, [DF, me, mb])
-  const nav = acesso.menu.map(item => [item.chave, item.rotulo, item.caminho])
+  // [chave, rótulo, caminho, grupo]. Item sem grupo (Configurações) não entra na lista do menu: vira a engrenagem do topo.
+  const nav = acesso.menu.map(item => [item.chave, item.rotulo, item.caminho, item.grupo])
 
   // Fim de sessão (sair, sessão expirada, login que falhou): apaga também a memória de dados,
   // para nada de uma pessoa aparecer para a próxima que entrar nesta aba.

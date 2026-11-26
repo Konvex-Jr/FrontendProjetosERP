@@ -3,6 +3,8 @@ import { useApp } from '../context/AppContext'
 import { DAY, PC, chip, d, fm, hj, nm, prog } from '../lib/utils'
 import Burn from '../components/Burn'
 import Table from '../components/Table'
+import Indicadores from '../components/Indicadores'
+import OcupacaoSemana from '../components/OcupacaoSemana'
 import { PageBar, Prog, Seg } from '../components/Ui'
 import { contagemTarefas } from '../lib/indicadores'
 import { FILTRO_TIPO, filtrarProjetos, textoDoCartao } from '../lib/projetosInternos'
@@ -10,7 +12,7 @@ import { FILTRO_TIPO, filtrarProjetos, textoDoCartao } from '../lib/projetosInte
 const TB = { late: ['Atrasadas', 'er'], and: ['Em andamento', 'an'], done: ['Concluídas', 'ok'] }
 
 /**
- * Visão Estratégica (gestão): projetos em execução que pedem atenção, tarefas por situação
+ * Relatórios (gestão; era a Visão Estratégica): os sete indicadores e a ocupação da semana (saíram do Dashboard em 25/11), projetos em execução que pedem atenção, tarefas por situação
  * e participação das pessoas em capacitações. Usa os dados do contexto (D).
  */
 export default function Estrategia() {
@@ -70,7 +72,9 @@ export default function Estrategia() {
 
   return (
     <>
-      <PageBar title="Visão Estratégica" sub={'Panorama de tarefas, projetos, capacitações e pessoas em ' + fm(D.c.hoje)} />
+      <PageBar title="Relatórios" />
+      <Indicadores D={Dtodos} go={go} />
+      <OcupacaoSemana />
       <div className="mb-3">
         <Seg items={FILTRO_TIPO} value={tipo} onChange={setTipo} />
       </div>
@@ -190,9 +194,6 @@ export default function Estrategia() {
             ) : (
               <small>Nenhum projeto crítico agora.</small>
             )}
-            <small className="d-block mt-3">
-              Crítico: tarefa atrasada, prazo vencido ou prazo em até 14 dias com menos de 70% concluído.
-            </small>
           </div>
         </div>
       </div>

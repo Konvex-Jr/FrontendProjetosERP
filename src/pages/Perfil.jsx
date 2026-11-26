@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
-import { chip, codigoDoPerfil, fd } from '../lib/utils'
+import { chip, codigoDoPerfil, fd, iso } from '../lib/utils'
 import Ic from '../components/Icon'
 import Avatar from '../components/Avatar'
 import FotoModal from '../components/FotoModal'
@@ -53,7 +53,7 @@ function linhaOcupacao(i) {
   return 'Outras tarefas'
 }
 
-/** Ocupação da semana (horas por dificuldade das tarefas abertas). `inicial` = semana atual, vinda do perfil. */
+/** Ocupação da semana (dificuldade das tarefas abertas = % do dia). `inicial` = semana atual, vinda do perfil. */
 function CartaoOcupacao({ codigo, inicial }) {
   const [semana, setSemana] = useState(null)
   // Perfil sem `ocupacao` (cache antigo ou resposta diferente): a semana atual é buscada à parte.
@@ -217,6 +217,7 @@ export default function Perfil() {
             </label>
           ),
         },
+        { k: 'dataEntrada', l: 'Entrada na EJ', t: 'date', opt: true, max: iso(new Date()) },
         { k: 'bio', l: 'Sobre você', t: 'textarea', opt: true },
       ],
       {
@@ -228,6 +229,7 @@ export default function Perfil() {
         calendarioUrl: u.calendarioUrl || '',
         curso: u.curso || '',
         ingresso: u.ingresso || '',
+        dataEntrada: u.dataEntrada?.slice(0, 10) || '',
         bio: u.bio || '',
       },
       async v => {
@@ -388,7 +390,7 @@ export default function Perfil() {
 
   return (
     <>
-      <PageBar title={meu ? 'Meu perfil' : u.nome} sub={!meu ? 'Perfil de pessoa da Konvex' : undefined}>
+      <PageBar title={meu ? 'Meu perfil' : u.nome}>
         {!meu && (
           <button className="btn btn-g" onClick={() => history.back()}>
             <Ic k="back" />
