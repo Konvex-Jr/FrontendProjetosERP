@@ -430,3 +430,16 @@
     min-width: 72px
   }
 }
+
+/* Grade de permissões (sessão 31a): tabela no computador; seletor de cargo e lista no celular. */
+.grade-perm-celular {
+  display: none;
+}
+@media (max-width: 767.98px) {
+  .grade-perm-tabela {
+    display: none;
+  }
+  .grade-perm-celular {
+    display: block;
+  }
+}

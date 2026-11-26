@@ -2687,3 +2687,18 @@ tr.linha-acima td {
         color: #48515e
     }
 }
+
+/* Grade de permissões (sessão 31a) */
+.grade-perm .grade-perm-nome {
+  min-width: 260px;
+  position: sticky;
+  left: 0;
+  background: var(--bs-card-bg, var(--bg));
+  z-index: 1;
+}
+.grade-perm .grade-perm-grupo th {
+  background: var(--bg);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
