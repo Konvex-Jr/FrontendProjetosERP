@@ -58,8 +58,10 @@ export const pedeMotivoSaida = (statusAtual, destino) => destino === 'inativo' &
 
 /** Corpo do PUT /auth/perfil (a própria pessoa): curso, telefone e e-mail pessoal só vão se mudaram. */
 export function corpoEdicaoPerfil(v, u) {
-  const { curso, telefone, emailPessoal, ...resto } = v
+  const { curso, telefone, emailPessoal, dataEntrada, ...resto } = v
   const corpo = { ...resto }
+  // Entrada na EJ (a própria pessoa preenche desde 25/11): só vai se mudou e não está vazia.
+  if (dataEntrada && dataEntrada !== (u.dataEntrada || '').slice(0, 10)) corpo.dataEntrada = dataEntrada
   if (curso !== undefined && curso !== (u.curso ?? '')) corpo.curso = curso
   if (telefone !== undefined && !igual(telefone, u.telefone)) corpo.telefone = telefone
   if (emailPessoal !== undefined && !igual(emailPessoal, u.emailPessoal)) corpo.emailPessoal = emailPessoal

@@ -171,3 +171,11 @@ test('erroApagarObrigatorio barra apagar campo que a pessoa já tem', () => {
   assert.equal(erroApagarObrigatorio({ ...u, ingresso: ' ' }, u).titulo, 'Ingresso na faculdade obrigatório')
   assert.equal(erroApagarObrigatorio({ ...u, curso: '' }, { ...u, curso: null }), null)
 })
+
+test('corpoEdicaoPerfil: entrada na EJ só vai se mudou e não está vazia (25/11)', () => {
+  const u = { dataEntrada: '2025-03-10T00:00:00.000Z' }
+  assert.deepEqual(corpoEdicaoPerfil({ dataEntrada: '2025-03-10' }, u), {})
+  assert.deepEqual(corpoEdicaoPerfil({ dataEntrada: '' }, u), {})
+  assert.deepEqual(corpoEdicaoPerfil({ dataEntrada: '2024-08-01' }, u), { dataEntrada: '2024-08-01' })
+  assert.deepEqual(corpoEdicaoPerfil({ dataEntrada: '2024-08-01' }, {}), { dataEntrada: '2024-08-01' })
+})
