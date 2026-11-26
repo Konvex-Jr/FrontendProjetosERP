@@ -13,10 +13,14 @@ export const SIGILOS = [
   { valor: 'todos', rotulo: 'Todos' },
   { valor: 'gestao', rotulo: 'Só gestão' },
   { valor: 'projeto', rotulo: 'Equipe do projeto' },
+  { valor: 'diretoria', rotulo: 'Só diretoria' },
 ]
 
-/** Membro não usa `gestao`; gestor usa todos. */
-export const sigilosPermitidos = gestor => (gestor ? SIGILOS : SIGILOS.filter(s => s.valor !== 'gestao'))
+/**
+ * Membro não usa `gestao` (só quem gere a Biblioteca); `diretoria` (contratos, 31b) só quem tem clientes.ver.
+ */
+export const sigilosPermitidos = (gestor, diretoria = false) =>
+  SIGILOS.filter(s => (s.valor !== 'gestao' || gestor) && (s.valor !== 'diretoria' || diretoria))
 
 /** Filtros da tela → query string da API (só os preenchidos). */
 export function consulta(f = {}) {

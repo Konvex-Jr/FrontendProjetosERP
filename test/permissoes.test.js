@@ -37,7 +37,7 @@ test('abasConfiguracoes mostra só as abas que a pessoa pode usar', () => {
   const pode = lista => p => lista.includes(p)
   assert.deepEqual(
     abasConfiguracoes(pode(['config.estrutura', 'config.dificuldade', 'permissoes.gerir'])).map(([k]) => k),
-    ['areas', 'cargos', 'senioridades', 'dificuldade', 'permissoes'],
+    ['areas', 'cargos', 'senioridades', 'classes', 'dificuldade', 'permissoes'],
   )
   assert.deepEqual(
     abasConfiguracoes(pode(['config.dificuldade'])).map(([k]) => k),

@@ -30,14 +30,15 @@ export function dadosDaTela(contexto) {
   return {
     chave: `configuracoes:${veGrade ? 'grade' : 'sem-grade'}`,
     carregar: async () => {
-      const [areas, cargos, senioridades, horas, grade] = await Promise.all([
+      const [areas, cargos, senioridades, horas, grade, classes] = await Promise.all([
         configuracoes.areas(),
         configuracoes.cargos(),
         configuracoes.senioridades(),
         configuracoes.horasDificuldade(),
         veGrade ? configuracoes.permissoes() : null,
+        configuracoes.classes(),
       ])
-      return { areas, cargos, senioridades, horas, grade }
+      return { areas, cargos, senioridades, horas, grade, classes }
     },
   }
 }
@@ -59,7 +60,7 @@ export default function Configuracoes() {
       </>
     )
 
-  const { areas, cargos, senioridades, horas, grade } = dados
+  const { areas, cargos, senioridades, horas, grade, classes = [] } = dados
   const nomeArea = codigo => areas.find(a => a.codigo === codigo)?.nome || '—'
 
   const salvar = async (acao, sucesso) => {
@@ -180,6 +181,17 @@ export default function Configuracoes() {
       v => salvar(() => configuracoes.salvarSenioridade(s?.codigo, { nome: v.nome, ordem: Number(v.ordem) }), 'Senioridade salva'),
     )
 
+  const editarClasse = c =>
+    form(
+      c ? 'Editar classe de projeto' : 'Nova classe de projeto',
+      [
+        { k: 'nome', l: 'Nome', maxLength: 80, h: 'Ex.: Landing page, CRM, SaaS. Todo projeto novo escolhe uma.' },
+        { k: 'ordem', l: 'Ordem na lista', t: 'number', min: 0, max: 100, step: 1 },
+      ],
+      { nome: c?.nome || '', ordem: c?.ordem ?? classes.length + 1 },
+      v => salvar(() => configuracoes.salvarClasse(c?.codigo, { nome: v.nome, ordem: Number(v.ordem) }), 'Classe salva'),
+    )
+
   const situacao = ativo => <span className={chip(ativo ? 'ok' : 'er')}>{ativo ? 'Ativo' : 'Inativo'}</span>
   const editarBotao = fn => (
     <button className="btn btn-g btn-sm" onClick={fn}>
@@ -221,6 +233,15 @@ export default function Configuracoes() {
         { l: 'Ações', render: s => editarBotao(() => editarSenioridade(s)) },
       ],
     },
+  }
+  telas.classes = {
+    novo: () => editarClasse(),
+    linhas: [...classes].sort((a, b) => a.ordem - b.ordem || a.nome.localeCompare(b.nome)),
+    colunas: [
+      { k: 'ordem', l: 'Ordem' },
+      { k: 'nome', l: 'Nome' },
+      { l: 'Ações', render: c => editarBotao(() => editarClasse(c)) },
+    ],
   }
   telas.dificuldade = {
     novo: editarHoras,

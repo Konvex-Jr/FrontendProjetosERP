@@ -146,6 +146,8 @@ test('adaptProject do cartão: só os campos da lista fechada, sem equipe nem ta
   assert.equal(p.liderId, 'u1')
   assert.equal(p.liderNome, 'Ana')
   assert.deepEqual(p.membros, [])
+  assert.equal(p.progresso, 0)
+  assert.equal(p.classe, null)
   assert.equal('tarefas' in p, false)
   assert.equal('tarefasResumo' in p, false)
   const semLider = adaptProject({ codigo: 'p8', nome: 'C', tipo: 'cliente', area: null, lider: null, cartao: true })

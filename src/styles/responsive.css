@@ -443,3 +443,20 @@
     display: block;
   }
 }
+
+/* Clientes do projeto (31b): no celular, um campo por linha e o botão de remover no fim. */
+@media (max-width: 767.98px) {
+  .clientes-linha {
+    grid-template-columns: 1fr;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--ln);
+  }
+  .clientes-linha > input {
+    grid-column: 1 / -1;
+  }
+  .clientes-linha > button {
+    grid-column: 1 / -1;
+    grid-row: auto;
+    justify-self: end;
+  }
+}

@@ -8,7 +8,7 @@ import KanbanEtapas from '../components/KanbanEtapas'
 import ColunasModal from '../components/ColunasModal'
 import { adaptColuna } from '../lib/colunas'
 import EquipeProjeto from '../components/EquipeProjeto'
-import { Av, PageBar, Seg } from '../components/Ui'
+import { Av, PageBar, Prog, Seg } from '../components/Ui'
 import alerts from '../lib/alerts'
 import useCarregar from '../lib/useCarregar'
 import Esqueleto from '../components/Esqueleto'
@@ -22,7 +22,9 @@ import Table from '../components/Table'
 import { EquipeDoCartao, camposProjeto, valoresProjeto } from './Projetos'
 import { SeloTipo, StatusProjeto } from '../components/SeloProjeto'
 import { ItensDoProjeto } from './Biblioteca'
-import { TEXTO_EQUIPE_GERAL, textoDoCartao } from '../lib/projetosInternos'
+import { TEXTO_EQUIPE_GERAL, erroDoFormularioProjeto } from '../lib/projetosInternos'
+import { ListaClientes } from '../components/ClientesProjeto'
+import { erroDosClientes } from '../lib/clientesProjeto'
 import { ocupacao } from '../services/ocupacao'
 import ChipOcupacao from '../components/ChipOcupacao'
 
@@ -39,6 +41,16 @@ const dia = s => (s ? String(s).slice(0, 10) : '')
  * Projeto aberto pela URL por quem só vê o cartão (sessão 27a): os mesmos campos da lista e o aviso de quem
  * vê os detalhes. Não é tela de erro e não tem abas.
  */
+/** % do cartão (31b): número e barra. */
+function ProgressoDoCartao({ v }) {
+  return (
+    <span className="d-block">
+      {v ?? 0}%
+      <Prog v={v ?? 0} />
+    </span>
+  )
+}
+
 function CartaoProjeto({ projeto, voltar }) {
   const dados = [
     ['Status', <StatusProjeto key="status" s={projeto.status} />],
@@ -46,7 +58,9 @@ function CartaoProjeto({ projeto, voltar }) {
     ...(projeto.tipo === 'interno' && projeto.area ? [['Área', projeto.area.nome]] : []),
     // O geral da área não tem líder próprio, como na ficha completa.
     ...(projeto.geralDaArea ? [] : [['Líder', projeto.lider?.nome || 'Sem líder']]),
+    ...(projeto.classe ? [['Classe', projeto.classe]] : []),
     ['Equipe', <EquipeDoCartao key="equipe" membros={projeto.membros} />],
+    ['Progresso', <ProgressoDoCartao key="progresso" v={projeto.progresso} />],
   ]
   return (
     <>
@@ -66,7 +80,7 @@ function CartaoProjeto({ projeto, voltar }) {
       </div>
       <p className="aviso-cartao" role="note">
         <Ic k="lock" />
-        {textoDoCartao(projeto)} Para trabalhar nele, peça à gestão para entrar na equipe.
+        Para trabalhar neste projeto, peça à gestão para entrar na equipe.
       </p>
     </>
   )
@@ -119,8 +133,10 @@ export default function Projeto() {
   const temBiblioteca = nav.some(([chave]) => chave === 'biblioteca')
   const abas = temBiblioteca ? ABAS : ABAS.filter(([k]) => k !== 'biblioteca')
   const gestor = pode('projetos.editar')
-  const { dados, carregando, recarregar } = useCarregar(() => carregarProjeto(pid, gestor), [pid, gestor], {
-    chave: `projeto:${pid}:${gestor}`,
+  const veClientes = pode('clientes.ver')
+  const { dados, carregando, recarregar } = useCarregar(() => carregarProjeto(pid, gestor), [pid, gestor, veClientes], {
+    // `clientes.ver` na chave (31b): ganhar a permissão não pode reaproveitar o projeto sem os contatos (salvar os apagaria).
+    chave: `projeto:${pid}:${gestor}:${veClientes}`,
   })
   const voltar = (
     <button className="btn btn-g" onClick={() => go('projetos')}>
@@ -137,7 +153,8 @@ export default function Projeto() {
         {carregando && <Esqueleto />}
       </>
     )
-  const { projeto, gente, areas } = dados
+  const { projeto, gente, areas, classes = [] } = dados
+  const podeClientes = pode('clientes.ver')
   if (projeto.cartao) return <CartaoProjeto projeto={projeto} voltar={voltar} />
   // Depois de salvar: recarrega o projeto e os dados compartilhados (tarefas, avatares, painel).
   const aoSalvar = async () => {
@@ -272,21 +289,33 @@ export default function Projeto() {
     )
 
   const editarProjeto = () =>
-    form('Editar projeto', camposProjeto({ lista: gente, areas }), valoresProjeto(projeto), async v => {
-      try {
-        await gravarProjeto(v, projeto)
-        alerts.toastSuccess('Projeto atualizado')
-        await aoSalvar()
-      } catch (error) {
-        alerts.error('Não foi possível salvar', error.message)
-        return false
-      }
-    })
+    form(
+      'Editar projeto',
+      camposProjeto({ lista: gente, areas, classes, podeClientes, geral: ehGeral }),
+      valoresProjeto(projeto, { podeClientes }),
+      async v => {
+        const aviso = erroDoFormularioProjeto(v) || (v.clientes ? erroDosClientes(v.clientes) : '')
+        if (aviso) {
+          alerts.error('Não foi possível salvar', aviso)
+          return false
+        }
+        try {
+          await gravarProjeto(v, projeto)
+          alerts.toastSuccess('Projeto atualizado')
+          await aoSalvar()
+        } catch (error) {
+          alerts.error('Não foi possível salvar', error.message)
+          return false
+        }
+      },
+      { largo: podeClientes },
+    )
 
   const info = [
     ['Status', <StatusProjeto key="status" s={projeto.status} />],
     ['Referência', projeto.referencia || '—'],
-    ['Cliente', projeto.clienteNome || '—'],
+    ...(projeto.tipo === 'interno' ? [] : [['Clientes', <ListaClientes key="clientes" clientes={projeto.clientes} />]]),
+    ...(ehGeral ? [] : [['Classe', projeto.classe?.nome || '—']]),
     ['Tipo', <SeloTipo key="tipo" p={projeto} />],
     ...(ehGeral ? [] : [['Período', fm(dia(projeto.dataInicio)) + ' a ' + fm(dia(projeto.dataFim))]]),
     ['Prioridade', rotuloPrioridade(projeto.prioridade)],

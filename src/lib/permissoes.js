@@ -33,6 +33,7 @@ const ABAS = [
   ['areas', 'Áreas', 'config.estrutura'],
   ['cargos', 'Cargos', 'config.estrutura'],
   ['senioridades', 'Senioridades', 'config.estrutura'],
+  ['classes', 'Classes de projeto', 'config.estrutura'],
   ['dificuldade', 'Dificuldade', 'config.dificuldade'],
   ['permissoes', 'Permissões', 'permissoes.gerir'],
 ]

@@ -50,11 +50,14 @@ export const configuracoes = {
   areas: () => get('/areas'),
   cargos: () => get('/cargos'),
   senioridades: () => get('/senioridades'),
+  /** Classes de projeto (sessão 31b): landing page, CRM... Todos leem; quem configura a estrutura cria e renomeia. */
+  classes: () => get('/classes-projeto'),
   horasDificuldade: () => get('/config/horas-dificuldade'),
   salvarHorasDificuldade: horas => send('PUT', '/config/horas-dificuldade', horas),
   salvarArea: (codigo, dados) => send(codigo ? 'PUT' : 'POST', codigo ? `/areas/${codigo}` : '/areas', dados),
   salvarCargo: (codigo, dados) => send(codigo ? 'PUT' : 'POST', codigo ? `/cargos/${codigo}` : '/cargos', dados),
   permissoes: () => get('/permissoes'),
   salvarPermissoes: (chave, permissoes) => send('PUT', `/permissoes/${chave}`, { permissoes }),
+  salvarClasse: (codigo, dados) => send(codigo ? 'PUT' : 'POST', codigo ? `/classes-projeto/${codigo}` : '/classes-projeto', dados),
   salvarSenioridade: (codigo, dados) => send(codigo ? 'PUT' : 'POST', codigo ? `/senioridades/${codigo}` : '/senioridades', dados),
 }

@@ -43,13 +43,13 @@ const comId = lista => lista.map(x => ({ ...x, id: x.codigo }))
  * Formulário de item, usado na Biblioteca e na aba do projeto. `projetos` é a lista de projetos que a pessoa
  * já recebe (DF.p, igual a GET /projetos); `inicial` preenche um item novo (ex.: o projeto da aba).
  */
-export function abrirFormBiblioteca({ form, projetos, gestor, item, inicial, aoSalvar }) {
+export function abrirFormBiblioteca({ form, projetos, gestor, diretoria = false, item, inicial, aoSalvar }) {
   // Projeto em cartão (a pessoa não vê os detalhes) não aceita item: a API responde 403.
   const opcoesProjetos = (projetos || []).filter(p => !p.cartao)
   // Projeto já ligado que não está na lista continua selecionável (para não sumir ao salvar).
   if (item?.projeto && !opcoesProjetos.some(p => p.id === item.projeto.codigo))
     opcoesProjetos.push({ id: item.projeto.codigo, nome: item.projeto.nome })
-  const sigilos = [...sigilosPermitidos(gestor)]
+  const sigilos = [...sigilosPermitidos(gestor, diretoria)]
   if (item && !sigilos.some(s => s.valor === item.sigilo)) sigilos.push(SIGILOS.find(s => s.valor === item.sigilo))
   form(
     item ? 'Editar item' : 'Novo item na Biblioteca',
@@ -64,7 +64,7 @@ export function abrirFormBiblioteca({ form, projetos, gestor, item, inicial, aoS
         k: 'sigilo',
         l: 'Quem vê',
         o: sigilos.filter(Boolean).map(s => [s.valor, s.rotulo]),
-        h: '“Equipe do projeto” precisa de um projeto: vê quem participa ou participou dele, e a gestão.',
+        h: '“Equipe do projeto” precisa de um projeto: vê quem participa ou participou dele, e a gestão. “Só diretoria” é para contratos e dados de cliente.',
       },
       { k: 'conteudo', l: 'Texto', t: 'textarea', rows: 8, opt: 1, h: MARKDOWN },
       { k: 'links', l: 'Links', t: 'textarea', rows: 2, opt: 1, h: 'Um por linha.' },
@@ -182,9 +182,10 @@ function Lista() {
   // Opções dos filtros a partir do que a pessoa já vê na Biblioteca.
   const projetos = useMemo(() => opcoes(T.filter(i => i.projeto).map(i => i.projeto)), [T])
   const tags = useMemo(() => [...new Set(T.flatMap(i => i.tags))].sort(), [T])
-  const sigilos = sigilosPermitidos(gestor)
+  const sigilos = sigilosPermitidos(gestor, pode('clientes.ver'))
 
-  const abrirForm = item => abrirFormBiblioteca({ form, projetos: DF?.p, gestor, item, aoSalvar: recarregar })
+  const abrirForm = item =>
+    abrirFormBiblioteca({ form, projetos: DF?.p, gestor, diretoria: pode('clientes.ver'), item, aoSalvar: recarregar })
   const set = k => e => setF(o => ({ ...o, [k]: e.target.value }))
   const sel = (k, rotulo, todas, itens) => (
     <select
@@ -335,7 +336,8 @@ function Ficha({ id }) {
     abrirCom('biblioteca', { tag: t })
     go('biblioteca')
   }
-  const editar = () => abrirFormBiblioteca({ form, projetos: DF?.p, gestor: pode(GERIR), item, aoSalvar: recarregar })
+  const editar = () =>
+    abrirFormBiblioteca({ form, projetos: DF?.p, gestor: pode(GERIR), diretoria: pode('clientes.ver'), item, aoSalvar: recarregar })
 
   return (
     <>
@@ -432,7 +434,14 @@ export function ItensDoProjeto({ projeto }) {
   // O próprio projeto entra nas opções mesmo se não estiver em DF.p.
   const projetos = [...(DF?.p || []).filter(p => p.id !== projeto.codigo), { id: projeto.codigo, nome: projeto.nome }]
   const novo = () =>
-    abrirFormBiblioteca({ form, projetos, gestor: pode(GERIR), inicial: { codigoProjeto: projeto.codigo }, aoSalvar: recarregar })
+    abrirFormBiblioteca({
+      form,
+      projetos,
+      gestor: pode(GERIR),
+      diretoria: pode('clientes.ver'),
+      inicial: { codigoProjeto: projeto.codigo },
+      aoSalvar: recarregar,
+    })
   const cols = [
     { k: 'titulo', l: 'Item', render: x => <TituloItem x={x} /> },
     { k: 'sigilo', l: 'Quem vê', get: x => rotuloSigilo(x.sigilo) },

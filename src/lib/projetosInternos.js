@@ -55,6 +55,3 @@ export const erroDoFormularioProjeto = v => (v?.tipo === 'interno' && !v.codigoA
 
 /** O texto da aba Equipe do projeto geral da área. */
 export const TEXTO_EQUIPE_GERAL = 'A equipe é quem está na área (Pessoas › Áreas e cargos).'
-
-/** Quem vê os detalhes de um projeto que a pessoa só vê pelo cartão (31a: todo projeto é fechado). */
-export const textoDoCartao = () => 'Os detalhes e as tarefas são da equipe e de quem tem acesso pelo cargo.'
