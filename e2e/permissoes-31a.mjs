@@ -114,13 +114,15 @@ async function salvarColuna(page, cargo) {
 
 const cartaoDe = (page, nome) => page.locator('.pj-cartao').filter({ has: page.getByRole('heading', { name: nome, exact: true }) })
 const completoDe = (page, nome) => page.locator('.card.pj').filter({ has: page.getByRole('heading', { name: nome, exact: true }) })
-/** O projeto aparece só como cartão: sem progresso, sem datas, com líder e equipe, e o clique não abre a ficha (27a/27b). */
+/** O projeto aparece só como cartão: com o %, sem datas, com líder e equipe, e o clique não abre a ficha (27a/27b). */
 async function conferirCartao(page, nome) {
   const c = cartaoDe(page, nome)
   await c.waitFor({ timeout: 15000 })
   exigir(!(await completoDe(page, nome).count()), `"${nome}" aparece completo`)
   const texto = await c.innerText()
-  exigir(!/%/.test(texto), `cartão de "${nome}" mostra progresso: ${texto}`)
+  // Sessão 31b: o cartão mostra o % de progresso e não tem mais o texto sobre quem vê os detalhes.
+  exigir(/\d+%/.test(texto), `cartão de "${nome}" sem o % de progresso: ${texto}`)
+  exigir(!/Os detalhes/.test(texto), `cartão de "${nome}" ainda tem o texto antigo: ${texto}`)
   exigir(!/\d{2}\/\d{2}\/\d{4}/.test(texto), `cartão de "${nome}" mostra datas: ${texto}`)
   exigir(/Líder/.test(texto) && /Equipe/.test(texto), `cartão de "${nome}" sem líder ou equipe: ${texto}`)
   const antes = page.url()
