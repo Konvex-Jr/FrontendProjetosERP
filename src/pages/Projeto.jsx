@@ -19,8 +19,8 @@ import { PRAZOS, noPrazo } from '../lib/prazo'
 import { gravarProjeto } from '../lib/gravarProjeto'
 import { carregarProjeto } from '../lib/carregarProjeto'
 import Table from '../components/Table'
-import { EquipeDoCartao, camposProjeto, confirmarSigilo, valoresProjeto } from './Projetos'
-import { SeloSigiloso, SeloTipo, StatusProjeto } from '../components/SeloProjeto'
+import { EquipeDoCartao, camposProjeto, valoresProjeto } from './Projetos'
+import { SeloTipo, StatusProjeto } from '../components/SeloProjeto'
 import { ItensDoProjeto } from './Biblioteca'
 import { TEXTO_EQUIPE_GERAL, textoDoCartao } from '../lib/projetosInternos'
 import { ocupacao } from '../services/ocupacao'
@@ -53,7 +53,6 @@ function CartaoProjeto({ projeto, voltar }) {
       <div className="cab d-flex flex-wrap align-items-center gap-2 mb-3">
         {voltar}
         <h1>{projeto.nome}</h1>
-        {projeto.sigiloso && <SeloSigiloso />}
       </div>
       <div className="card card-body mb-3 pj-cartao">
         <div className="row g-3">
@@ -274,7 +273,6 @@ export default function Projeto() {
 
   const editarProjeto = () =>
     form('Editar projeto', camposProjeto({ lista: gente, areas }), valoresProjeto(projeto), async v => {
-      if (!(await confirmarSigilo(projeto, v))) return false
       try {
         await gravarProjeto(v, projeto)
         alerts.toastSuccess('Projeto atualizado')
@@ -295,7 +293,6 @@ export default function Projeto() {
     ...(ehGeral ? [] : [['Líder', projeto.lider?.nome || '—']]),
     ['Área', projeto.area?.nome || '—'],
     ['Equipe', <Av key="equipe" D={D} ids={p.membros} />],
-    ...(projeto.sigiloso && !ehGeral ? [['Visibilidade', <SeloSigiloso key="sigilo" />]] : []),
   ]
   const geral = () => (
     <div className="card card-body">
@@ -340,7 +337,6 @@ export default function Projeto() {
           <span className="d-flex flex-wrap gap-1">
             <StatusProjeto s={projeto.status} />
             <SeloTipo p={projeto} />
-            {projeto.sigiloso && <SeloSigiloso />}
           </span>
         </div>
         {aba == 'tarefas' && (

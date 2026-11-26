@@ -19,47 +19,40 @@ const simular = (falhas = {}) => {
 }
 const rotas = () => chamadas.map(c => c.rota)
 
-const projeto = (extra = {}) => ({ codigo: 'p1', sigiloso: true, ...extra })
-const form = (extra = {}) => ({ nome: 'X', visibilidade: 'sigiloso', ...extra })
+const projeto = (extra = {}) => ({ codigo: 'p1', ...extra })
+const form = (extra = {}) => ({ nome: 'X', ...extra })
 
 beforeEach(() => sessao.salvar({ token: 'tk', refreshToken: 'rt' }))
 afterEach(() => {
   globalThis.fetch = original
 })
 
-test('edição: só o PUT, com a Visibilidade e sem lista de acesso', async () => {
+test('edição: só o PUT, sem lista de acesso e sem sigilo (31a)', async () => {
   simular()
   await gravarProjeto(form({ acesso: ['a', 'b'] }), projeto())
   assert.deepEqual(rotas(), ['PUT /projetos/p1'])
-  assert.deepEqual(chamadas[0].body, { nome: 'X', sigiloso: true })
-})
-
-test('Sigiloso para Normal: só o PUT, com sigiloso falso', async () => {
-  simular()
-  await gravarProjeto(form({ visibilidade: 'normal' }), projeto())
-  assert.deepEqual(rotas(), ['PUT /projetos/p1'])
-  assert.equal(chamadas[0].body.sigiloso, false)
+  assert.deepEqual(chamadas[0].body, { nome: 'X' })
 })
 
 test('criação: só o POST, sem lista de acesso', async () => {
   simular()
   await gravarProjeto(form({ acesso: ['a'] }), null)
   assert.deepEqual(rotas(), ['POST /projetos'])
-  assert.deepEqual(chamadas[0].body, { nome: 'X', sigiloso: true })
+  assert.deepEqual(chamadas[0].body, { nome: 'X' })
 })
 
 test('nunca chama /acesso', async () => {
   simular()
-  await gravarProjeto(form({ acesso: ['a', 'b'] }), projeto({ sigiloso: false }))
+  await gravarProjeto(form({ acesso: ['a', 'b'] }), projeto())
   assert.equal(
     rotas().some(r => r.endsWith('/acesso')),
     false,
   )
 })
 
-test('400 de quem ficaria fora do sigiloso sobe como veio', async () => {
-  simular({ 'PUT /projetos/p1': [400, { message: 'Ficaria sem acesso', codigo: 'SIGILOSO_SEM_VOCE' }] })
-  await assert.rejects(gravarProjeto(form(), projeto({ sigiloso: false })), e => e.message === 'Ficaria sem acesso')
+test('400 de quem ficaria sem acesso ao criar sobe como veio', async () => {
+  simular({ 'POST /projetos': [400, { message: 'Ficaria sem acesso', codigo: 'SEM_ACESSO_AO_CRIAR' }] })
+  await assert.rejects(gravarProjeto(form(), null), e => e.message === 'Ficaria sem acesso')
 })
 
 test('a lista de acesso saiu do módulo', () => {

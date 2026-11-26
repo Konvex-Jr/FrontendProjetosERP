@@ -101,7 +101,7 @@ export default function Precificacao() {
   return (
     <>
       <PageBar title="Simulador de Precificação">
-        {pode('configuracoes.editar') && (
+        {pode('config.precificacao') && (
           <button className="btn btn-g" onClick={editarRegras}>
             <Ic k="edit" />
             Regras

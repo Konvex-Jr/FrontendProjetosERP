@@ -107,11 +107,10 @@ test('adaptProject do projeto completo: cartao falso, líder e contagem mantidos
   const p = adaptProject({
     codigo: 'p1',
     nome: 'X',
-    sigiloso: true,
     lider: { codigo: 'u1', nome: 'Ana' },
     tarefas: { total: 3, concluidas: 1, atrasadas: 1, semana: 0 },
   })
-  assert.equal(p.sigiloso, true)
+  assert.equal('sigiloso' in p, false)
   assert.equal(p.cartao, false)
   assert.equal(p.liderId, 'u1')
   assert.equal(p.liderNome, 'Ana')
@@ -121,7 +120,7 @@ test('adaptProject do projeto completo: cartao falso, líder e contagem mantidos
   assert.equal('resumo' in p, false)
   assert.equal('tarefasResumo' in p, false)
   const normal = adaptProject({ codigo: 'p2', nome: 'Y' })
-  assert.deepEqual([normal.sigiloso, normal.cartao, normal.liderId, normal.liderNome], [false, false, null, null])
+  assert.deepEqual([normal.cartao, normal.liderId, normal.liderNome], [false, null, null])
 })
 
 test('adaptProject do cartão: só os campos da lista fechada, sem equipe nem tarefas', () => {
@@ -132,7 +131,6 @@ test('adaptProject do cartão: só os campos da lista fechada, sem equipe nem ta
     area: { codigo: 'a1', nome: 'Marketing' },
     status: 'em_execucao',
     lider: { codigo: 'u1', nome: 'Ana' },
-    sigiloso: true,
     geralDaArea: false,
     cartao: true,
   })
@@ -143,7 +141,7 @@ test('adaptProject do cartão: só os campos da lista fechada, sem equipe nem ta
   assert.equal(p.areaId, 'a1')
   assert.equal(p.areaNome, 'Marketing')
   assert.equal(p.status, 'em_execucao')
-  assert.equal(p.sigiloso, true)
+  assert.equal('sigiloso' in p, false)
   assert.equal(p.geralDaArea, false)
   assert.equal(p.liderId, 'u1')
   assert.equal(p.liderNome, 'Ana')

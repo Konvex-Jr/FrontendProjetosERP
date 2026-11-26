@@ -65,7 +65,7 @@ test('corpos e rótulos', () => {
 })
 
 test('corpoProjeto não manda lista de acesso', () => {
-  assert.deepEqual(corpoProjeto({ nome: 'A', sigiloso: true, acesso: ['u1'] }), { nome: 'A', sigiloso: true })
+  assert.deepEqual(corpoProjeto({ nome: 'A', acesso: ['u1'] }), { nome: 'A' })
   assert.equal('acesso' in corpoProjeto({ nome: 'A', acesso: null }), false)
 })
 
@@ -73,10 +73,8 @@ test('projetos.definirAcesso saiu', () => {
   assert.equal('definirAcesso' in projetos, false)
 })
 
-test('corpoProjeto traduz Visibilidade em sigiloso', () => {
-  assert.deepEqual(corpoProjeto({ nome: 'A', visibilidade: 'sigiloso', acesso: ['u1'] }), { nome: 'A', sigiloso: true })
-  assert.deepEqual(corpoProjeto({ nome: 'A', visibilidade: 'normal', acesso: ['u1'] }), { nome: 'A', sigiloso: false })
-  // Sem o campo, o sigilo não vai no corpo.
+test('corpoProjeto (31a): sem sigilo; Visibilidade antiga e sigiloso não vão no corpo', () => {
+  assert.deepEqual(corpoProjeto({ nome: 'A', visibilidade: 'sigiloso', sigiloso: true, acesso: ['u1'] }), { nome: 'A' })
   assert.deepEqual(corpoProjeto({ nome: 'A' }), { nome: 'A' })
 })
 
