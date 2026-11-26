@@ -5,7 +5,7 @@ import { ingressoValido, telefoneValido } from './pessoaContato.js'
  * Regras do cadastro de pessoas que a tela segue (sessão 20). Trainee tem login com acesso de membro:
  * - só se entra como trainee na criação; na mudança de status a opção some (o back responde 400
  *   `STATUS_TRAINEE_SO_NA_ENTRADA`), salvo quando já é o status atual;
- * - trainee é sempre membro (gerente ou diretor dá 400 `TRAINEE_SO_MEMBRO`);
+ * - desde a 31a não há perfil fixo: o que a pessoa pode vem do cargo (períodos) e da grade de permissões;
  * - a gestão manda link de senha (convite ou redefinição) a quem tem login: ativo e trainee.
  *   Ninguém digita nem vê a senha de outra pessoa (sessão 25a).
  */
@@ -13,13 +13,12 @@ export const opcoesMudarStatus = statusAtual => STATUS_PESSOA.filter(([k]) => k 
 
 export const podeRedefinirSenha = status => status === 'ativo' || status === 'trainee'
 
-/** Corpo do POST /usuarios: trainee vai sempre como membro; sem senha (a API manda o convite por e-mail). */
+/** Corpo do POST /usuarios: sem senha (a API manda o convite por e-mail) e sem perfil (31a: vem do cargo). */
 export function corpoNovaPessoa(valores) {
-  const { dataEntrada, senha: _senha, ...resto } = valores
+  const { dataEntrada, senha: _senha, perfil: _perfil, ...resto } = valores
   return {
     ...resto,
     ...(dataEntrada ? { dataEntrada } : {}),
-    ...(valores.status === 'trainee' ? { perfil: 'membro' } : {}),
   }
 }
 
@@ -44,7 +43,7 @@ export function erroCadastro(v, pessoa) {
 
 /** Corpo do PUT /usuarios/:codigo: curso, telefone, e-mail pessoal e fim do trainee só vão se mudaram. */
 export function corpoEdicaoPessoa(v, pessoa) {
-  const { status: _status, dataEntrada, curso, telefone, emailPessoal, fimTrainee, ...resto } = v
+  const { status: _status, perfil: _perfil, dataEntrada, curso, telefone, emailPessoal, fimTrainee, ...resto } = v
   const corpo = { ...resto, ...(dataEntrada ? { dataEntrada } : {}) }
   if (curso !== undefined && curso !== (pessoa.curso ?? '')) corpo.curso = curso
   if (telefone !== undefined && !igual(telefone, pessoa.telefone)) corpo.telefone = telefone

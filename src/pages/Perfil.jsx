@@ -162,7 +162,7 @@ export default function Perfil() {
       </>
     )
 
-  const { usuario: u, projetosAtuais, projetosAnteriores, periodos, podeGerirPeriodos, capacitacoes, ocupacao: ocupacaoAtual } = perfil
+  const { usuario: u, projetosAtuais, projetosAnteriores, periodos, podeGerir, capacitacoes, ocupacao: ocupacaoAtual } = perfil
 
   const editarDados = () =>
     form(
@@ -510,7 +510,7 @@ export default function Perfil() {
           <AreasPessoa
             periodos={periodos}
             trainee={periodoTrainee(u)}
-            podeGerir={podeGerirPeriodos}
+            podeGerir={podeGerir}
             codigoPessoa={u.codigo}
             onMudou={aoMudarPeriodos}
           />

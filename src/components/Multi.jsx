@@ -45,7 +45,6 @@ export default function Multi({ opts, value, onChange }) {
             <div key={u.id} className={'mo' + (value.includes(u.id) ? ' on' : '')} onClick={() => tg(u.id)}>
               <input type="checkbox" className="form-check-input m-0" readOnly checked={value.includes(u.id)} />
               {u.nome}
-              <small>{u.perfil}</small>
             </div>
           ))}
           {!L.length && (

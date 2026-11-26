@@ -32,7 +32,6 @@ export function adaptUser(user) {
     id: user.codigo,
     nome: user.nome,
     email: user.email,
-    perfil: user.perfil,
     ativo: user.ativo,
     status: user.status,
     foto: user.foto ?? null,

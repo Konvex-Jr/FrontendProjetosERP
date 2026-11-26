@@ -13,7 +13,11 @@ const RESPOSTAS = {
   '/tarefas': [{ codigo: 't1', titulo: 'Login', projeto: { codigo: 'p1', nome: 'ERP' }, responsaveis: ['u1'] }],
   '/capacitacoes': [{ codigo: 'k1', titulo: 'Git', data: '2026-11-20T00:00:00Z' }],
   '/senioridades': [{ codigo: 's1', nome: 'Júnior' }],
-  '/auth/permissoes': { permissoes: ['projetos.editar'], menu: [{ chave: 'inicio', rotulo: 'Início', caminho: '/' }] },
+  '/auth/permissoes': {
+    permissoes: ['projetos.editar'],
+    menu: [{ chave: 'inicio', rotulo: 'Início', caminho: '/' }],
+    cargo: { codigo: 'c-1', nome: 'Gerente de projetos', posicao: 3, codigoArea: 'a-1' },
+  },
 }
 
 const resposta = (status, body) => ({ ok: status >= 200 && status < 300, status, text: async () => JSON.stringify(body) })
