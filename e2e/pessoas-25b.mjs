@@ -9,8 +9,8 @@
  *   4. diretora muda Tito para Ativo: o cartão de períodos mostra "Trainee" da entrada até hoje
  *   5. bug da equipe: no projeto, filtra a Função e adiciona Tito sem função: o nome aparece
  *   6. diretora muda Tito para Inativo: sem motivo não deixa; com motivo, o perfil mostra o motivo
- *   7. Inês (gerente) marca "Robô" como sigiloso na tela do projeto, confirma, a ficha recarrega sem erro;
- *      a diretora desmarca pela tela; tela Projetos abre com "Ativos"
+ *   7. Inês (gerente de inovação) edita o "Robô" na tela do projeto e salva sem erro (o sigilo saiu na 31a);
+ *      e a tela Projetos abre com "Ativos"
  *   8. troca de conta na mesma aba (Bia -> Caio -> Meu perfil) sem dados da anterior; 375 px, escuro
  *
  * Pré-requisitos: dados fictícios no backend de dev, banco na porta 5434:
@@ -287,22 +287,19 @@ try {
     await dir.screenshot({ path: `${PRINTS}pessoas-25b-6-inativo.png` })
   })
 
-  await passo('7. Inês marca Robô como sigiloso na tela do projeto; diretora desmarca; Projetos abre em Ativos', async () => {
+  // Sessão 31a: o projeto sigiloso saiu; o passo 7 só confere que Projetos abre em Ativos e que a edição
+  // do Robô (Inovação) pela Inês, gerente de inovação, salva sem erro.
+  await passo('7. Inês edita o Robô na tela do projeto; Projetos abre em Ativos', async () => {
     const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } })
     const p = await novaPagina(ctx)
     await entrar(p, INES)
     await p.goto(`${APP}/#/projetos/${robo.codigo}`)
     await p.getByRole('button', { name: 'Visão geral', exact: true }).click()
     await p.getByRole('button', { name: 'Editar projeto' }).click()
-    await campo(p, 'Visibilidade').selectOption('sigiloso')
     await formulario(p).getByRole('button', { name: 'Salvar' }).click()
-    await confirmar(p, 'Marcar como sigiloso?')
     await toast(p, 'Projeto atualizado').waitFor({ timeout: 15000 })
     await p.waitForTimeout(800)
-    exigir(!(await alerta(p).count()), 'apareceu erro depois de marcar sigiloso')
-    exigir((await api('GET', '/projetos')).find(x => x.codigo === robo.codigo).sigiloso === true, 'Robô não ficou sigiloso')
-    await p.getByText(/Robô/).first().waitFor({ timeout: 10000 })
-    await p.screenshot({ path: `${PRINTS}pessoas-25b-7-sigiloso-ines.png` })
+    exigir(!(await alerta(p).count()), 'apareceu erro depois de salvar o projeto')
     await p.goto(`${APP}/#/projetos`)
     const grupo = p.getByLabel('Grupo de projetos')
     await grupo.waitFor({ timeout: 15000 })
@@ -311,14 +308,6 @@ try {
       'o filtro de Projetos não abriu em Ativos',
     )
     await ctx.close()
-    // A diretora desfaz pela tela.
-    await dir.goto(`${APP}/#/projetos/${robo.codigo}`)
-    await dir.getByRole('button', { name: 'Visão geral', exact: true }).click()
-    await dir.getByRole('button', { name: 'Editar projeto' }).click()
-    await campo(dir, 'Visibilidade').selectOption('normal')
-    await formulario(dir).getByRole('button', { name: 'Salvar' }).click()
-    await toast(dir, 'Projeto atualizado').waitFor({ timeout: 15000 })
-    exigir((await api('GET', '/projetos')).find(x => x.codigo === robo.codigo).sigiloso === false, 'Robô continuou sigiloso')
   })
 
   await passo('8. troca de conta na mesma aba e celular escuro', async () => {
@@ -372,7 +361,6 @@ try {
       "ALTER TABLE usuarios DROP CONSTRAINT IF EXISTS usuarios_curso_valido; ALTER TABLE usuarios ADD CONSTRAINT usuarios_curso_valido CHECK (curso IS NULL OR curso IN ('Ciência da Computação', 'Engenharia Mecânica', 'Engenharia Elétrica'))",
     )
     sql(`UPDATE usuarios SET email_pessoal = '${antesBiaEmail.replace(/'/g, "''")}' WHERE email = '${BIA[0]}'`)
-    sql(`UPDATE projetos SET sigiloso = false WHERE nome = 'Robô'`)
   } catch (e) {
     console.log(`AVISO  não restaurei o banco de dev: ${e.message}`)
   }

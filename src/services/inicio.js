@@ -10,7 +10,8 @@ import { capacitacoes } from './capacitacoes.js'
 /** Ações liberadas e menu da pessoa logada (GET /auth/permissoes); a API continua checando cada ação. */
 export async function carregarAcesso() {
   const result = await request('/auth/permissoes', { auth: true })
-  return { permissoes: result?.permissoes || [], menu: result?.menu || [] }
+  // Sessão 31a: o cargo atual (nome, posição, área) substitui o perfil fixo.
+  return { permissoes: result?.permissoes || [], menu: result?.menu || [], cargo: result?.cargo ?? null }
 }
 
 /** Dados compartilhados por várias telas, carregados juntos no início, no login e a cada refresh. */

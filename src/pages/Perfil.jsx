@@ -17,7 +17,7 @@ import LogoMarca from '../components/LogosMarcas'
 import { horas } from '../services/capacitacoes'
 import { itensDoAutor } from '../services/biblioteca'
 import Clipe from '../components/Clipe'
-import { SeloSigiloso, SeloTipo } from '../components/SeloProjeto'
+import { SeloTipo } from '../components/SeloProjeto'
 import AreasPessoa from '../components/AreasPessoa'
 import { periodoTrainee, rotuloArea, rotuloMotivo } from '../lib/periodos'
 import { copiarTexto, mascararIngresso, mascararTelefone, telefoneParaMostrar } from '../lib/pessoaContato'
@@ -162,7 +162,7 @@ export default function Perfil() {
       </>
     )
 
-  const { usuario: u, projetosAtuais, projetosAnteriores, periodos, podeGerirPeriodos, capacitacoes, ocupacao: ocupacaoAtual } = perfil
+  const { usuario: u, projetosAtuais, projetosAnteriores, periodos, podeGerir, capacitacoes, ocupacao: ocupacaoAtual } = perfil
 
   const editarDados = () =>
     form(
@@ -339,13 +339,12 @@ export default function Perfil() {
       <div>
         <b>{p.nome}</b>
         <small>
-          {/* Projeto sigiloso que quem olha não pode abrir: sem função e sem link. */}
+          {/* Projeto que quem olha não abre (restrito): sem função e sem link. */}
           {p.restrito ? 'Detalhes restritos' : p.funcao || 'Sem função definida'} · desde {fd(p.dataEntrada)}
           {p.dataSaida ? ` até ${fd(p.dataSaida)}` : ''}
         </small>
       </div>
       <SeloTipo p={p} />
-      {p.sigiloso && <SeloSigiloso />}
       <span className={chip()}>{p.status}</span>
     </div>
   )
@@ -510,7 +509,7 @@ export default function Perfil() {
           <AreasPessoa
             periodos={periodos}
             trainee={periodoTrainee(u)}
-            podeGerir={podeGerirPeriodos}
+            podeGerir={podeGerir}
             codigoPessoa={u.codigo}
             onMudou={aoMudarPeriodos}
           />

@@ -199,22 +199,11 @@ svg.i {
     padding-bottom: 56px
 }
 
-/* Projeto sigiloso visto só em resumo: esmaecido e sem clique. */
+/* Projeto que a pessoa não abre (só o cartão): esmaecido e sem clique. */
 .resumo-sigilo,
 .ag.resumo-sigilo {
     opacity: .6;
     cursor: default
-}
-
-.selo-sigilo {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px
-}
-
-.selo-sigilo .i {
-    width: 12px;
-    height: 12px
 }
 
 .stat b {
@@ -2686,4 +2675,19 @@ tr.linha-acima td {
         font-size: 8.5pt;
         color: #48515e
     }
+}
+
+/* Grade de permissões (sessão 31a) */
+.grade-perm .grade-perm-nome {
+  min-width: 260px;
+  position: sticky;
+  left: 0;
+  background: var(--bs-card-bg, var(--bg));
+  z-index: 1;
+}
+.grade-perm .grade-perm-grupo th {
+  background: var(--bg);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }

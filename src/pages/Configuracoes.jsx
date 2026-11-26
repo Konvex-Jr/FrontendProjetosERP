@@ -9,13 +9,9 @@ import useCarregar from '../lib/useCarregar'
 import Esqueleto from '../components/Esqueleto'
 import { configuracoes } from '../services/pessoas'
 import { DIFICULDADES, formatarHoras, horasPorDia } from '../lib/ocupacao'
+import { abasConfiguracoes } from '../lib/permissoes'
+import GradePermissoes from '../components/GradePermissoes'
 
-const ABAS = [
-  ['areas', 'Áreas'],
-  ['cargos', 'Cargos'],
-  ['senioridades', 'Senioridades'],
-  ['dificuldade', 'Dificuldade'],
-]
 const LIDERA = [
   ['false', 'Não'],
   ['true', 'Sim'],
@@ -25,27 +21,34 @@ const SIM_NAO = [
   ['false', 'Inativo'],
 ]
 
-/** Chave e busca da tela; o menu (src/lib/antecipar.js) usa as mesmas para buscar antes do clique. */
-export function dadosDaTela() {
+/**
+ * Chave e busca da tela; o menu (src/lib/antecipar.js) usa as mesmas para buscar antes do clique.
+ * A grade de permissões (31a) só é pedida por quem tem `permissoes.gerir`.
+ */
+export function dadosDaTela(contexto) {
+  const veGrade = Boolean(contexto?.pode?.('permissoes.gerir'))
   return {
-    chave: 'configuracoes',
+    chave: `configuracoes:${veGrade ? 'grade' : 'sem-grade'}`,
     carregar: async () => {
-      const [areas, cargos, senioridades, horas] = await Promise.all([
+      const [areas, cargos, senioridades, horas, grade] = await Promise.all([
         configuracoes.areas(),
         configuracoes.cargos(),
         configuracoes.senioridades(),
         configuracoes.horasDificuldade(),
+        veGrade ? configuracoes.permissoes() : null,
       ])
-      return { areas, cargos, senioridades, horas }
+      return { areas, cargos, senioridades, horas, grade }
     },
   }
 }
 
-/** ADR-007: listas configuráveis (áreas, cargos, senioridades). Só diretores editam. */
+/** ADR-007: listas configuráveis (áreas, cargos, senioridades) e, desde a 31a, a grade de permissões. Cada aba pela sua permissão. */
 export default function Configuracoes() {
-  const { form, refresh } = useApp()
-  const [aba, setAba] = useState('areas')
-  const tela = dadosDaTela()
+  const { form, refresh, pode } = useApp()
+  const abas = abasConfiguracoes(pode)
+  const [escolhida, setAba] = useState(null)
+  const aba = abas.some(([k]) => k === escolhida) ? escolhida : abas[0]?.[0]
+  const tela = dadosDaTela({ pode })
   const { dados, carregando, recarregar } = useCarregar(tela.carregar, [], { chave: tela.chave })
 
   if (!dados)
@@ -56,7 +59,7 @@ export default function Configuracoes() {
       </>
     )
 
-  const { areas, cargos, senioridades, horas } = dados
+  const { areas, cargos, senioridades, horas, grade } = dados
   const nomeArea = codigo => areas.find(a => a.codigo === codigo)?.nome || '—'
 
   const salvar = async (acao, sucesso) => {
@@ -109,6 +112,14 @@ export default function Configuracoes() {
       c ? 'Editar cargo' : 'Novo cargo',
       [
         { k: 'nome', l: 'Nome' },
+        {
+          k: 'posicao',
+          l: 'Posição',
+          t: 'number',
+          min: 1,
+          step: 1,
+          h: '1 = presidente (um só). Menor = mais alto: diretores 2, gerentes 3, os demais 4. Você só usa posições abaixo da sua.',
+        },
         { k: 'ativo', l: 'Situação', o: SIM_NAO },
         {
           k: 'lideraArea',
@@ -128,6 +139,7 @@ export default function Configuracoes() {
       ],
       {
         nome: c?.nome || '',
+        posicao: c?.posicao ?? 4,
         ativo: String(c?.ativo ?? true),
         lideraArea: String(c?.lideraArea ?? false),
         tetoSemanalHoras: c?.tetoSemanalHoras ?? 10,
@@ -137,6 +149,7 @@ export default function Configuracoes() {
           () =>
             configuracoes.salvarCargo(c?.codigo, {
               nome: v.nome,
+              posicao: Number(v.posicao),
               ativo: v.ativo === 'true',
               lideraArea: v.lideraArea === 'true',
               tetoSemanalHoras: Number(v.tetoSemanalHoras),
@@ -189,8 +202,9 @@ export default function Configuracoes() {
     },
     cargos: {
       novo: () => editarCargo(),
-      linhas: cargos,
+      linhas: [...cargos].sort((a, b) => (a.posicao ?? 99) - (b.posicao ?? 99) || a.nome.localeCompare(b.nome)),
       colunas: [
+        { k: 'posicao', l: 'Posição' },
         { k: 'nome', l: 'Nome' },
         { k: 'li', l: 'Lidera a área', filter: 1, get: c => (c.lideraArea ? 'Sim' : 'Não') },
         { k: 'teto', l: 'Teto semanal', get: c => (c.tetoSemanalHoras == null ? '—' : formatarHoras(c.tetoSemanalHoras)) },
@@ -219,25 +233,52 @@ export default function Configuracoes() {
       { k: 'dia20', l: 'Por dia (teto 20 h)', get: r => formatarHoras(horasPorDia(r.percentual, 20)) },
     ],
   }
+  const salvarGrade = async (chave, permissoes) => {
+    try {
+      await configuracoes.salvarPermissoes(chave, permissoes)
+      alerts.toastSuccess('Permissões salvas')
+      await recarregar()
+      // A grade pode mudar o que a própria pessoa vê (menu): recarrega o acesso.
+      refresh().catch(() => {})
+    } catch (error) {
+      alerts.error('Não foi possível salvar', error.message)
+    }
+  }
+
+  if (!aba) return <PageBar title="Configurações" sub="Você não tem nenhuma configuração para alterar." />
   const atual = telas[aba]
 
   return (
     <>
       <PageBar title="Configurações">
-        <button className="btn btn-primary" onClick={atual.novo}>
-          <Ic k={aba === 'dificuldade' ? 'edit' : 'plus'} />
-          {atual.rotulo || 'Novo item'}
-        </button>
+        {atual && (
+          <button className="btn btn-primary" onClick={atual.novo}>
+            <Ic k={aba === 'dificuldade' ? 'edit' : 'plus'} />
+            {atual.rotulo || 'Novo item'}
+          </button>
+        )}
       </PageBar>
       <div className="mb-3">
-        <Seg items={ABAS} value={aba} onChange={setAba} />
+        <Seg items={abas} value={aba} onChange={setAba} />
       </div>
-      <Table
-        key={aba}
-        cols={atual.colunas}
-        rows={atual.linhas.map(x => ({ ...x, id: x.codigo }))}
-        vazio="Nenhum item nesta lista. Use “Novo item”."
-      />
+      {aba === 'permissoes' ? (
+        grade ? (
+          <GradePermissoes
+            key={grade.colunas.map(c => `${c.chave}:${[...c.permissoes].sort().join(',')}`).join('|')}
+            dados={grade}
+            aoSalvar={salvarGrade}
+          />
+        ) : (
+          <Esqueleto />
+        )
+      ) : (
+        <Table
+          key={aba}
+          cols={atual.colunas}
+          rows={atual.linhas.map(x => ({ ...x, id: x.codigo }))}
+          vazio="Nenhum item nesta lista. Use “Novo item”."
+        />
+      )}
     </>
   )
 }

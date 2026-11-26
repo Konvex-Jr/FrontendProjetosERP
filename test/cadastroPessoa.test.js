@@ -31,16 +31,14 @@ test('a gestão manda link de senha a ativo e a trainee', () => {
   assert.equal(podeRedefinirSenha('inativo'), false)
 })
 
-test('nova pessoa: trainee vai como membro e ninguém leva senha (a pessoa cria pelo convite)', () => {
+test('nova pessoa: sem perfil (31a: vem do cargo) e ninguém leva senha (a pessoa cria pelo convite)', () => {
   assert.deepEqual(corpoNovaPessoa({ nome: 'Tê', status: 'trainee', perfil: 'gerente', senha: 'segredo123', dataEntrada: '' }), {
     nome: 'Tê',
     status: 'trainee',
-    perfil: 'membro',
   })
-  assert.deepEqual(corpoNovaPessoa({ nome: 'Ana', status: 'ativo', perfil: 'gerente', senha: 'x', dataEntrada: '2026-11-01' }), {
+  assert.deepEqual(corpoNovaPessoa({ nome: 'Ana', status: 'ativo', senha: 'x', dataEntrada: '2026-11-01' }), {
     nome: 'Ana',
     status: 'ativo',
-    perfil: 'gerente',
     dataEntrada: '2026-11-01',
   })
 })
@@ -74,7 +72,6 @@ test('corpoEdicaoPessoa só manda o que mudou', async () => {
     {
       nome: 'A',
       email: 'a@x',
-      perfil: 'membro',
       codigoSenioridade: 1,
     },
   )
@@ -95,7 +92,6 @@ test('corpoEdicaoPessoa só manda o que mudou', async () => {
     {
       nome: 'A',
       email: 'a@x',
-      perfil: 'membro',
       codigoSenioridade: 1,
       curso: 'Engenharia Elétrica',
       telefone: '(11) 3456-7890',

@@ -14,7 +14,7 @@ const Ctx = createContext(null)
 export const useApp = () => useContext(Ctx)
 // Dados sem login: u pessoas, p projetos, t tarefas, k capacitações.
 const VAZIO = { u: [], p: [], t: [], k: [] }
-const SEM_ACESSO = { permissoes: [], menu: [] }
+const SEM_ACESSO = { permissoes: [], menu: [], cargo: null }
 
 /**
  * Estado global do app logado. `useApp()` dá acesso a:
@@ -246,6 +246,7 @@ export function AppProvider({ children }) {
         loading,
         refresh,
         pode,
+        cargo: acesso.cargo,
         pendencias,
         setPendencias,
         recarregarCapacitacoes,

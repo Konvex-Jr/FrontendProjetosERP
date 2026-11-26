@@ -54,5 +54,7 @@ export const configuracoes = {
   salvarHorasDificuldade: horas => send('PUT', '/config/horas-dificuldade', horas),
   salvarArea: (codigo, dados) => send(codigo ? 'PUT' : 'POST', codigo ? `/areas/${codigo}` : '/areas', dados),
   salvarCargo: (codigo, dados) => send(codigo ? 'PUT' : 'POST', codigo ? `/cargos/${codigo}` : '/cargos', dados),
+  permissoes: () => get('/permissoes'),
+  salvarPermissoes: (chave, permissoes) => send('PUT', `/permissoes/${chave}`, { permissoes }),
   salvarSenioridade: (codigo, dados) => send(codigo ? 'PUT' : 'POST', codigo ? `/senioridades/${codigo}` : '/senioridades', dados),
 }

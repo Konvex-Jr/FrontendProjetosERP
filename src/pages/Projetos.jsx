@@ -10,7 +10,7 @@ import Avatar from '../components/Avatar'
 import alerts from '../lib/alerts'
 import useCarregar from '../lib/useCarregar'
 import Esqueleto from '../components/Esqueleto'
-import { SeloSigiloso, SeloTipo, StatusProjeto } from '../components/SeloProjeto'
+import { SeloTipo, StatusProjeto } from '../components/SeloProjeto'
 import { gravarProjeto } from '../lib/gravarProjeto'
 import { consumir } from '../lib/atalho'
 import {
@@ -20,7 +20,6 @@ import {
   comArea,
   erroDoFormularioProjeto,
   filtrarProjetos,
-  semEquipeEscondida,
   textoDoCartao,
 } from '../lib/projetosInternos'
 import { GRUPOS_PROJETO } from '../lib/indicadores'
@@ -29,24 +28,6 @@ import { PRIORIDADE_PROJETO, STATUS_PROJETO, projetos, rotuloStatusProjeto } fro
 
 const dia = s => (s ? String(s).slice(0, 10) : '')
 const membrosAtivos = p => (p.participacoes || []).filter(x => !x.dataSaida).map(x => x.usuario.codigo)
-
-const VISIBILIDADE = [
-  ['normal', 'Normal'],
-  ['sigiloso', 'Sigiloso'],
-]
-
-/**
- * Na edição, marcar o projeto como sigiloso pode esconder os detalhes de quem não é da equipe: pede confirmação.
- * Resolve false se a pessoa desistir.
- */
-export async function confirmarSigilo(p, v) {
-  if (!p || p.sigiloso || v.visibilidade !== 'sigiloso') return true
-  return alerts.confirm({
-    title: 'Marcar como sigiloso?',
-    text: 'Só a equipe e os diretores verão os detalhes e as tarefas.',
-    confirmText: 'Marcar como sigiloso',
-  })
-}
 
 /** Campos do formulário do projeto, usados aqui e na Visão geral do projeto. */
 export function camposProjeto({ lista, areas, novo }) {
@@ -77,20 +58,19 @@ export function camposProjeto({ lista, areas, novo }) {
       opt: true,
       h: 'Obrigatória no projeto interno.',
     },
-    { k: 'visibilidade', l: 'Visibilidade', o: VISIBILIDADE, h: 'Só a equipe e os diretores verão os detalhes e as tarefas.' },
     {
       k: 'codigosMembros',
       l: 'Equipe inicial',
       c: (lista || []).filter(u => u.naEj).map(u => ({ id: u.codigo, nome: u.nome })),
-      s: v => novo && v.visibilidade === 'sigiloso',
+      s: () => novo,
       opt: true,
-      h: 'Quem não é diretor precisa se colocar na equipe para continuar vendo o projeto sigiloso.',
+      h: 'Só a equipe e quem tem acesso pelo cargo abrem o projeto. Se a área não for a do seu cargo, coloque-se na equipe.',
     },
   ]
 }
 
 export function valoresProjeto(p) {
-  if (!p) return { tipo: 'cliente', prioridade: 'media', codigoLider: '', codigoArea: '', visibilidade: 'normal' }
+  if (!p) return { tipo: 'cliente', prioridade: 'media', codigoLider: '', codigoArea: '' }
   return {
     nome: p.nome,
     tipo: p.tipo || 'cliente',
@@ -103,7 +83,6 @@ export function valoresProjeto(p) {
     status: p.status,
     prioridade: p.prioridade || 'media',
     codigoArea: p.area?.codigo || '',
-    visibilidade: p.sigiloso ? 'sigiloso' : 'normal',
   }
 }
 
@@ -112,7 +91,8 @@ export function valoresProjeto(p) {
  * para o dado buscado antes do clique ser o que a tela mostra. `contexto` = { me, mb, pode } do useApp().
  */
 export function dadosDaTela({ pode }) {
-  const gestor = pode('projetos.editar')
+  // Pessoas e áreas: para o formulário (projetos.editar) e para Alocação/Campinho (gestao.visoes, sessão 31a).
+  const gestor = pode('projetos.editar') || pode('gestao.visoes')
   return {
     // Todos veem todos os projetos (sessão 27a): os de fora vêm como cartão. Filtrar pela pessoa esconderia os cartões.
     chave: `projetos:todos:${gestor}`,
@@ -140,8 +120,8 @@ export function EquipeDoCartao({ membros }) {
 }
 
 /**
- * Projeto que a pessoa vê só pelo cartão (sessão 27a): nome, tipo, área do interno, status, líder e selo do
- * sigiloso. Sem clique, sem progresso e sem datas.
+ * Projeto que a pessoa vê só pelo cartão (sessão 27a): nome, tipo, área do interno, status e líder.
+ * Sem clique, sem progresso e sem datas.
  */
 function CartaoNaLista({ p }) {
   return (
@@ -149,7 +129,6 @@ function CartaoNaLista({ p }) {
       <span className="d-flex flex-wrap gap-1">
         <StatusProjeto s={p.status} />
         <SeloTipo p={p} />
-        {p.sigiloso && <SeloSigiloso />}
       </span>
       <h2 className="mt-3">{p.nome}</h2>
       <dl className="pj-cartao-dados">
@@ -185,7 +164,7 @@ export default function Projetos() {
     [areaId, setAreaId] = useState('')
   const gestor = pode('projetos.editar')
   const tela = dadosDaTela({ pode })
-  const { dados, carregando, recarregar } = useCarregar(tela.carregar, [gestor], { chave: tela.chave })
+  const { dados, carregando, recarregar } = useCarregar(tela.carregar, [tela.chave], { chave: tela.chave })
 
   if (!dados)
     return (
@@ -217,8 +196,7 @@ export default function Projetos() {
         alerts.error('Não foi possível salvar', aviso)
         return false
       }
-      if (!(await confirmarSigilo(p, v))) return false
-      const dados = semEquipeEscondida(v)
+      const dados = v
       const r = await executar(
         () => gravarProjeto(dados.tipo === 'interno' ? { ...dados, clienteNome: '' } : dados, p),
         p ? 'Projeto atualizado' : 'Projeto criado',
@@ -269,12 +247,6 @@ export default function Projetos() {
       render: p => (
         <>
           {p.nome} <SeloTipo p={p} />
-          {p.sigiloso && (
-            <>
-              {' '}
-              <SeloSigiloso />
-            </>
-          )}
           {p.tipo === 'interno' && p.areaNome && <small className="d-block text-mu">{p.areaNome}</small>}
         </>
       ),
@@ -338,8 +310,8 @@ export default function Projetos() {
         <button className={'btn btn-g' + (pv == 'lista' ? ' on' : '')} onClick={() => setPv('lista')}>
           Linhas
         </button>
-        {/* Visões só da gestão (sessão 28a): por pessoa (Alocação) e por projeto (Campinho). */}
-        {gestor && (
+        {/* Visões da gestão (sessão 28a; desde a 31a, pela permissão gestao.visoes): Alocação e Campinho. */}
+        {pode('gestao.visoes') && (
           <>
             <button className={'btn btn-g' + (pv == 'campinho' ? ' on' : '')} onClick={() => setPv('campinho')}>
               Campinho
@@ -378,7 +350,6 @@ export default function Projetos() {
                     <span className="d-flex flex-wrap gap-1">
                       <StatusProjeto s={p.status} />
                       <SeloTipo p={p} />
-                      {p.sigiloso && <SeloSigiloso />}
                     </span>
                     <Av D={D} ids={membrosAtivos(p)} />
                   </div>

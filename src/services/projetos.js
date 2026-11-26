@@ -33,12 +33,10 @@ export const rotuloPrioridade = s => PRIORIDADE_PROJETO.find(([k]) => k === s)?.
 
 /** Converte o formulário do projeto no corpo da API. */
 export function corpoProjeto(dados) {
-  // `acesso` (lista de acesso da sessão 20) saiu na 27a: descartado se ainda vier no formulário.
-  const { progresso, acesso: _acesso, visibilidade, ...resto } = vazioComoNull(dados)
+  // `acesso` (lista da sessão 20) saiu na 27a e o sigilo saiu na 31a (todo projeto é fechado): descartados se vierem.
+  const { progresso, acesso: _acesso, visibilidade: _visibilidade, sigiloso: _sigiloso, ...resto } = vazioComoNull(dados)
   return {
     ...resto,
-    // Visibilidade do formulário (Normal/Sigiloso) → `sigiloso`. Sem o campo, nada vai; o PUT sempre manda a visibilidade (quem edita o projeto muda o sigilo).
-    ...(visibilidade ? { sigiloso: visibilidade === 'sigiloso' } : {}),
     ...(numeroOuNada(progresso) !== undefined ? { progresso: Number(progresso) } : {}),
   }
 }

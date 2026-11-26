@@ -25,11 +25,6 @@ import { ocupacao } from '../services/ocupacao'
 import ChipOcupacao from '../components/ChipOcupacao'
 
 const COR_STATUS = { ativo: 'ok', trainee: '', inativo: 'er' }
-const PERFIS = [
-  ['membro', 'Membro'],
-  ['gerente', 'Gerente'],
-  ['diretor', 'Diretor'],
-]
 const SAIDA = ['inativo']
 
 /** Chave e busca da tela; o menu (src/lib/antecipar.js) usa as mesmas para buscar antes do clique. */
@@ -66,9 +61,9 @@ export default function Pessoas() {
 
   const { lista, senioridades, ocupacoes } = dados
   const percentuais = Object.fromEntries((ocupacoes || []).map(o => [o.codigoUsuario, o.percentual]))
-  const gereDiretores = pode('pessoas.gerirDiretores')
-  const perfis = gereDiretores ? PERFIS : PERFIS.filter(([k]) => k !== 'diretor')
-  const podeMexer = p => gereDiretores || p.perfil !== 'diretor'
+  // Sessão 31a: a API diz por pessoa se quem olha pode geri-la (pessoas.gerir e cargo abaixo do seu).
+  const podeMexer = p => p.podeGerir === true
+  const podeConvidar = pode('pessoas.gerir')
 
   // Depois de salvar: recarrega esta tela e os dados compartilhados (nomes em projetos etc.).
   const executar = async (acao, sucesso) => {
@@ -94,10 +89,8 @@ export default function Pessoas() {
           l: 'Status',
           o: STATUS_PESSOA.slice(0, 2),
           s: () => !p,
-          h: 'Trainee entra no sistema com acesso de membro e não lidera projetos. Só se entra como trainee no cadastro.',
+          h: 'Trainee recebe as permissões do conjunto "Trainee" (Configurações → Permissões). Só se entra como trainee no cadastro. O que cada pessoa pode vem do cargo, lançado nas Áreas do perfil.',
         },
-        // Trainee é sempre membro: o campo some e o corpo vai com perfil membro (lib/cadastroPessoa.js).
-        { k: 'perfil', l: 'Perfil de acesso', o: perfis, s: v => (p ? p.status : v.status) !== 'trainee' },
         { k: 'codigoSenioridade', l: 'Senioridade', o: senioridades.map(s => [s.codigo, s.nome]) },
         { k: 'dataEntrada', l: 'Data de entrada na EJ', t: 'date', opt: true },
         // Fim do período de trainee: só a gestão edita, e só de quem já foi trainee (quem é trainee ainda não terminou).
@@ -135,7 +128,6 @@ export default function Pessoas() {
         ? {
             nome: p.nome,
             email: p.email,
-            perfil: p.perfil,
             codigoSenioridade: p.senioridade?.codigo || senioridades[0]?.codigo,
             dataEntrada: p.dataEntrada?.slice(0, 10) || '',
             fimTrainee: p.fimTrainee?.slice(0, 10) || '',
@@ -145,7 +137,6 @@ export default function Pessoas() {
           }
         : {
             status: 'ativo',
-            perfil: 'membro',
             codigoSenioridade: senioridades[0]?.codigo,
             dataEntrada: '',
             curso: '',
@@ -282,7 +273,7 @@ export default function Pessoas() {
     },
     { k: 'cu', l: 'Curso', filter: 1, get: p => p.curso || 'Curso não informado' },
     { k: 'sn', l: 'Senioridade', filter: 1, get: p => p.senioridade?.nome || '—' },
-    { k: 'pf', l: 'Perfil', filter: 1, get: p => PERFIS.find(([k]) => k === p.perfil)?.[1] || p.perfil },
+    { k: 'cg', l: 'Cargo', filter: 1, get: p => (p.areas || []).find(a => a.cargo)?.cargo?.nome || 'Sem cargo' },
     {
       k: 'st',
       l: 'Status',
@@ -326,10 +317,12 @@ export default function Pessoas() {
   return (
     <>
       <PageBar title="Pessoas">
-        <button className="btn btn-primary" onClick={() => editar()} disabled={!senioridades.length}>
-          <Ic k="plus" />
-          Nova pessoa
-        </button>
+        {podeConvidar && (
+          <button className="btn btn-primary" onClick={() => editar()} disabled={!senioridades.length}>
+            <Ic k="plus" />
+            Nova pessoa
+          </button>
+        )}
       </PageBar>
       {!senioridades.length && <p className="text-mu">Cadastre uma senioridade em Configurações antes de criar pessoas.</p>}
       <Table

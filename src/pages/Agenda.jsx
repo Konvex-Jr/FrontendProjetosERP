@@ -107,7 +107,7 @@ function Reuniao({ r, fechar, editar, excluir }) {
 export default function Agenda() {
   const { D, me, pode, form } = useApp()
   const navigate = useNavigate()
-  const gestao = pode('projetos.verTodos')
+  const gestao = pode('agenda.gerirTodas')
   const [f, setF] = useState(() => (ultimos.me === me ? ultimos : { me, mes: '', pessoa: '' }))
   const set = (k, v) => setF(o => (ultimos = { ...o, me, [k]: v }))
   const [aberta, setAberta] = useState(null)

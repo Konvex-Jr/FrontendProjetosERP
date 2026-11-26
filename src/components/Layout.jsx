@@ -15,7 +15,7 @@ import { anteciparDados, precarregarPaginas } from '../lib/antecipar'
 
 /** Barra do topo: data de hoje, troca de tema, avisos, pessoa logada (abre o perfil), Configurações (engrenagem) e Sair. */
 function Header() {
-  const { D, me, sair, nav, go } = useApp(),
+  const { D, me, sair, nav, go, cargo } = useApp(),
     temConfig = nav.some(([k]) => k === 'configuracoes'),
     // Sair pede confirmação (27c): o botão fica perto do avatar e era fácil clicar sem querer.
     confirmarSaida = async () => {
@@ -67,7 +67,7 @@ function Header() {
           <Avisos me={me} />
           <span className="hu">
             <b>{un(D, me)}</b>
-            <small>{D.u.find(u => u.id == me)?.perfil}</small>
+            <small>{cargo?.nome}</small>
           </span>
           <Avatar
             pessoa={D.u.find(u => u.id == me) || { nome: un(D, me) }}
