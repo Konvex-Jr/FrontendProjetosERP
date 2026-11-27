@@ -11,13 +11,15 @@ import { adaptTask } from './apiMappers.js'
  */
 export async function carregarProjeto(codigo, gestor) {
   const buscaTarefas = tarefas.listar({ codigoProjeto: codigo }).catch(erro => ({ erro }))
-  const [projeto, gente, areas] = await Promise.all([
+  // Classes (31b): para o formulário de edição, como pessoas e áreas.
+  const [projeto, gente, areas, classes] = await Promise.all([
     projetos.buscar(codigo),
     gestor ? pessoas.listar() : [],
     gestor ? configuracoes.areas() : [],
+    gestor ? configuracoes.classes() : [],
   ])
-  if (projeto.cartao) return { projeto, gente, areas, tarefas: [] }
+  if (projeto.cartao) return { projeto, gente, areas, classes, tarefas: [] }
   const lista = await buscaTarefas
   if (lista.erro) throw lista.erro
-  return { projeto, gente, areas, tarefas: lista.map(adaptTask) }
+  return { projeto, gente, areas, classes, tarefas: lista.map(adaptTask) }
 }

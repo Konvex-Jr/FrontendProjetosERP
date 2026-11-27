@@ -158,6 +158,8 @@ try {
     await campo(janela(page), 'Início').fill(HOJE)
     await campo(janela(page), 'Fim').fill(FIM)
     await campo(janela(page), 'Área').selectOption({ label: 'Inovação' })
+    // Sessão 31b: classe obrigatória no projeto novo.
+    await campo(janela(page), 'Classe').selectOption({ label: 'Outro' })
     await janela(page).getByRole('button', { name: 'Salvar' }).click()
     await janela(page).waitFor({ state: 'detached', timeout: 15000 })
     // Depois de salvar a tela abre o projeto novo; volta para a lista para ver o cartão.

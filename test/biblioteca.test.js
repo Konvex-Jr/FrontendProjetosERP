@@ -103,7 +103,7 @@ test('editar: projeto inalterado omite a chave, removido manda null, trocado man
 test('sigilosPermitidos: membro não vê gestao', () => {
   assert.deepEqual(
     SIGILOS.map(s => s.valor),
-    ['todos', 'gestao', 'projeto'],
+    ['todos', 'gestao', 'projeto', 'diretoria'],
   )
   assert.equal(SIGILOS[1].rotulo, 'Só gestão')
   assert.equal(
@@ -115,6 +115,15 @@ test('sigilosPermitidos: membro não vê gestao', () => {
     ['todos', 'projeto'],
   )
   assert.equal(sigilosPermitidos(true).length, 3)
+  // Sessão 31b: "Só diretoria" (contratos) só com clientes.ver.
+  assert.deepEqual(
+    sigilosPermitidos(true, true).map(s => s.valor),
+    ['todos', 'gestao', 'projeto', 'diretoria'],
+  )
+  assert.deepEqual(
+    sigilosPermitidos(false, true).map(s => s.valor),
+    ['todos', 'projeto', 'diretoria'],
+  )
 })
 
 test('biblioteca chama as rotas e devolve itens mapeados', async () => {

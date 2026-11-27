@@ -2691,3 +2691,34 @@ tr.linha-acima td {
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
+
+/* Clientes do projeto (sessão 31b): formulário em linhas e lista na Visão geral. */
+.clientes-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: flex-start;
+}
+.clientes-linha {
+  display: grid;
+  /* Nome e empresa na 1ª linha, telefone e e-mail na 2ª; o botão de remover ocupa as duas, à direita. */
+  grid-template-columns: 1fr 1fr auto;
+  gap: 0.4rem;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.clientes-linha > button {
+  grid-column: 3;
+  grid-row: 1 / span 2;
+  align-self: center;
+}
+.clientes-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}

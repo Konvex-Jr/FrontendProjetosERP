@@ -7,7 +7,7 @@ import Indicadores from '../components/Indicadores'
 import OcupacaoSemana from '../components/OcupacaoSemana'
 import { PageBar, Prog, Seg } from '../components/Ui'
 import { contagemTarefas } from '../lib/indicadores'
-import { FILTRO_TIPO, filtrarProjetos, textoDoCartao } from '../lib/projetosInternos'
+import { FILTRO_TIPO, filtrarProjetos } from '../lib/projetosInternos'
 
 const TB = { late: ['Atrasadas', 'er'], and: ['Em andamento', 'an'], done: ['Concluídas', 'ok'] }
 
@@ -150,7 +150,7 @@ export default function Estrategia() {
                 return (
                   <div key={p.id}>
                     <span>{p.nome}</span>
-                    <small className="d-block text-mu">{textoDoCartao(p)}</small>
+                    <small className="d-block text-mu">{p.progresso ?? 0}% concluído</small>
                   </div>
                 )
               const L = T.filter(t => t.projetoId == p.id),

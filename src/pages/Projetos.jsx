@@ -13,16 +13,10 @@ import Esqueleto from '../components/Esqueleto'
 import { SeloTipo, StatusProjeto } from '../components/SeloProjeto'
 import { gravarProjeto } from '../lib/gravarProjeto'
 import { consumir } from '../lib/atalho'
-import {
-  FILTRO_TIPO,
-  TIPOS_PROJETO,
-  areasDosProjetos,
-  comArea,
-  erroDoFormularioProjeto,
-  filtrarProjetos,
-  textoDoCartao,
-} from '../lib/projetosInternos'
+import { FILTRO_TIPO, TIPOS_PROJETO, areasDosProjetos, comArea, erroDoFormularioProjeto, filtrarProjetos } from '../lib/projetosInternos'
 import { GRUPOS_PROJETO } from '../lib/indicadores'
+import { CamposClientes } from '../components/ClientesProjeto'
+import { clientesParaFormulario, erroDosClientes, textoClientes } from '../lib/clientesProjeto'
 import { configuracoes, pessoas } from '../services/pessoas'
 import { PRIORIDADE_PROJETO, STATUS_PROJETO, projetos, rotuloStatusProjeto } from '../services/projetos'
 
@@ -30,13 +24,29 @@ const dia = s => (s ? String(s).slice(0, 10) : '')
 const membrosAtivos = p => (p.participacoes || []).filter(x => !x.dataSaida).map(x => x.usuario.codigo)
 
 /** Campos do formulário do projeto, usados aqui e na Visão geral do projeto. */
-export function camposProjeto({ lista, areas, novo }) {
+export function camposProjeto({ lista, areas, novo, classes = [], podeClientes = false, geral = false }) {
   const opcoes = (itens, ok) => [['', '—'], ...itens.filter(ok).map(i => [i.codigo, i.nome])]
   return [
     { k: 'nome', l: 'Nome' },
     { k: 'tipo', l: 'Tipo', o: TIPOS_PROJETO, h: 'Interno é da Konvex e fica numa área; cliente é para quem a Konvex trabalha.' },
     { k: 'referencia', l: 'Referência', opt: true, h: 'Código curto do projeto, ex.: PRJ-2026-01.' },
-    { k: 'clienteNome', l: 'Cliente', opt: true, s: v => v.tipo !== 'interno' },
+    // Classe (31b): obrigatória no projeto novo; no antigo sem classe, a edição segue sem exigir.
+    {
+      k: 'codigoClasse',
+      l: 'Classe',
+      o: [['', '—'], ...classes.map(c => [c.codigo, c.nome])],
+      opt: !novo,
+      s: () => !geral,
+      h: 'Tipo de entrega: landing page, CRM, SaaS... A lista fica em Configurações.',
+    },
+    // Clientes (31b): só quem tem clientes.ver edita (telefone e e-mail são da diretoria).
+    {
+      k: 'clientes',
+      l: 'Clientes',
+      opt: true,
+      s: v => podeClientes && v.tipo !== 'interno',
+      campo: (v, set) => <CamposClientes valor={v.clientes} aoMudar={x => set('clientes', x)} />,
+    },
     { k: 'descricao', l: 'Descrição', t: 'textarea' },
     { k: 'objetivo', l: 'Objetivo', t: 'textarea', opt: true },
     { k: 'dataInicio', l: 'Início', t: 'date' },
@@ -55,8 +65,8 @@ export function camposProjeto({ lista, areas, novo }) {
       k: 'codigoArea',
       l: 'Área',
       o: opcoes(areas, a => a.ativa),
-      opt: true,
-      h: 'Obrigatória no projeto interno.',
+      opt: !novo,
+      h: 'Obrigatória ao criar (31b). Quem tem acesso pelo cargo abre os projetos da sua área.',
     },
     {
       k: 'codigosMembros',
@@ -69,13 +79,23 @@ export function camposProjeto({ lista, areas, novo }) {
   ]
 }
 
-export function valoresProjeto(p) {
-  if (!p) return { tipo: 'cliente', prioridade: 'media', codigoLider: '', codigoArea: '' }
+export function valoresProjeto(p, { podeClientes = false } = {}) {
+  if (!p)
+    return {
+      tipo: 'cliente',
+      prioridade: 'media',
+      codigoLider: '',
+      codigoArea: '',
+      codigoClasse: '',
+      ...(podeClientes ? { clientes: [] } : {}),
+    }
   return {
     nome: p.nome,
     tipo: p.tipo || 'cliente',
     referencia: p.referencia || '',
-    clienteNome: p.clienteNome || '',
+    codigoClasse: p.classe?.codigo || '',
+    // Só quem tem clientes.ver manda a lista (a API recusa dos demais).
+    ...(podeClientes ? { clientes: clientesParaFormulario(p.clientes) } : {}),
     descricao: p.descricao,
     objetivo: p.objetivo || '',
     dataInicio: dia(p.dataInicio),
@@ -95,14 +115,16 @@ export function dadosDaTela({ pode }) {
   const gestor = pode('projetos.editar') || pode('gestao.visoes')
   return {
     // Todos veem todos os projetos (sessão 27a): os de fora vêm como cartão. Filtrar pela pessoa esconderia os cartões.
-    chave: `projetos:todos:${gestor}`,
+    // `clientes.ver` na chave (31b), pelo mesmo motivo da ficha do projeto.
+    chave: `projetos:todos:${gestor}:${pode('clientes.ver')}`,
     carregar: async () => {
-      const [lista, gente, areas] = await Promise.all([
+      const [lista, gente, areas, classes] = await Promise.all([
         projetos.listar(),
         gestor ? pessoas.listar() : [],
         gestor ? configuracoes.areas() : [],
+        gestor ? configuracoes.classes() : [],
       ])
-      return { lista, gente, areas }
+      return { lista, gente, areas, classes }
     },
   }
 }
@@ -121,7 +143,7 @@ export function EquipeDoCartao({ membros }) {
 
 /**
  * Projeto que a pessoa vê só pelo cartão (sessão 27a): nome, tipo, área do interno, status e líder.
- * Sem clique, sem progresso e sem datas.
+ * Sem clique e sem datas; desde a 31b, com a classe e o % de progresso.
  */
 function CartaoNaLista({ p }) {
   return (
@@ -138,6 +160,12 @@ function CartaoNaLista({ p }) {
             <dd>{p.areaNome}</dd>
           </>
         )}
+        {p.classe && (
+          <>
+            <dt>Classe</dt>
+            <dd>{p.classe}</dd>
+          </>
+        )}
         {/* O geral da área não tem líder próprio (quem lidera é o líder da área), como na ficha completa. */}
         {!p.geralDaArea && (
           <>
@@ -150,7 +178,13 @@ function CartaoNaLista({ p }) {
           <EquipeDoCartao membros={p.membros} />
         </dd>
       </dl>
-      <small className="text-mu mt-auto">{textoDoCartao(p)}</small>
+      <div className="mt-auto pt-2">
+        <div className="d-flex justify-content-between small mb-1">
+          <span>Progresso</span>
+          <span className="fw-semibold">{p.progresso ?? 0}%</span>
+        </div>
+        <Prog v={p.progresso ?? 0} />
+      </div>
     </div>
   )
 }
@@ -173,7 +207,8 @@ export default function Projetos() {
         {carregando && <Esqueleto />}
       </>
     )
-  const { gente, areas } = dados
+  const { gente, areas, classes = [] } = dados
+  const podeClientes = pode('clientes.ver')
   const lista = dados.lista.map(comArea)
 
   const executar = async (acao, sucesso) => {
@@ -190,20 +225,23 @@ export default function Projetos() {
   }
 
   const editar = p =>
-    form(p ? 'Editar projeto' : 'Novo projeto', camposProjeto({ lista: gente, areas, novo: !p }), valoresProjeto(p), async v => {
-      const aviso = erroDoFormularioProjeto(v)
-      if (aviso) {
-        alerts.error('Não foi possível salvar', aviso)
-        return false
-      }
-      const dados = v
-      const r = await executar(
-        () => gravarProjeto(dados.tipo === 'interno' ? { ...dados, clienteNome: '' } : dados, p),
-        p ? 'Projeto atualizado' : 'Projeto criado',
-      )
-      if (r && !p) go('projeto', r.codigo)
-      return r === false ? false : undefined
-    })
+    form(
+      p ? 'Editar projeto' : 'Novo projeto',
+      camposProjeto({ lista: gente, areas, classes, novo: !p, podeClientes, geral: p?.geralDaArea }),
+      valoresProjeto(p, { podeClientes }),
+      async v => {
+        const aviso = erroDoFormularioProjeto(v) || (v.clientes ? erroDosClientes(v.clientes) : '')
+        if (aviso) {
+          alerts.error('Não foi possível salvar', aviso)
+          return false
+        }
+        const dados = v
+        const r = await executar(() => gravarProjeto(dados, p), p ? 'Projeto atualizado' : 'Projeto criado')
+        if (r && !p) go('projeto', r.codigo)
+        return r === false ? false : undefined
+      },
+      { largo: podeClientes },
+    )
   const mudarStatus = p =>
     form(
       'Mudar status',
@@ -358,7 +396,7 @@ export default function Projetos() {
                   <Prog v={pg(p)} />
                   <small>
                     {pg(p)}% · {periodo(p)}
-                    {p.clienteNome ? ' · ' + p.clienteNome : ''}
+                    {p.clientes?.length ? ' · ' + textoClientes(p.clientes) : ''}
                   </small>
                   <span className="cm" onClick={e => e.stopPropagation()}>
                     <Ac p={p} />

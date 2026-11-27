@@ -7,7 +7,6 @@ import {
   filtrarProjetos,
   gruposDeProjetos,
   rotuloTipo,
-  textoDoCartao,
 } from '../src/lib/projetosInternos.js'
 
 const area = (areaId, areaNome) => ({ areaId, areaNome })
@@ -103,9 +102,4 @@ test('gruposDeProjetos agrupa por área também o projeto cru da API (area aninh
     gruposDeProjetos(crus).map(g => g.rotulo),
     ['Clientes', 'Inovação'],
   )
-})
-
-test('textoDoCartao (31a): um texto só, sem sigilo; fala da equipe e do cargo', () => {
-  assert.match(textoDoCartao({}), /equipe e de quem tem acesso pelo cargo/)
-  assert.equal(textoDoCartao({ sigiloso: true }), textoDoCartao({}))
 })

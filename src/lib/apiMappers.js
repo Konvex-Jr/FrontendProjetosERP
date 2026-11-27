@@ -53,6 +53,9 @@ export function adaptProject(project) {
       areaNome: project.area?.nome ?? null,
       status: project.status,
       geralDaArea: !!project.geralDaArea,
+      // % de progresso e classe no cartão (31b).
+      progresso: project.progresso ?? 0,
+      classe: project.classe ?? null,
       ...lider,
       membros: [],
       cartao: true,
